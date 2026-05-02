@@ -1,0 +1,1142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model activities {
+  id                      Int                       @id @default(autoincrement())
+  score_ratio_id          Int?
+  activity_type           String                    @db.VarChar(20)
+  activity_name           String                    @db.VarChar(255)
+  description             String?
+  created_at              DateTime?                 @default(now()) @db.Timestamp(6)
+  updated_at              DateTime?                 @default(now()) @db.Timestamp(6)
+  score_number            Int?                      @default(0)
+  announcement_date       DateTime?                 @db.Timestamp(6)
+  deadline_date           DateTime?                 @db.Timestamp(6)
+  course_syllabus_id      Int?
+  is_average_score        Boolean                   @default(false)
+  is_self_assessment      Boolean                   @default(false)
+  detail                  Json?
+  section_id              Int?
+  expected_level          Int?
+  subject_score_ratio     subject_score_ratio?      @relation(fields: [score_ratio_id], references: [score_ratio_id], onUpdate: NoAction, map: "fk_score_ratio")
+  activity_attachments    activity_attachments[]
+  activity_clo_mapping    activity_clo_mapping[]
+  activity_evidence       activity_evidence[]
+  rubric_activity_mapping rubric_activity_mapping[]
+  student_activity        student_activity[]
+  student_activity_group  student_activity_group[]
+}
+
+model activity_attachments {
+  activity_id   Int
+  attachment_id Int
+  activities    activities  @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_activity")
+  attachments   attachments @relation(fields: [attachment_id], references: [attachment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attachment")
+
+  @@id([activity_id, attachment_id])
+}
+
+model activity_clo_mapping {
+  id                  Int                 @id @default(autoincrement())
+  activity_id         Int
+  sequence_order      Int
+  weight              Int                 @default(0)
+  clo_id              Int?                @db.SmallInt
+  score_ratio_id      Int
+  created_at          DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at          DateTime?           @default(now()) @db.Timestamp(6)
+  score               Decimal             @default(0) @db.Decimal(5, 2)
+  detail              String?
+  activities          activities          @relation(fields: [activity_id], references: [id], onDelete: Cascade, map: "fk_activity_clo_mapping_activity_id")
+  subject_score_ratio subject_score_ratio @relation(fields: [score_ratio_id], references: [score_ratio_id], onDelete: Cascade, map: "fk_activity_clo_mapping_score_ratio")
+
+  @@unique([activity_id, sequence_order])
+}
+
+model activity_evidence {
+  evidence_id                                Int             @id @default(autoincrement())
+  section_id                                 Int
+  activity_id                                Int
+  evidence_type                              String?         @db.VarChar(50)
+  description                                String?
+  file_name                                  String
+  file_path                                  String
+  mime_type                                  String?
+  file_size                                  Int?
+  uploaded_by                                String?         @db.VarChar(8)
+  uploaded_at                                DateTime?       @default(now()) @db.Timestamp(6)
+  updated_by                                 String?         @db.VarChar(8)
+  updated_at                                 DateTime?       @default(now()) @db.Timestamp(6)
+  is_deleted                                 Boolean?        @default(false)
+  activities                                 activities      @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_activity_evidence_activity")
+  course_sections                            course_sections @relation(fields: [section_id], references: [section_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_activity_evidence_section")
+  users_activity_evidence_updated_byTousers  users?          @relation("activity_evidence_updated_byTousers", fields: [updated_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_activity_evidence_updated_by")
+  users_activity_evidence_uploaded_byTousers users?          @relation("activity_evidence_uploaded_byTousers", fields: [uploaded_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_activity_evidence_uploaded_by")
+
+  @@index([section_id, activity_id], map: "idx_activity_evidence_section_activity")
+}
+
+model activity_scores {
+  score_id    Int       @id @default(autoincrement())
+  student_id  String?   @db.VarChar(20)
+  activity_id Int?
+  clo_id      String?   @db.VarChar(10)
+  score       Decimal?  @db.Decimal(5, 2)
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  updated_at  DateTime? @default(now()) @db.Timestamp(6)
+  student     student?  @relation(fields: [student_id], references: [student_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([student_id, activity_id, clo_id])
+}
+
+model announcement_attachments {
+  announcement_id Int
+  attachment_id   Int
+  announcements   announcements @relation(fields: [announcement_id], references: [announcement_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_announcement")
+  attachments     attachments   @relation(fields: [attachment_id], references: [attachment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attachment")
+
+  @@id([announcement_id, attachment_id], map: "announcement_attachments_pkey1")
+}
+
+model announcements {
+  announcement_id          Int                        @id @default(autoincrement())
+  title                    String                     @db.VarChar(255)
+  content                  Json
+  created_by               String                     @db.VarChar(8)
+  created_at               DateTime?                  @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime?                  @default(now()) @db.Timestamptz(6)
+  published_at             DateTime?                  @default(now()) @db.Timestamptz(6)
+  status                   announcement_status?
+  is_pinned                Boolean?                   @default(false)
+  view_count               Int?                       @default(0)
+  section_id               Int
+  announcement_attachments announcement_attachments[]
+}
+
+model attachments {
+  attachment_id                         Int                                     @id(map: "announcement_attachments_pkey") @default(autoincrement())
+  title                                 String                                  @db.VarChar(255)
+  attachment_type                       attachment_type
+  file_path                             String?                                 @db.VarChar(500)
+  url                                   String?                                 @db.VarChar(1000)
+  file_size                             BigInt?
+  original_filename                     String?                                 @db.VarChar(255)
+  uploaded_at                           DateTime?                               @default(now()) @db.Timestamptz(6)
+  file_type                             String?                                 @db.VarChar(100)
+  activity_attachments                  activity_attachments[]
+  announcement_attachments              announcement_attachments[]
+  course_material                       course_material[]
+  learning_activity_attachments         learning_activity_attachments[]
+  portfolio_activity_attachments        portfolio_activity_attachments[]
+  portfolio_award_attachments           portfolio_award_attachments[]
+  portfolio_certificate_attachments     portfolio_certificate_attachments[]
+  portfolio_internship_attachments      portfolio_internship_attachments[]
+  portfolio_personal                    portfolio_personal[]
+  portfolio_thesis_attachments          portfolio_thesis_attachments[]
+  portfolio_training_attachments        portfolio_training_attachments[]
+  student_activity_attachments          student_activity_attachments[]
+  student_learning_activity_attachments student_learning_activity_attachments[]
+}
+
+model clo_course_cycle_cloplan {
+  clo_course_cycle_id             BigInt                            @id @default(autoincrement())
+  created_at                      DateTime?                         @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  subject_id                      String                            @db.VarChar(20)
+  program_id                      String                            @db.VarChar(10)
+  academic_year                   String                            @db.VarChar(4)
+  clo_course_cycle_detail_cloplan clo_course_cycle_detail_cloplan[]
+
+  @@unique([subject_id, program_id, academic_year], map: "uq_cycle_subject_program_year")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model clo_course_cycle_detail_cloplan {
+  clo_course_cycle_detail_id BigInt                   @id @default(autoincrement())
+  clo_course_cycle_id        BigInt
+  clo_id                     Int
+  detail_type                String                   @db.VarChar(30)
+  detail_text                String
+  reference_academic_year    Int?
+  created_at                 DateTime?                @default(now()) @db.Timestamptz(6)
+  subject_clo                subject_clo              @relation(fields: [clo_id], references: [clo_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cloplan_clo")
+  clo_course_cycle_cloplan   clo_course_cycle_cloplan @relation(fields: [clo_course_cycle_id], references: [clo_course_cycle_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cloplan_cycle")
+
+  @@unique([clo_course_cycle_id, clo_id, detail_type], map: "uq_cloplan_cycle_clo_type")
+}
+
+model course_material {
+  id                 Int                  @id @default(autoincrement())
+  course_syllabus_id Int
+  attachment_id      Int
+  type               course_material_type
+  attachments        attachments          @relation(fields: [attachment_id], references: [attachment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_course_material_attachment")
+  course_syllabus    course_syllabus      @relation(fields: [course_syllabus_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_course_material_syllabus")
+
+  @@unique([course_syllabus_id, attachment_id], map: "uq_course_material")
+}
+
+model course_section_schedule {
+  id              Int             @id @default(autoincrement())
+  section_id      Int
+  day_of_week     weekday
+  start_time      DateTime        @db.Time(6)
+  end_time        DateTime        @db.Time(6)
+  classroom       String?         @db.VarChar(100)
+  created_at      DateTime?       @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?       @default(now()) @db.Timestamptz(6)
+  course_sections course_sections @relation(fields: [section_id], references: [section_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_css_section")
+}
+
+model course_sections {
+  section_id                       Int                                @id @default(autoincrement())
+  semester_course_id               Int
+  section_number                   String                             @db.VarChar(10)
+  created_at                       DateTime?                          @default(now()) @db.Timestamp(6)
+  updated_at                       DateTime?                          @default(now()) @db.Timestamp(6)
+  activity_evidence                activity_evidence[]
+  course_section_schedule          course_section_schedule[]
+  semester_courses                 semester_courses                   @relation(fields: [semester_course_id], references: [id], onDelete: Cascade, map: "fk_course_sections_semester_course")
+  course_sections_teacher          course_sections_teacher[]
+  student_course                   student_course[]
+  student_group                    student_group[]
+  student_group_change_log         student_group_change_log[]
+  subject_clo_achievement_criteria subject_clo_achievement_criteria[]
+  subject_clo_measurable_behavior  subject_clo_measurable_behavior[]
+  subject_score_ratio              subject_score_ratio[]
+
+  @@unique([semester_course_id, section_number])
+}
+
+model course_sections_teacher {
+  id                 Int              @id @default(autoincrement())
+  semester_course_id Int
+  user_id            String           @db.VarChar(8)
+  created_at         DateTime?        @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  updated_at         DateTime?        @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  section_id         Int?
+  course_sections    course_sections? @relation(fields: [section_id], references: [section_id], onDelete: Cascade, map: "fk_course_sections_teacher_section")
+
+  @@unique([section_id, user_id], map: "course_sections_teacher_section_id_user_id_uq")
+  @@unique([semester_course_id, section_id, user_id], map: "course_sections_teacher_semester_course_id_section_id_u_key")
+}
+
+model course_syllabus {
+  week_no         Int               @db.SmallInt
+  description     String?
+  remark          String?
+  created_at      DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?         @default(now()) @db.Timestamp(6)
+  title           String?
+  created_by      String?           @db.VarChar(8)
+  section_id      Int?
+  id              Int               @id @default(autoincrement())
+  course_material course_material[]
+}
+
+model departments {
+  department_id      String     @id @db.VarChar(2)
+  department_name_en String?    @db.VarChar(200)
+  department_name_th String?    @db.VarChar(200)
+  is_active          Boolean?   @default(true)
+  faculty_id         String?    @db.VarChar(10)
+  faculty            faculty?   @relation(fields: [faculty_id], references: [faculty_id], map: "fk_departments_faculty")
+  programs           programs[]
+  student            student[]
+  subjects           subjects[]
+}
+
+model faculty {
+  faculty_id      String        @id @db.VarChar(10)
+  faculty_name_en String        @db.VarChar(200)
+  faculty_name_th String        @db.VarChar(200)
+  is_active       Boolean       @default(true)
+  departments     departments[]
+}
+
+model learning_activities {
+  id                              Int                               @id @default(autoincrement())
+  learning_activity_type          String                            @db.VarChar(20)
+  learning_activity_name          String                            @db.VarChar(255)
+  created_at                      DateTime?                         @default(now()) @db.Timestamp(6)
+  updated_at                      DateTime?                         @default(now()) @db.Timestamp(6)
+  announcement_date               DateTime?                         @db.Timestamp(6)
+  deadline_date                   DateTime?                         @db.Timestamp(6)
+  course_syllabus_id              Int?
+  section_id                      Int
+  detail                          Json?
+  learning_activity_attachments   learning_activity_attachments[]
+  learning_activity_clo_mapping   learning_activity_clo_mapping[]
+  student_learning_activity       student_learning_activity[]
+  student_learning_activity_group student_learning_activity_group[]
+}
+
+model learning_activity_attachments {
+  learning_activity_id Int
+  attachment_id        Int
+  attachments          attachments         @relation(fields: [attachment_id], references: [attachment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_attachment")
+  learning_activities  learning_activities @relation(fields: [learning_activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_learning_activity")
+
+  @@id([learning_activity_id, attachment_id])
+}
+
+model learning_activity_clo_mapping {
+  id                   Int                 @id @default(autoincrement())
+  learning_activity_id Int
+  sequence_order       Int
+  clo_id               Int?                @db.SmallInt
+  created_at           DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at           DateTime?           @default(now()) @db.Timestamp(6)
+  learning_activities  learning_activities @relation(fields: [learning_activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_learning_activity_clo_mapping_activity_id")
+
+  @@unique([learning_activity_id, sequence_order], map: "uq_learning_activity_sequence")
+}
+
+model learning_outcomes {
+  outcome_id                                Int                   @id @default(autoincrement())
+  program_id                                String                @db.VarChar(10)
+  outcome_code                              String                @db.VarChar(50)
+  outcome_title                             String                @db.VarChar(500)
+  outcome_description                       String?
+  outcome_type                              learning_outcome_type
+  parent_outcome_id                         Int?
+  sequence_order                            Int
+  level_depth                               Int?                  @default(1) @db.SmallInt
+  is_expanded                               Boolean?              @default(false)
+  is_active                                 Boolean?              @default(true)
+  created_at                                DateTime?             @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  updated_at                                DateTime?             @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  created_by                                String?               @db.VarChar(20)
+  updated_by                                String?               @db.VarChar(20)
+  section_id                                Int?
+  users_learning_outcomes_created_byTousers users?                @relation("learning_outcomes_created_byTousers", fields: [created_by], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_created_by")
+  learning_outcomes                         learning_outcomes?    @relation("learning_outcomesTolearning_outcomes", fields: [parent_outcome_id], references: [outcome_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_parent_outcome")
+  other_learning_outcomes                   learning_outcomes[]   @relation("learning_outcomesTolearning_outcomes")
+  programs                                  programs              @relation(fields: [program_id], references: [program_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_program")
+  users_learning_outcomes_updated_byTousers users?                @relation("learning_outcomes_updated_byTousers", fields: [updated_by], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_updated_by")
+  subject_clo                               subject_clo[]
+  subject_plo_mapping                       subject_plo_mapping[]
+
+  @@unique([program_id, outcome_code], map: "unique_program_outcome_code")
+}
+
+model portfolio {
+  id                      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                 String                    @db.VarChar(8)
+  template_id             Int?
+  portfolio_name          String?                   @db.VarChar(255)
+  template_color          String?                   @db.VarChar(20)
+  about_me                String?
+  isShowPersonal          Boolean?                  @default(true)
+  isShowEducation         Boolean?                  @default(true)
+  isShowTraining          Boolean?                  @default(true)
+  isShowCertificate       Boolean?                  @default(true)
+  isShowSkill             Boolean?                  @default(true)
+  isShowIntern            Boolean?                  @default(true)
+  isShowThesis            Boolean?                  @default(true)
+  isShowAward             Boolean?                  @default(true)
+  isShowActivity          Boolean?                  @default(true)
+  public_share_token      String?                   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  share_expires_at        DateTime?                 @db.Timestamptz(6)
+  portfolio_template      portfolio_template?       @relation(fields: [template_id], references: [id], onUpdate: NoAction, map: "fk_portfolio_template")
+  users                   users                     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_portfolio_user")
+  portfolio_skill_mapping portfolio_skill_mapping[]
+}
+
+model portfolio_activities {
+  id                             Int                              @id @default(autoincrement())
+  user_id                        String                           @db.VarChar(8)
+  name                           String                           @db.VarChar(255)
+  date                           DateTime?                        @db.Date
+  role                           String?                          @db.VarChar(255)
+  description                    String?
+  is_show                        Boolean?                         @default(true)
+  users                          users                            @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_activities_user")
+  portfolio_activity_attachments portfolio_activity_attachments[]
+}
+
+model portfolio_activity_attachments {
+  activity_id          Int
+  attachment_id        Int
+  portfolio_activities portfolio_activities @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_activity_attachments_activity")
+  attachments          attachments          @relation(fields: [attachment_id], references: [attachment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_activity_attachments_attachment")
+
+  @@id([activity_id, attachment_id], map: "pk_portfolio_activity_attachments")
+}
+
+model portfolio_award {
+  id                          Int                           @id(map: "pk_portfolio_award") @default(autoincrement())
+  user_id                     String                        @db.VarChar(8)
+  organize                    String?                       @db.VarChar(255)
+  name                        String?                       @db.VarChar(255)
+  award                       String?                       @db.VarChar(255)
+  date                        DateTime?                     @db.Date
+  description                 String?
+  is_show                     Boolean?                      @default(true)
+  users                       users                         @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_portfolio_award_users")
+  portfolio_award_attachments portfolio_award_attachments[]
+}
+
+model portfolio_award_attachments {
+  award_id        Int
+  attachment_id   Int
+  attachments     attachments     @relation(fields: [attachment_id], references: [attachment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_award_attachments_attachment")
+  portfolio_award portfolio_award @relation(fields: [award_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_award_attachments_award")
+
+  @@id([award_id, attachment_id], map: "pk_portfolio_award_attachments")
+}
+
+model portfolio_certificate {
+  id                                Int                                 @id @default(autoincrement())
+  user_id                           String                              @db.VarChar(8)
+  date                              DateTime?                           @db.Date
+  organize                          String?                             @db.VarChar(255)
+  name                              String?                             @db.VarChar(255)
+  description                       String?
+  is_show                           Boolean?                            @default(true)
+  users                             users                               @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_portfolio_certificate_users")
+  portfolio_certificate_attachments portfolio_certificate_attachments[]
+}
+
+model portfolio_certificate_attachments {
+  certificate_id        Int
+  attachment_id         Int
+  attachments           attachments           @relation(fields: [attachment_id], references: [attachment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cert_attachments_attachment")
+  portfolio_certificate portfolio_certificate @relation(fields: [certificate_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cert_attachments_cert")
+
+  @@id([certificate_id, attachment_id], map: "pk_portfolio_certificate_attachments")
+}
+
+model portfolio_education {
+  id              Int      @id(map: "pk_portfolio_education") @default(autoincrement())
+  user_id         String   @db.VarChar(8)
+  education_level String   @db.VarChar(50)
+  institution     String?  @db.VarChar(255)
+  start_year      Int?
+  end_year        Int?
+  country         String?  @db.VarChar(100)
+  gpa             Decimal? @db.Decimal(3, 2)
+  study_plan      String?  @db.VarChar(255)
+  faculty         String?  @db.VarChar(255)
+  major           String?  @db.VarChar(255)
+  is_show         Boolean? @default(true)
+  users           users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_portfolio_education_users")
+}
+
+model portfolio_internship {
+  id                               Int                                @id(map: "pk_portfolio_internship") @default(autoincrement())
+  user_id                          String                             @db.VarChar(8)
+  type                             String                             @db.VarChar(20)
+  title                            String?                            @db.VarChar(255)
+  position                         String?                            @db.VarChar(255)
+  company                          String?                            @db.VarChar(255)
+  country                          String?                            @db.VarChar(100)
+  province                         String?                            @db.VarChar(100)
+  start_date                       DateTime?                          @db.Date
+  end_date                         DateTime?                          @db.Date
+  resp                             String?
+  is_show_resp                     Boolean?                           @default(true)
+  learning_out                     String?
+  is_show_learning                 Boolean?                           @default(true)
+  reflection                       String?
+  is_show_reflec                   Boolean?                           @default(true)
+  users                            users                              @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_portfolio_internship_users")
+  portfolio_internship_attachments portfolio_internship_attachments[]
+}
+
+model portfolio_internship_attachments {
+  internship_id        Int
+  attachment_id        Int
+  attachments          attachments          @relation(fields: [attachment_id], references: [attachment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_intern_attachments_attachment")
+  portfolio_internship portfolio_internship @relation(fields: [internship_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_intern_attachments_intern")
+
+  @@id([internship_id, attachment_id], map: "pk_portfolio_internship_attachments")
+}
+
+model portfolio_personal {
+  user_id       String       @id @db.VarChar(8)
+  date_of_birth DateTime?    @db.Date
+  nationality   String?      @db.VarChar(100)
+  race          String?      @db.VarChar(100)
+  github        String?      @db.VarChar(255)
+  linkedin      String?      @db.VarChar(255)
+  email         String?      @db.VarChar(255)
+  phone_number  String?      @db.VarChar(50)
+  attachment_id Int?
+  attachments   attachments? @relation(fields: [attachment_id], references: [attachment_id], onUpdate: NoAction, map: "fk_portfolio_personal_attachments_qa")
+  users         users        @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_portfolio_personal_users_qa")
+}
+
+model portfolio_skill {
+  id                               Int                                @id @default(autoincrement())
+  name                             String?                            @db.VarChar(255)
+  user_id                          String                             @db.VarChar(8)
+  users                            users                              @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_portfolio_skill_user")
+  portfolio_skill_activity_mapping portfolio_skill_activity_mapping[]
+  portfolio_skill_mapping          portfolio_skill_mapping[]
+}
+
+model portfolio_skill_activity_mapping {
+  id                  Int             @id @default(autoincrement())
+  skill_id            Int
+  student_activity_id Int
+  repository          String?
+  role_and_resp       String?
+  init_expect         String?
+  reflection          String?
+  isShowRepo          Boolean?        @default(false)
+  isShowRole          Boolean?        @default(false)
+  isShowInit          Boolean?        @default(false)
+  isShowReflec        Boolean?        @default(false)
+  portfolio_skill     portfolio_skill @relation(fields: [skill_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_skill_activity")
+}
+
+model portfolio_skill_mapping {
+  portfolio_id    String          @db.Uuid
+  skill_id        Int
+  portfolio       portfolio       @relation(fields: [portfolio_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_mapping_portfolio")
+  portfolio_skill portfolio_skill @relation(fields: [skill_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_mapping_skill")
+
+  @@id([portfolio_id, skill_id])
+}
+
+model portfolio_template {
+  id        Int         @id @default(autoincrement())
+  name      String      @db.VarChar(255)
+  portfolio portfolio[]
+}
+
+model portfolio_thesis {
+  id                           Int                            @id(map: "pk_portfolio_thesis") @default(autoincrement())
+  user_id                      String                         @db.VarChar(8)
+  name                         String?                        @db.VarChar(255)
+  repository                   String?                        @db.VarChar(255)
+  role_and_resp                String?
+  init_expect                  String?
+  reflection                   String?
+  is_show_repo                 Boolean?                       @default(true)
+  is_show_role                 Boolean?                       @default(true)
+  is_show_init                 Boolean?                       @default(true)
+  is_show_reflec               Boolean?                       @default(true)
+  users                        users                          @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_portfolio_thesis_users")
+  portfolio_thesis_attachments portfolio_thesis_attachments[]
+}
+
+model portfolio_thesis_attachments {
+  thesis_id        Int
+  attachment_id    Int
+  attachments      attachments      @relation(fields: [attachment_id], references: [attachment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_thesis_attachments_attachment")
+  portfolio_thesis portfolio_thesis @relation(fields: [thesis_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_thesis_attachments_thesis")
+
+  @@id([thesis_id, attachment_id], map: "pk_portfolio_thesis_attachments")
+}
+
+model portfolio_training {
+  id                             Int                              @id(map: "pk_portfolio_training") @default(autoincrement())
+  user_id                        String                           @db.VarChar(8)
+  year                           Int?
+  country                        String?                          @db.VarChar(100)
+  organize                       String?                          @db.VarChar(255)
+  name                           String?                          @db.VarChar(255)
+  description                    String?
+  is_show                        Boolean?                         @default(true)
+  users                          users                            @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_portfolio_training_users")
+  portfolio_training_attachments portfolio_training_attachments[]
+}
+
+model portfolio_training_attachments {
+  training_id        Int
+  attachment_id      Int
+  attachments        attachments        @relation(fields: [attachment_id], references: [attachment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_training_attachments_attachment")
+  portfolio_training portfolio_training @relation(fields: [training_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_training_attachments_training")
+
+  @@id([training_id, attachment_id], map: "pk_portfolio_training_attachments")
+}
+
+model program_subjects {
+  id           Int               @id @default(autoincrement())
+  program_id   String            @db.VarChar(10)
+  subject_id   String            @db.VarChar(20)
+  subject_type subject_type_enum
+  is_active    Boolean?          @default(true)
+  created_at   DateTime?         @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  updated_at   DateTime?         @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  created_by   String?           @db.VarChar(20)
+  updated_by   String?           @db.VarChar(20)
+  programs     programs          @relation(fields: [program_id], references: [program_id], map: "fk_program_subjects_program_id")
+  subjects     subjects          @relation(fields: [subject_id], references: [subject_id], map: "fk_program_subjects_subject_id")
+
+  @@unique([program_id, subject_id])
+}
+
+model programs {
+  program_id        String              @id @db.VarChar(10)
+  program_name_en   String?             @db.VarChar(200)
+  program_name_th   String?             @db.VarChar(200)
+  department_id     String?             @db.VarChar(2)
+  year              String?             @db.VarChar(4)
+  is_active         Boolean?            @default(true)
+  created_at        DateTime?           @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  updated_at        DateTime?           @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  learning_outcomes learning_outcomes[]
+  program_subjects  program_subjects[]
+  departments       departments?        @relation(fields: [department_id], references: [department_id], onDelete: NoAction, onUpdate: NoAction)
+  rubrics           rubrics[]
+  semester_courses  semester_courses[]
+  student           student[]
+}
+
+model roles {
+  role_id    String       @id @db.VarChar(20)
+  role_name  String       @db.VarChar(20)
+  priority   Int
+  user_roles user_roles[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model rubric_activity_mapping {
+  id                            Int                             @id @default(autoincrement())
+  activity_id                   Int
+  criteria                      String                          @db.VarChar(255)
+  weight                        Int
+  created_at                    DateTime?                       @default(now()) @db.Timestamp(6)
+  updated_at                    DateTime?                       @default(now()) @db.Timestamp(6)
+  created_by                    String?                         @db.VarChar(20)
+  activities                    activities                      @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rubric_activity")
+  rubric_levels                 rubric_levels[]
+  student_activity_rubric_score student_activity_rubric_score[]
+}
+
+model rubric_details {
+  id                  Int      @id @default(autoincrement())
+  rubric_id           Int
+  criteria_name_en    String   @db.VarChar(255)
+  criteria_name_th    String   @db.VarChar(255)
+  level_4_description String?
+  level_3_description String?
+  level_2_description String?
+  level_1_description String?
+  weight              Decimal? @default(1.00) @db.Decimal(5, 2)
+  display_order       Int?     @default(0)
+  created_by          String?  @db.VarChar(8)
+  updated_by          String?  @db.VarChar(8)
+  rubrics             rubrics  @relation(fields: [rubric_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rubric_details_rubric")
+}
+
+model rubric_levels {
+  id                            Int                             @id @default(autoincrement())
+  rubric_id                     Int
+  level_no                      Int
+  description                   String
+  created_at                    DateTime?                       @default(now()) @db.Timestamp(6)
+  rubric_activity_mapping       rubric_activity_mapping         @relation(fields: [rubric_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rubric_level")
+  student_activity_rubric_score student_activity_rubric_score[]
+
+  @@unique([rubric_id, level_no], map: "uq_rubric_level")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model rubrics {
+  id             Int              @id @default(autoincrement())
+  rubric_code    String           @unique @db.VarChar(20)
+  rubric_name_en String           @db.VarChar(255)
+  rubric_name_th String           @db.VarChar(255)
+  display_order  Int?             @default(0)
+  created_by     String?          @db.VarChar(8)
+  updated_by     String?          @db.VarChar(8)
+  program_id     String?          @db.VarChar(10)
+  rubric_details rubric_details[]
+  programs       programs?        @relation(fields: [program_id], references: [program_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rubrics_program")
+}
+
+model semester_courses {
+  id              Int               @id @default(autoincrement())
+  academic_year   String            @db.VarChar(4)
+  semester        Int               @db.SmallInt
+  subject_id      String            @db.VarChar(8)
+  created_at      DateTime?         @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  updated_at      DateTime?         @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  program_id      String?           @db.VarChar(10)
+  course_sections course_sections[]
+  programs        programs?         @relation(fields: [program_id], references: [program_id], onDelete: Restrict, map: "fk_semester_courses_program_id")
+  subjects        subjects          @relation(fields: [subject_id], references: [subject_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_semester_courses_subject")
+
+  @@unique([academic_year, semester, subject_id])
+}
+
+model student {
+  student_id                             String                                   @id @db.VarChar(8)
+  first_name_th                          String                                   @db.VarChar(100)
+  last_name_th                           String                                   @db.VarChar(100)
+  full_name_th                           String?                                  @default(dbgenerated("(((first_name_th)::text || ' '::text) || (last_name_th)::text)")) @db.VarChar(200)
+  department_id                          String                                   @db.VarChar(2)
+  program_id                             String                                   @db.VarChar(10)
+  status                                 student_status_enum?                     @default(active)
+  created_at                             DateTime?                                @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  updated_at                             DateTime?                                @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  admission_year                         String?                                  @default(dbgenerated("(((\"left\"((student_id)::text, 2))::integer + 2500))::text")) @db.VarChar(4)
+  test                                   String?
+  activity_scores                        activity_scores[]
+  programs                               programs                                 @relation(fields: [program_id], references: [program_id], map: "fk_student_program_id")
+  users                                  users                                    @relation(fields: [student_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_user")
+  departments                            departments                              @relation(fields: [department_id], references: [department_id], onDelete: NoAction, onUpdate: NoAction)
+  student_activity                       student_activity[]
+  student_activity_group_member          student_activity_group_member[]
+  student_course                         student_course[]
+  student_group_member                   student_group_member[]
+  student_learning_activity              student_learning_activity[]
+  student_learning_activity_group_member student_learning_activity_group_member[]
+}
+
+model student_activity {
+  id                            Int                             @id @default(autoincrement())
+  student_id                    String                          @db.VarChar(8)
+  activity_id                   Int
+  status                        student_activity_status         @default(NOT_SUBMITTED)
+  score                         Decimal?                        @db.Decimal(5, 2)
+  feedback                      String?
+  submitted_at                  DateTime?                       @db.Timestamptz(6)
+  graded_at                     DateTime?                       @db.Timestamptz(6)
+  graded_by                     String?                         @db.VarChar(20)
+  is_bookmark                   Boolean                         @default(false)
+  remark                        String?
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  activities                    activities                      @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_activity_activity")
+  student                       student                         @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_activity_student")
+  student_activity_attachments  student_activity_attachments[]
+  student_activity_group_member student_activity_group_member?
+  student_activity_rubric_score student_activity_rubric_score[]
+}
+
+model student_activity_attachments {
+  student_activity_id Int
+  attachment_id       Int
+  created_at          DateTime?        @default(now()) @db.Timestamptz(6)
+  attachments         attachments      @relation(fields: [attachment_id], references: [attachment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_saa_attachment")
+  student_activity    student_activity @relation(fields: [student_activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_saa_student_activity")
+
+  @@id([student_activity_id, attachment_id])
+}
+
+model student_activity_group {
+  id                            Int                             @id @default(autoincrement())
+  activity_id                   Int
+  status                        student_activity_status         @default(NOT_SUBMITTED)
+  created_at                    DateTime                        @default(now()) @db.Timestamp(6)
+  created_by                    String?                         @db.VarChar(8)
+  activities                    activities                      @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sag_activity")
+  student_activity_group_member student_activity_group_member[]
+}
+
+model student_activity_group_member {
+  id                     Int                                  @id @default(autoincrement())
+  group_id               Int
+  student_id             String                               @db.VarChar(8)
+  status                 student_activity_group_member_status @default(ACCEPT)
+  invite_token           String?                              @db.VarChar(255)
+  token_expiry           DateTime?                            @db.Timestamp(6)
+  role                   student_activity_group_member_role   @default(MEMBER)
+  student_activity_id    Int                                  @unique
+  student_activity_group student_activity_group               @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sagm_group")
+  student                student                              @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sagm_student")
+  student_activity       student_activity                     @relation(fields: [student_activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sagm_student_activity")
+
+  @@unique([group_id, student_id], map: "uk_group_student")
+}
+
+model student_activity_rubric_score {
+  id                         Int                     @id @default(autoincrement())
+  student_activity_id        Int
+  rubric_activity_mapping_id Int
+  rubric_level_id            Int
+  calculated_score           Decimal                 @db.Decimal(5, 2)
+  created_at                 DateTime?               @default(now()) @db.Timestamp(6)
+  updated_at                 DateTime?               @default(now()) @db.Timestamp(6)
+  rubric_activity_mapping    rubric_activity_mapping @relation(fields: [rubric_activity_mapping_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sars_rubric_activity_mapping")
+  rubric_levels              rubric_levels           @relation(fields: [rubric_level_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sars_rubric_level")
+  student_activity           student_activity        @relation(fields: [student_activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sars_student_activity")
+
+  @@unique([student_activity_id, rubric_activity_mapping_id], map: "uk_student_activity_rubric")
+}
+
+model student_course {
+  student_id      String          @db.VarChar(8)
+  created_at      DateTime?       @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  updated_at      DateTime?       @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  section_id      Int
+  course_sections course_sections @relation(fields: [section_id], references: [section_id], onDelete: SetNull, map: "fk_student_course_section")
+  student         student         @relation(fields: [student_id], references: [student_id], onDelete: Cascade, map: "fk_student_course_student")
+
+  @@id([section_id, student_id])
+}
+
+model student_group {
+  group_id             Int                    @id @default(autoincrement())
+  group_name           String                 @default("") @db.VarChar(100)
+  created_at           DateTime?              @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  updated_at           DateTime?              @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  section_id           Int?
+  course_sections      course_sections?       @relation(fields: [section_id], references: [section_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_group_section")
+  student_group_member student_group_member[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model student_group_change_log {
+  log_id          Int             @id @default(autoincrement())
+  group_id        Int             @db.SmallInt
+  group_name      String          @db.VarChar(100)
+  student_id      String?         @db.VarChar(8)
+  action_type     String          @db.VarChar(20)
+  old_group_id    Int?            @db.SmallInt
+  new_group_id    Int?            @db.SmallInt
+  performed_by    String          @db.VarChar(50)
+  created_at      DateTime?       @default(now()) @db.Timestamp(6)
+  section_id      Int
+  course_sections course_sections @relation(fields: [section_id], references: [section_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_group_change_section")
+
+  @@index([student_id], map: "idx_student_group_change_student")
+}
+
+model student_group_member {
+  group_id      Int
+  student_id    String        @db.VarChar(8)
+  created_at    DateTime?     @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  student       student       @relation(fields: [student_id], references: [student_id], onDelete: Cascade, map: "fk_student_group_member_student")
+  student_group student_group @relation(fields: [group_id], references: [group_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([group_id, student_id])
+}
+
+model student_learning_activity {
+  id                                     Int                                     @id @default(autoincrement())
+  student_id                             String                                  @db.VarChar(20)
+  learning_activity_id                   Int
+  status                                 student_activity_status                 @default(NOT_SUBMITTED)
+  feedback                               String?
+  submitted_at                           DateTime?                               @db.Timestamptz(6)
+  graded_at                              DateTime?                               @db.Timestamptz(6)
+  graded_by                              String?                                 @db.VarChar(20)
+  created_at                             DateTime                                @default(now()) @db.Timestamptz(6)
+  updated_at                             DateTime                                @default(now()) @db.Timestamptz(6)
+  is_bookmark                            Boolean                                 @default(false)
+  remark                                 String?
+  learning_activities                    learning_activities                     @relation(fields: [learning_activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_learning_activity_activity")
+  student                                student                                 @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_learning_activity_student")
+  student_learning_activity_attachments  student_learning_activity_attachments[]
+  student_learning_activity_group_member student_learning_activity_group_member?
+}
+
+model student_learning_activity_attachments {
+  student_learning_activity_id Int
+  attachment_id                Int
+  created_at                   DateTime                  @default(now()) @db.Timestamptz(6)
+  attachments                  attachments               @relation(fields: [attachment_id], references: [attachment_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_slaa_attachment")
+  student_learning_activity    student_learning_activity @relation(fields: [student_learning_activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_slaa_student_learning_activity")
+
+  @@id([student_learning_activity_id, attachment_id])
+}
+
+model student_learning_activity_group {
+  id                                     Int                                      @id @default(autoincrement())
+  learning_activity_id                   Int
+  status                                 student_activity_status                  @default(NOT_SUBMITTED)
+  created_at                             DateTime                                 @default(now()) @db.Timestamp(6)
+  created_by                             String?                                  @db.VarChar(8)
+  learning_activities                    learning_activities                      @relation(fields: [learning_activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sag_learning_activity")
+  student_learning_activity_group_member student_learning_activity_group_member[]
+}
+
+model student_learning_activity_group_member {
+  id                              Int                                  @id @default(autoincrement())
+  group_id                        Int
+  student_id                      String                               @db.VarChar(8)
+  status                          student_activity_group_member_status @default(ACCEPT)
+  invite_token                    String?                              @db.VarChar(255)
+  token_expiry                    DateTime?                            @db.Timestamp(6)
+  role                            student_activity_group_member_role   @default(MEMBER)
+  student_learning_activity_id    Int                                  @unique(map: "student_learning_activity_grou_student_learning_activity_id_key")
+  student_learning_activity_group student_learning_activity_group      @relation(fields: [group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_slagm_group")
+  student                         student                              @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_slagm_student")
+  student_learning_activity       student_learning_activity            @relation(fields: [student_learning_activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_slagm_student_learning_activity")
+
+  @@unique([group_id, student_id], map: "pk_group_student")
+}
+
+model subject_clo {
+  clo_id                           Int                                @id @default(autoincrement())
+  clo_number                       String?                            @db.VarChar(50)
+  clo_detail                       String?
+  teaching_method                  String?
+  assessment_method                String?
+  created_at                       DateTime?                          @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  updated_at                       DateTime?                          @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  section_id                       Int
+  plo_id                           Int?
+  created_by                       String?                            @db.VarChar(8)
+  clo_course_cycle_detail_cloplan  clo_course_cycle_detail_cloplan[]
+  learning_outcomes                learning_outcomes?                 @relation(fields: [plo_id], references: [outcome_id], map: "fk_subject_clo_plo")
+  subject_clo_achievement_criteria subject_clo_achievement_criteria[]
+  subject_clo_measurable_behavior  subject_clo_measurable_behavior[]
+
+  @@unique([section_id, clo_number], map: "uq_subject_clo")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model subject_clo_achievement_criteria {
+  id                   Int              @id @default(autoincrement())
+  clo_id               Int              @db.SmallInt
+  criteria_no          Int              @db.SmallInt
+  achievement_level    String           @db.VarChar(20)
+  criteria_detail      String
+  criteria_description String?
+  created_at           DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime?        @default(now()) @db.Timestamptz(6)
+  section_id           Int?
+  course_sections      course_sections? @relation(fields: [section_id], references: [section_id], onDelete: Restrict, map: "fk_scac_section")
+  subject_clo          subject_clo      @relation(fields: [clo_id], references: [clo_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_subject_clo")
+
+  @@unique([section_id, clo_id, criteria_no], map: "uk_scac")
+}
+
+model subject_clo_measurable_behavior {
+  id                Int                                   @id @default(autoincrement())
+  clo_id            Int                                   @db.SmallInt
+  behavior_no       Int                                   @db.SmallInt
+  learning_activity Unsupported("learning_activity_enum")
+  behavior_detail   String
+  cognitive_level   Unsupported("cognitive_level_enum")
+  created_at        DateTime?                             @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?                             @default(now()) @db.Timestamptz(6)
+  section_id        Int?
+  course_sections   course_sections?                      @relation(fields: [section_id], references: [section_id], onDelete: Restrict, map: "fk_scmb_section")
+  subject_clo       subject_clo                           @relation(fields: [clo_id], references: [clo_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_subject_clo_behavior")
+}
+
+model subject_plo_mapping {
+  mapping_id                                  Int                 @id @default(autoincrement())
+  program_id                                  String              @db.VarChar(10)
+  outcome_id                                  Int?
+  subject_id                                  String              @db.VarChar(20)
+  mapping_level                               mapping_level_enum? @default(E)
+  created_at                                  DateTime?           @default(now()) @db.Timestamp(6)
+  updated_at                                  DateTime?           @default(now()) @db.Timestamp(6)
+  created_by                                  String?             @db.VarChar(8)
+  updated_by                                  String?             @db.VarChar(8)
+  users_subject_plo_mapping_created_byTousers users?              @relation("subject_plo_mapping_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_created_by")
+  learning_outcomes                           learning_outcomes?  @relation(fields: [outcome_id], references: [outcome_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_outcome")
+  subjects                                    subjects            @relation(fields: [subject_id], references: [subject_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_subject")
+  users_subject_plo_mapping_updated_byTousers users?              @relation("subject_plo_mapping_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_updated_by")
+
+  @@unique([subject_id, outcome_id], map: "unique_mapping")
+}
+
+model subject_score_ratio {
+  score_ratio_id       Int                    @id @default(autoincrement())
+  sequence_order       Int
+  score_category       String
+  weight               Int?                   @default(0) @db.SmallInt
+  created_at           DateTime?              @default(now()) @db.Timestamp(6)
+  updated_at           DateTime?              @default(now()) @db.Timestamp(6)
+  section_id           Int?
+  activities           activities[]
+  activity_clo_mapping activity_clo_mapping[]
+  course_sections      course_sections?       @relation(fields: [section_id], references: [section_id], onDelete: Cascade)
+}
+
+model subjects {
+  subject_id          String                @id @db.VarChar(20)
+  subject_name_en     String                @db.VarChar(200)
+  subject_name_th     String                @db.VarChar(200)
+  credits             Int
+  description_th      String?
+  description_en      String?
+  created_at          DateTime?             @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  updated_at          DateTime?             @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  created_by          String?               @db.VarChar(8)
+  updated_by          String?               @db.VarChar(8)
+  is_active           Boolean?              @default(true)
+  department_id       String?               @db.VarChar(20)
+  program_subjects    program_subjects[]
+  semester_courses    semester_courses[]
+  subject_plo_mapping subject_plo_mapping[]
+  departments         departments?          @relation(fields: [department_id], references: [department_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_subjects_department")
+}
+
+model user_image {
+  id         Int       @id @default(autoincrement())
+  user_id    String    @unique(map: "unique_user_image") @db.VarChar(8)
+  image_path String    @db.VarChar(255)
+  created_at DateTime? @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamp(6)
+  users      users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_image_user")
+
+  @@index([user_id], map: "idx_user_image_user_id")
+}
+
+model user_log {
+  id         Int       @id @default(autoincrement())
+  user_id    String    @db.VarChar(8)
+  activity   String    @db.VarChar(20)
+  time_stamp DateTime? @default(dbgenerated("(now() AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+}
+
+model user_roles {
+  id                                  Int       @id @default(autoincrement())
+  user_id                             String    @db.VarChar(8)
+  scope_id                            String?   @db.VarChar(10)
+  assigned_at                         DateTime? @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamptz(6)
+  assigned_by                         String?   @db.VarChar(8)
+  is_active                           Boolean?  @default(true)
+  role_id                             String?   @db.VarChar(20)
+  users_user_roles_assigned_byTousers users?    @relation("user_roles_assigned_byTousers", fields: [assigned_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+  roles                               roles?    @relation(fields: [role_id], references: [role_id], onDelete: Restrict)
+  users_user_roles_user_idTousers     users     @relation("user_roles_user_idTousers", fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, role_id, scope_id])
+}
+
+model users {
+  user_id                                                   String                  @id @db.VarChar(8)
+  email                                                     String                  @unique @db.VarChar(100)
+  phone                                                     String?                 @db.VarChar(30)
+  title_th                                                  String?                 @db.VarChar(30)
+  first_name_th                                             String?                 @db.VarChar(100)
+  last_name_th                                              String?                 @db.VarChar(100)
+  title_en                                                  String?                 @db.VarChar(30)
+  first_name_en                                             String?                 @db.VarChar(100)
+  last_name_en                                              String?                 @db.VarChar(100)
+  department_id                                             String?                 @db.Char(2)
+  program_id                                                String?                 @db.VarChar(10)
+  status                                                    status_enum?            @default(active)
+  created_at                                                DateTime?               @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamp(6)
+  updated_at                                                DateTime?               @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok'::text)")) @db.Timestamp(6)
+  is_verified                                               Boolean?                @default(false)
+  verification_token                                        String?                 @db.VarChar(255)
+  password                                                  String?                 @db.VarChar(255)
+  activity_evidence_activity_evidence_updated_byTousers     activity_evidence[]     @relation("activity_evidence_updated_byTousers")
+  activity_evidence_activity_evidence_uploaded_byTousers    activity_evidence[]     @relation("activity_evidence_uploaded_byTousers")
+  learning_outcomes_learning_outcomes_created_byTousers     learning_outcomes[]     @relation("learning_outcomes_created_byTousers")
+  learning_outcomes_learning_outcomes_updated_byTousers     learning_outcomes[]     @relation("learning_outcomes_updated_byTousers")
+  portfolio                                                 portfolio[]
+  portfolio_activities                                      portfolio_activities[]
+  portfolio_award                                           portfolio_award[]
+  portfolio_certificate                                     portfolio_certificate[]
+  portfolio_education                                       portfolio_education[]
+  portfolio_internship                                      portfolio_internship[]
+  portfolio_personal                                        portfolio_personal?
+  portfolio_skill                                           portfolio_skill[]
+  portfolio_thesis                                          portfolio_thesis[]
+  portfolio_training                                        portfolio_training[]
+  student                                                   student?
+  subject_plo_mapping_subject_plo_mapping_created_byTousers subject_plo_mapping[]   @relation("subject_plo_mapping_created_byTousers")
+  subject_plo_mapping_subject_plo_mapping_updated_byTousers subject_plo_mapping[]   @relation("subject_plo_mapping_updated_byTousers")
+  user_image                                                user_image?
+  user_roles_user_roles_assigned_byTousers                  user_roles[]            @relation("user_roles_assigned_byTousers")
+  user_roles_user_roles_user_idTousers                      user_roles[]            @relation("user_roles_user_idTousers")
+}
+
+enum activity_type_enum {
+  group
+  individual
+  parent
+}
+
+enum announcement_status {
+  draft
+  published
+  archived
+}
+
+enum attachment_type {
+  file
+  link
+}
+
+enum course_material_type {
+  LECTURE
+  RECORD
+}
+
+enum learning_outcome_type {
+  knowledge
+  skills
+  ethics
+  character
+}
+
+enum mapping_level_enum {
+  I
+  D
+  P
+  A
+  E
+}
+
+enum outcome_type_enum {
+  knowledge
+  skills
+  ethics
+  character
+}
+
+enum role_enum {
+  FULL_ADMIN
+  FACULTY_ADMIN
+  DEPT_ADMIN
+  PROG_MANAGER
+  TEACHER
+  STUDENT
+  GUEST
+}
+
+enum status_enum {
+  active
+  inactive
+}
+
+enum student_activity_group_member_role {
+  LEADER
+  MEMBER
+}
+
+enum student_activity_group_member_status {
+  PENDING
+  ACCEPT
+  REJECTED
+}
+
+enum student_activity_status {
+  NOT_SUBMITTED
+  SUBMITTED
+  GRADING
+  GRADED
+}
+
+enum student_status_enum {
+  active
+  inactive
+  graduated
+  suspended
+}
+
+enum subject_type_enum {
+  required
+  elective
+}
+
+enum weekday {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}

@@ -1,0 +1,309 @@
+@import url("https://fonts.googleapis.com/css2?family=Bai+Jamjuree:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,200;1,300;1,400;1,500;1,600;1,700&display=swap");
+
+@import "tailwindcss";
+
+:root {
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  --background: #f7f7f7;
+  --foreground: #2c3142;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Default portfolio theme colors - used as fallback */
+  --port-primary: #1a2a5d;
+  --port-secondary: #f4632a;
+  --port-bg: #f5f5f5;
+  --port-card: #ffffff;
+  --port-text-main: #1a2a5d;
+  --port-text-sub: #7c7c7c;
+}
+
+/* 
+ * Theme class for e-portfolio template
+ * Note: These values are overridden by ThemeProvider's inline styles when a custom theme is provided.
+ * This serves as a fallback when no theme prop is passed to the template.
+ */
+.theme-modern-blue {
+  --port-primary: #1a2a5d;
+  --port-secondary: #f4632a;
+  --port-bg: #f5f5f5;
+  --port-card: #ffffff;
+  --port-text-main: #1a2a5d;
+  --port-text-sub: #7c7c7c;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-caprasimo: var(--font-caprasimo);
+
+  --color-primary-orange: #f4632a;
+  --color-secondary-blue: #3068d9;
+  --color-primary-red: #e02929;
+  --color-primary-yellow: #f1bc41;
+  --color-primary-black: #2c3142;
+  --color-primary-grey: #7c7c7c;
+  --color-primary-green: #3b8b5c;
+  --color-light-grey: #dfdfdf;
+
+  --color-port-primary: var(--port-primary);
+  --color-port-secondary: var(--port-secondary);
+  --color-port-bg: var(--port-bg);
+  --color-port-card: var(--port-card);
+  --color-port-text-main: var(--port-text-main);
+  --color-port-text-sub: var(--port-text-sub);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+/************************ override antd component ************************/
+
+/* sidemenu */
+
+/* container นอกสุด */
+.ant-menu {
+  background-color: white !important;
+}
+
+/* option และ submenu-title ทุกสถานะ */
+.ant-menu-light .ant-menu-item,
+.ant-menu-light .ant-menu-submenu-title {
+  background-color: white !important;
+  margin: 4px 0 0 0 !important;
+  padding: 24px 48px 24px 100px !important;
+  height: 96px !important;
+  width: 100% !important;
+  font-size: 20px;
+  font-weight: bold;
+  font-family: "Bai Jamjuree", sans-serif;
+  color: var(--foreground) !important;
+}
+
+/* จัดให้ submenu ชิดขวา */
+.ant-menu-light .ant-menu-sub .ant-menu-item,
+.ant-menu-light .ant-menu-sub .ant-menu-submenu-title {
+  /* กำหนด padding ให้ชิดขวาและคงที่ */
+  padding: 32px 36px 32px 0px !important;
+  text-align: right !important;
+  height: 78px !important;
+}
+
+/* ตอนเลือก option ที่เป็น submenu ไม่ต้องมีสี background */
+.ant-menu-light .ant-menu-sub .ant-menu-item-selected {
+  background-color: white !important;
+}
+
+/* ให้มีขอบส้มเมื่อเลือก option */
+.ant-menu-submenu-open > .ant-menu-submenu-title,
+.ant-menu-submenu-selected > .ant-menu-submenu-title,
+.ant-menu-light .ant-menu-item-selected {
+  border-right: 5px solid var(--color-primary-orange) !important;
+  border-radius: 0%;
+  color: var(--color-primary-orange) !important;
+  background-color: rgb(244, 99, 42, 0.15) !important;
+}
+
+/* เอา dropdown icon ออก */
+.ant-menu-light .ant-menu-submenu-arrow {
+  display: none !important;
+}
+
+.ant-menu-light .ant-menu-submenu-title {
+  padding-right: 0 !important;
+}
+
+/* กรณีที่เรากำหนด selectedKeys เป็น parent menu */
+.ant-menu-submenu-selected > .ant-menu-submenu-title {
+  border-right: 5px solid var(--color-primary-orange) !important;
+  background-color: rgba(244, 99, 42, 0.15) !important;
+  color: var(--color-primary-orange) !important;
+}
+
+.ant-collapse .ant-collapse-item {
+  background-color: var(--background);
+  font-family: "Bai Jamjuree", sans-serif;
+  color: var(--foreground) !important;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+@media (min-width: 1280px) {
+  .ant-collapse .ant-collapse-item {
+    font-size: 20px;
+  }
+}
+
+/* .ant-collapse-item */
+
+/* ********************************************************** */
+
+/* table */
+
+.vertical-align-top-table td {
+  vertical-align: top;
+}
+
+.ant-table-cell {
+  vertical-align: top;
+}
+
+.custom-table.orange .ant-table-thead > tr > th {
+  background: rgb(244, 99, 42, 0.15);
+  color: var(--color-primary-orange);
+}
+
+/* blue */
+.custom-table.blue .ant-table-thead > tr > th {
+  background: rgba(48, 104, 217, 0.15);
+  color: var(--color-secondary-blue);
+}
+
+/* ********************************************************** */
+
+/* breadcrumb */
+
+.breadcrumb-bold .ant-breadcrumb-link {
+  font-weight: bold;
+}
+
+.breadcrumb-bold.blue > ol > li:first-child .ant-breadcrumb-link {
+  color: var(--color-secondary-blue) !important;
+}
+
+.breadcrumb-bold.blue.subtitle
+  > ol
+  > li:nth-child(-n + 3)
+  .ant-breadcrumb-link {
+  color: var(--color-secondary-blue) !important; /* ฟ้า */
+}
+
+.breadcrumb-bold .ant-breadcrumb-link a {
+  font-weight: bold;
+}
+
+/* checkbox */
+.custom-checkbox {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.custom-checkbox input {
+  display: none;
+}
+
+.custom-checkbox .checkmark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  display: inline-block;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.custom-checkbox input:checked + .checkmark::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.custom-checkbox.green input:checked + .checkmark {
+  background-color: #3b8b5c;
+  border-color: #3b8b5c;
+}
+.custom-checkbox.green .checkmark:hover {
+  border-color: #3b8b5c;
+}
+
+.custom-checkbox.orange input:checked + .checkmark {
+  background-color: #f4632a;
+  border-color: #f4632a;
+}
+.custom-checkbox.orange .checkmark:hover {
+  border-color: #f4632a;
+}
+
+.custom-checkbox.blue input:checked + .checkmark {
+  background-color: #3068d9;
+  border-color: #3068d9;
+}
+.custom-checkbox.blue .checkmark:hover {
+  border-color: #3068d9;
+}
+
+.custom-checkbox.black input:checked + .checkmark {
+  background-color: #2c3142;
+  border-color: #2c3142;
+}
+.custom-checkbox.black .checkmark:hover {
+  border-color: #2c3142;
+}
+
+/* create classwork page */
+.my-custom-radio .ant-radio-checked .ant-radio-inner {
+  border-color: #ffffff !important; /* ขอบสีขาว */
+  background-color: #3b8b5c !important; /* พื้นหลังสีเขียว (เลือก code สีเขียวที่ชอบได้เลย) */
+}
+
+/* ถ้าต้องการเปลี่ยนสีจุด (Dot) ตรงกลางด้วย (ปกติจะเป็นสีขาว) */
+.my-custom-radio .ant-radio-checked .ant-radio-inner::after {
+  background-color: #ffffff; /* จุดสีขาว */
+}
+
+/* input number in toolbar classwork display */
+.toolbar-custom-input .ant-input-number-input {
+  padding: 4px 4px;
+  text-align: center;
+}
+
+/* search member ตอนสร้างกลุ่ม */
+.div-search-member .ant-select {
+  height: auto !important;
+  width: 100% !important;
+}
+
+.search-member .ant-select-selector {
+  /* min-height: 40px; */
+  height: auto !important;
+  padding: 8px 16px !important;
+  border-radius: 50px;
+  border-color: #7c7c7c !important;
+  font-size: 18px;
+  /* display: flex;
+  align-items: center; */
+}
+
+/* .search-member .ant-select-selector .ant-select-selection-wrap {
+  display: flex;
+  align-items: center;
+} */
+
+.search-member .ant-select-selection-search-input {
+  height: 32px;
+  font-size: 18px !important;
+}

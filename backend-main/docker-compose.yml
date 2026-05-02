@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio
+    container_name: deep-portfolio-minio
+    ports:
+      - "9002:9000"  
+      - "9001:9001"  
+    environment:
+      MINIO_ROOT_USER: "admin.deep"
+      MINIO_ROOT_PASSWORD: "deep-portfolio.password"
+    volumes:
+      - /home/pookkie/minio-server/minio_data:/data 
+    command: server /data --console-address ":9001"
+    networks:
+      - app-network
+
+  backend:
+    build: .                 # สั่งให้ Build จาก Dockerfile ที่อยู่ในโฟลเดอร์ Backend นี้
+    container_name: deep-portfolio-backend
+    ports:
+      - "4001:4001"          # Expose Port 4001
+    env_file:
+      - .env                 # ดึงไฟล์ .env มาใช้ (อย่าลืมสร้างไฟล์นี้บน VM นะครับ)
+    depends_on:
+      - minio                # สั่งให้รอรัน MinIO ให้เสร็จก่อน ค่อยรัน Backend
+    networks:
+      - app-network
+
+# สร้าง Network จำลองให้ Backend คุยกับ MinIO ได้โดยตรง
+networks:
+  app-network:
+    driver: bridge
