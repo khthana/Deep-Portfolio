@@ -1,6 +1,28 @@
 import prisma from "../config/prisma";
 
 export default class AuthService {
+  /**
+   * The account an identity provider's email address belongs to, or null when
+   * the address is not one of ours.
+   *
+   * Null is the whole point of this method. `users.user_id` is a VarChar(8)
+   * with a meaning outside this system — a student or staff code issued by the
+   * university — so there is nothing this server could invent for someone who
+   * has never been registered. A verified Google address is proof of who you
+   * are, not proof that you belong here; those are separate questions and only
+   * the second one is ours to answer.
+   *
+   * Matched case-insensitively: Google always hands back a lower-cased
+   * address, while `users.email` holds whatever was imported, and an account
+   * that exists must not be unreachable because someone typed it capitalised.
+   */
+  async findUserByEmail(email: string) {
+    return prisma.users.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+      select: { user_id: true },
+    });
+  }
+
   async getUserDetail(user_id: string) {
     try {
       const user = await prisma.users.findUnique({

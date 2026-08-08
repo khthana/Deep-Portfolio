@@ -7,6 +7,7 @@ import {
   MINIO,
   POSTGRES,
   TEMPLATE_DATABASE,
+  TEST_GOOGLE_CLIENT_ID,
   TEST_SECRETS,
   postgresUrl,
 } from "./config";
@@ -96,7 +97,7 @@ process.env.NODE_ENV = "test";
 process.env.CLIENT_URL = "http://localhost:3000";
 process.env.JWT_SECRET = TEST_SECRETS.JWT_SECRET;
 process.env.JWT_REFRESH_SECRET = TEST_SECRETS.JWT_REFRESH_SECRET;
-process.env.DEEP_CORE_SECRET = TEST_SECRETS.DEEP_CORE_SECRET;
+process.env.GOOGLE_CLIENT_ID = TEST_GOOGLE_CLIENT_ID;
 process.env.MINIO_ENDPOINT = MINIO.endPoint;
 process.env.MINIO_PORT = String(MINIO.port);
 process.env.MINIO_ACCESS_KEY = MINIO.accessKey;

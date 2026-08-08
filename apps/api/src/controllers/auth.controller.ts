@@ -1,10 +1,24 @@
-import express, { NextFunction, Request, Response } from "express";
-import UserService from "../services/user.service";
+import { NextFunction, Request, Response } from "express";
 import { sessionUserId } from "../middlewares/auth.middleware";
 import AuthService from "../services/auth.service";
+import { identityProvider } from "../services/identity.service";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { sessionCookieOptions } from "../config/cookies";
+
+/** Shown when the browser posts nothing usable — a bug on our side, not theirs. */
+const NO_CREDENTIAL = "ไม่พบข้อมูลการเข้าสู่ระบบจาก Google";
+
+/** Google would not vouch for the token: expired, tampered with, or not ours. */
+const GOOGLE_REJECTED = "ยืนยันตัวตนกับ Google ไม่สำเร็จ";
+
+/**
+ * Google knows them, this system does not. Says what to do about it, because
+ * there is nothing the person can fix by trying again — accounts are created
+ * by whoever maintains the user list, not by logging in.
+ */
+const NOT_REGISTERED =
+  "ไม่พบบัญชีผู้ใช้ของอีเมลนี้ในระบบ กรุณาติดต่อผู้ดูแลระบบ";
 
 export default class AuthController {
   private readonly authService = new AuthService();
@@ -32,47 +46,56 @@ export default class AuthController {
   }
 
   async logout(req: Request, res: Response) {
-    // The SSO cookie belongs to DEEP Core's domain, not this API's, so this
-    // line has never actually removed it — a server can only clear cookies for
-    // itself. Left in place until the SSO path goes away with Google OAuth (D3).
-    res.clearCookie("token", {
-      path: "/",
-      httpOnly: true,
-      secure: env.isProduction,
-      domain: ".deep-core.net",
-      sameSite: "lax",
-    });
-
-    // Cleared with exactly the attributes ssoLogin set them with. Anything else
-    // is a no-op that looks like a logout.
+    // Cleared with exactly the attributes googleLogin set them with. Anything
+    // else is a no-op that looks like a logout.
     res.clearCookie("access_token", sessionCookieOptions());
     res.clearCookie("refresh_token", sessionCookieOptions());
 
     return res.status(200).json({ message: "Logout successful" });
   }
 
-  async ssoLogin(req: Request, res: Response) {
-    const coreToken = req.cookies.token;
-
-    // console.log("coreToken: ", coreToken);
-    if (!coreToken) {
-      return res.status(401).json({ message: "No SSO token" });
-    }
-
+  /**
+   * Trades a Google ID token for a session of ours.
+   *
+   * Two questions, asked in this order and never merged: Google answers who
+   * the caller is, and the `users` table answers whether that person may come
+   * in. A verified address that is not in `users` is refused — no row is
+   * created, because `user_id` is a VarChar(8) issued by the university and
+   * this server has no business making one up.
+   *
+   * The session itself does not change shape: the same httpOnly access/refresh
+   * pair as before, and roles still read live from `user_roles` on every
+   * request. Nothing about who-may-do-what moved into the token.
+   */
+  async googleLogin(req: Request, res: Response, next: NextFunction) {
     try {
-      const decoded = jwt.verify(
-        coreToken,
-        env.DEEP_CORE_SECRET,
-      ) as any;
+      const credential = req.body?.credential;
 
-      const accessToken = jwt.sign(
-        { user_id: decoded.user_id, role: decoded.role },
-        env.JWT_SECRET,
-        { expiresIn: "15m" },
-      );
+      if (typeof credential !== "string" || credential === "") {
+        return res.status(400).json({ message: NO_CREDENTIAL });
+      }
+
+      const identity = await identityProvider().verifyIdToken(credential);
+
+      if (!identity) {
+        return res.status(401).json({ message: GOOGLE_REJECTED });
+      }
+
+      const user = await this.authService.findUserByEmail(identity.email);
+
+      if (!user) {
+        return res.status(403).json({ message: NOT_REGISTERED });
+      }
+
+      // user_id only. The role used to ride along in the access token and was
+      // never read — requireRole re-reads user_roles, because a claim minted
+      // fifteen minutes ago is not authorisation.
+      const accessToken = jwt.sign({ user_id: user.user_id }, env.JWT_SECRET, {
+        expiresIn: "15m",
+      });
 
       const refreshToken = jwt.sign(
-        { user_id: decoded.user_id },
+        { user_id: user.user_id },
         env.JWT_REFRESH_SECRET,
         { expiresIn: "7d" },
       );
@@ -82,7 +105,7 @@ export default class AuthController {
 
       return res.status(200).json({ message: "login successful" });
     } catch (err) {
-      return res.status(401).json({ message: "Invalid SSO token" });
+      next(err);
     }
   }
 

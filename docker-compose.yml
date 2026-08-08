@@ -121,12 +121,10 @@ services:
     ports:
       - "${API_PORT:-4001}:4001"
     environment:
-      # NOT production, on purpose. src/controllers/auth.controller.ts hardcodes
-      # the cookie domain to *.deep-core.net when NODE_ENV is production and
-      # marks the cookies secure, so a production build cannot hold a session on
-      # http://localhost at all. Issue #11 replaces that flow with Google OAuth
-      # and moves the domain into configuration; until then this stack is
-      # development-only and the value here says so honestly.
+      # NOT production, on purpose. Production marks the session cookies secure,
+      # and a secure cookie is not sent back over plain http — so a production
+      # build cannot hold a session on http://localhost at all. This stack is
+      # for local work and the value here says so honestly.
       NODE_ENV: development
       # The port inside the container is fixed; only the published one varies.
       PORT: 4001
@@ -136,7 +134,9 @@ services:
       DATABASE_URL: *database-url
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in .env}
-      DEEP_CORE_SECRET: ${DEEP_CORE_SECRET:?set DEEP_CORE_SECRET in .env}
+      # Public value, not a secret — see .env.example. Still required: without
+      # it the API cannot check who a Google ID token was issued for.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID in .env}
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
@@ -156,7 +156,7 @@ services:
       - api-uploads:/repo/apps/api/uploads
     healthcheck:
       # There is no /health route, so this borrows a real one. Any HTTP response
-      # is a pass — /auth/login answers 401 without a token, and a 401 already
+      # is a pass — /auth answers 401 without a session, and a 401 already
       # proves the server is listening, routing and running its middleware. What
       # is being tested is liveness, not the endpoint. Without this compose
       # treats the container as ready the instant it starts, and `--wait` says
@@ -166,7 +166,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://127.0.0.1:4001/auth/login').then(()=>process.exit(0),()=>process.exit(1))",
+          "fetch('http://127.0.0.1:4001/auth').then(()=>process.exit(0),()=>process.exit(1))",
         ]
       interval: 5s
       timeout: 5s
@@ -183,6 +183,9 @@ services:
         # calls, so it is localhost and the published port — not the compose
         # hostname `api`, which only resolves inside the network.
         VITE_BACKEND_URL: http://localhost:${API_PORT:-4001}
+        # Same client id the API verifies against — they have to match, or every
+        # token the browser obtains is rejected as issued for someone else.
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID in .env}
     depends_on:
       api:
         condition: service_healthy

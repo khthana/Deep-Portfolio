@@ -34,7 +34,8 @@ export const endpoints = {
   auth: {
     root: ROOTS.AUTH,
     logout: `${ROOTS.AUTH}/logout`,
-    login: `${ROOTS.AUTH}/login`,
+    /** POST a Google ID token here to get a session. */
+    google: `${ROOTS.AUTH}/google`,
   },
   group: {
     root: ROOTS.GROUP,

@@ -60,12 +60,16 @@ import TeacherEditActivityPage from "../features/teacher/activity/pages/teacher-
 import TeacherEditLearningActivityPage from "../features/teacher/learning-activity/pages/teacher-edit-learning-activity-page";
 import StudentAuthGuard from "../guards/student-auth-guard";
 import TeacherAuthGuard from "../guards/teacher-auth-guard";
+import LoginPage from "../features/shared/login/pages/login-page";
+import RootRedirect from "./root-redirect";
 import UnauthorizedPage from "../features/shared/login/pages/unauthorized-page";
 import NotFoundPage from "../features/shared/login/pages/not-found-page";
 import PublicPortfolioPage from "../features/student/portfolio/pages/e-portfolio/public-portfolio-page";
 import AcceptInvitePage from "../features/shared/accept-invite/pages/accept-invite-page";
 
 const router = createBrowserRouter([
+  { path: paths.root, element: <RootRedirect /> },
+  { path: paths.login, element: <LoginPage /> },
   { path: paths.acceptInvite, element: <AcceptInvitePage /> },
   { path: paths.unauthorized, element: <UnauthorizedPage /> },
   { path: paths.public.root, element: <PublicPortfolioPage /> },

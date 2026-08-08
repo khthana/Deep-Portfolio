@@ -3,11 +3,8 @@ import request from "supertest";
 import app from "../src/app";
 import prisma from "../src/config/prisma";
 import { createStudent, createTeacher, createUser } from "./factories";
-import {
-  refreshCookie,
-  sessionCookie,
-  ssoCookie,
-} from "./helpers/session";
+import { refreshCookie, sessionCookie } from "./helpers/session";
+import { useFakeIdentityProvider } from "./helpers/identity";
 
 /**
  * The auth middleware and the endpoints that hand out its cookies.
@@ -226,30 +223,64 @@ describe("requireRole", () => {
   });
 });
 
-describe("GET /auth/login", () => {
-  it("refuses a request with no SSO cookie", async () => {
-    const response = await request(app).get("/auth/login");
+/**
+ * One fake for the whole file. The override lives in module scope, so a second
+ * one installed per describe would replace the first at collection time and
+ * take its registered tokens with it.
+ */
+const google = useFakeIdentityProvider();
 
-    expect(response.status).toBe(401);
+describe("POST /auth/google", () => {
+  it("refuses a request with no credential", async () => {
+    const response = await request(app).post("/auth/google").send({});
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      message: "ไม่พบข้อมูลการเข้าสู่ระบบจาก Google",
+    });
   });
 
-  it("refuses an SSO token signed with something else", async () => {
+  it("refuses a credential Google does not recognise", async () => {
+    // Expired, tampered with, or issued for a different OAuth client — the
+    // provider collapses all of them to "no", and so does the response.
     const response = await request(app)
-      .get("/auth/login")
-      .set(
-        "Cookie",
-        ssoCookie({ userId: "70000001", secret: "not-the-sso-secret" }),
-      );
+      .post("/auth/google")
+      .send({ credential: "a-token-nobody-issued" });
 
     expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      message: "ยืนยันตัวตนกับ Google ไม่สำเร็จ",
+    });
+  });
+
+  it("refuses a verified email that is not in users, without creating one", async () => {
+    // The acceptance criterion this file exists for. A Google account proves
+    // who you are; it does not make you a member of this university. user_id is
+    // a VarChar(8) issued elsewhere, so there is nothing to auto-create.
+    const stranger = "not-a-member@example.test";
+    const credential = google.issue("token-for-a-stranger", stranger);
+
+    const response = await request(app)
+      .post("/auth/google")
+      .send({ credential });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      message: "ไม่พบบัญชีผู้ใช้ของอีเมลนี้ในระบบ กรุณาติดต่อผู้ดูแลระบบ",
+    });
+
+    // No session, and no account quietly conjured up on the way past.
+    expect(response.headers["set-cookie"]).toBeUndefined();
+    expect(
+      await prisma.users.findFirst({ where: { email: stranger } }),
+    ).toBeNull();
   });
 
   it("issues a session the rest of the API accepts", async () => {
     const teacher = await createTeacher();
+    const credential = google.issue("token-for-a-teacher", teacher.email);
 
-    const login = await request(app)
-      .get("/auth/login")
-      .set("Cookie", ssoCookie({ userId: teacher.user_id, role: "TEACHER" }));
+    const login = await request(app).post("/auth/google").send({ credential });
 
     expect(login.status).toBe(200);
 
@@ -267,12 +298,45 @@ describe("GET /auth/login", () => {
     expect(profile.body.data.user_id).toBe(teacher.user_id);
   });
 
+  it("still reads roles from user_roles, not from the login", async () => {
+    // Nothing about the identity provider says what anyone may do. The token
+    // minted below carries no role at all, and requireRole lets this request
+    // through because the database says TEACHER.
+    const teacher = await createTeacher();
+    const credential = google.issue("token-for-a-role-holder", teacher.email);
+
+    const login = await request(app).post("/auth/google").send({ credential });
+    const access = setCookie(login, "access_token");
+
+    const courses = await request(app)
+      .get("/course/list")
+      .set("Cookie", `access_token=${access?.value}`);
+
+    expect(courses.status).toBe(200);
+  });
+
+  it("matches the email regardless of case", async () => {
+    // Google hands back a lower-cased address; imported user rows keep whatever
+    // capitalisation the source had. An account that exists must not be
+    // unreachable over a difference nobody can see.
+    const teacher = await createTeacher({ email: "Somchai.J@Example.test" });
+    const credential = google.issue(
+      "token-for-a-capitalised-address",
+      "Somchai.J@Example.test",
+    );
+
+    const login = await request(app).post("/auth/google").send({ credential });
+
+    expect(login.status).toBe(200);
+    expect(setCookie(login, "access_token")).toBeDefined();
+    expect(teacher.email).toBe("Somchai.J@Example.test");
+  });
+
   it("scopes the session cookies to the whole API", async () => {
     const teacher = await createTeacher();
+    const credential = google.issue("token-for-cookie-scope", teacher.email);
 
-    const login = await request(app)
-      .get("/auth/login")
-      .set("Cookie", ssoCookie({ userId: teacher.user_id }));
+    const login = await request(app).post("/auth/google").send({ credential });
 
     for (const name of ["access_token", "refresh_token"]) {
       const cookie = setCookie(login, name);
@@ -291,10 +355,9 @@ describe("POST /auth/logout", () => {
     // live session in place. Comparing the two responses is the only way to
     // catch the two sides drifting apart again.
     const teacher = await createTeacher();
+    const credential = google.issue("token-for-a-logout", teacher.email);
 
-    const login = await request(app)
-      .get("/auth/login")
-      .set("Cookie", ssoCookie({ userId: teacher.user_id }));
+    const login = await request(app).post("/auth/google").send({ credential });
 
     const logout = await request(app).post("/auth/logout");
 

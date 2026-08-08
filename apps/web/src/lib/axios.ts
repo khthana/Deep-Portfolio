@@ -17,11 +17,14 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // The two requests that must never trigger a refresh: refreshing is what
+    // they are, or what they replace. Everything else — including GET /auth,
+    // which is the first request every page load makes — is allowed one
+    // attempt, and that is the only thing keeping a session alive past the
+    // fifteen minutes an access token lasts.
     const isAuthRoute =
-      originalRequest.url.includes("/auth/login") ||
       originalRequest.url.includes("/auth/refresh") ||
-      originalRequest.url.includes("/auth/ssoLogin") ||
-      originalRequest.url === "/auth";
+      originalRequest.url.includes("/auth/google");
 
     if (
       error.response?.status === 401 &&

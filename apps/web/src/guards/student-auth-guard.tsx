@@ -20,8 +20,7 @@ const StudentAuthGuard = ({ children }: AuthGuardProps) => {
   }
 
   if (!isAuthenticated) {
-    window.location.href = "https://deep-core.net/";
-    return null;
+    return <Navigate to={paths.login} replace />;
   }
 
   if (!roles.includes("STUDENT")) {

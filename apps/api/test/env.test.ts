@@ -36,6 +36,16 @@ describe("src/config/env", () => {
     await expect(importEnvFresh()).rejects.toThrow(/JWT_REFRESH_SECRET/);
   });
 
+  it("throws on import when GOOGLE_CLIENT_ID is missing", async () => {
+    // Not a secret — a client id is public — but still required. It is the
+    // audience every Google ID token is checked against, and verifying without
+    // one accepts any Google user of any application. A server that starts
+    // without it is a server whose login accepts strangers.
+    vi.stubEnv("GOOGLE_CLIENT_ID", "");
+
+    await expect(importEnvFresh()).rejects.toThrow(/GOOGLE_CLIENT_ID/);
+  });
+
   it("names every missing variable at once", async () => {
     // Deliberate: a deployment being configured for the first time gets one
     // list, rather than one restart per missing value.

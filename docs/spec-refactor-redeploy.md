@@ -209,7 +209,7 @@ Portfolio เป็นเจ้าของฐานข้อมูล **ทั�
 
 ตัดโค้ดที่เกี่ยวกับ DEEP Core SSO ออกทั้งหมด รวมถึง `DEEP_CORE_SECRET`
 
-**สถานะ: ส่วน middleware เสร็จแล้ว** (issue #10) — ส่วน Google OAuth และการตัด SSO ยังเป็นของ **#11**
+**สถานะ: เสร็จแล้ว** (issue #10 ส่วน middleware, issue #11 ส่วน Google OAuth)
 
 `verifyTeacher` / `verifyStudent` ที่เป็นโค้ดชุดเดียวกันคัดลอกกันมา กลายเป็น `requireRole(...roles)` ตัวเดียว และ `verifyAnyRole` กลายเป็น `requireUser` ที่ตรวจว่าผู้ใช้มีอยู่จริงก่อนปล่อยผ่าน — 15 route file ที่เคย import ของเดิมเรียก `requireRole("TEACHER")` / `requireRole("STUDENT")` ตรงจุดที่ใช้แทน
 
@@ -220,7 +220,16 @@ Portfolio เป็นเจ้าของฐานข้อมูล **ทั�
 | ข้อความ `403` ยังแยกตามบทบาท | ข้อความไปถึงผู้ใช้ตรงๆ "เฉพาะอาจารย์เท่านั้น" บอกอะไรได้มากกว่า "ไม่มีสิทธิ์" การรวม middleware เป็นเรื่องภายใน ผู้เรียกไม่ควรรู้สึกอะไร — มี test คุมข้อความทั้งสองไว้ |
 | `requireUser` ตอบ `401` ไม่ใช่ `403` เมื่อไม่พบผู้ใช้ | token ที่ชี้ไปยังบัญชีที่ไม่มีอยู่ ไม่ใช่ session ที่ใช้ได้ ไม่ใช่ session ที่ใช้ได้แต่สิทธิ์ไม่พอ (บันทึกใน `BEHAVIOR-CHANGES.md` ข้อ 1) |
 | `sessionUserId(req)` แทน `(req as AuthRequest).user?.user_id` | พอ `AuthRequest.user` เลิกเป็น `any` ทุก controller ก็ได้ `string \| undefined` มาแทน ซึ่ง "undefined" ไม่ใช่ primary key — helper ตัวนี้โยน error ทันทีถ้าไม่มี session เพราะกรณีนั้นแปลว่า route ถูก mount โดยลืม middleware ไม่ใช่ request ที่ auth ไม่ผ่าน (request แบบนั้นไปไม่ถึง controller) |
-| ไม่แตะ `role` claim ใน token | middleware ไม่เคยใช้ claim นี้ตัดสินสิทธิ์อยู่แล้ว — มันอ่านจาก `user_roles` เสมอ การเก็บไว้จึงไม่เป็นอันตราย และการรื้อ payload ของ token เป็นงานของ #11 |
+| ไม่แตะ `role` claim ใน token | middleware ไม่เคยใช้ claim นี้ตัดสินสิทธิ์อยู่แล้ว — มันอ่านจาก `user_roles` เสมอ การเก็บไว้จึงไม่เป็นอันตราย และการรื้อ payload ของ token เป็นงานของ #11 (ทำแล้ว — access token ที่ออกโดย `POST /auth/google` มีแต่ `user_id`) |
+
+**ส่วน Google OAuth (#11)** — `POST /auth/google` รับ Google ID token จากเบราว์เซอร์ ตรวจแล้วออก session ชุดเดิม flow นี้ **ไม่มี client secret อยู่เลย** เพราะเบราว์เซอร์ขอ ID token จาก Google โดยตรง (Google Identity Services) แล้ว server มีหน้าที่ verify อย่างเดียว — `GOOGLE_CLIENT_ID` ที่ต้องตั้งจึงเป็นค่าสาธารณะ ไม่ใช่ค่าลับ แต่ยังบังคับ เพราะการตรวจ `audience` คือสิ่งที่กัน token ที่ Google ออกให้เว็บอื่นไม่ให้เอามาใช้ที่นี่
+
+| ตัดสินใจ | เหตุผล |
+| --- | --- |
+| ใช้ ID token flow ไม่ใช่ authorization-code flow | code flow ต้องมี client secret ที่ฝั่ง server และต้องมี redirect URI ที่ลงทะเบียนไว้ ID token flow ไม่ต้องทั้งสองอย่าง — และสิ่งที่ระบบนี้ต้องการจาก Google คืออีเมลที่ยืนยันแล้วเท่านั้น ไม่ได้จะเรียก API ของ Google แทนผู้ใช้ ผลข้างเคียงที่สำคัญ: ปลดล็อกงานนี้ได้โดยไม่ต้องรอค่าลับจากเจ้าของโครงงาน |
+| `IdentityProvider` เป็น interface ที่มีเมธอดเดียว | รอยต่อที่ mock ได้ต้องแคบที่สุด สิ่งที่ fake ตัดสินคือ "Google รู้จัก token นี้ไหม และเป็นอีเมลอะไร" เท่านั้น ส่วน "อีเมลนี้เข้าระบบได้ไหม" ตัดสินโดย controller กับตาราง `users` จริง ไม่มีการ mock |
+| ปฏิเสธอีเมลที่ `email_verified` ไม่เป็น true | อีเมลที่ยังไม่ยืนยันคืออีเมลที่เจ้าของบัญชีพิมพ์เอง ไม่ใช่อีเมลที่ Google ตรวจให้ ถ้ารับ ใครก็ login เป็นใครก็ได้ด้วยการอ้างอีเมลของคนนั้น |
+| ค้น `users.email` แบบไม่สนตัวพิมพ์ | Google คืนอีเมลตัวพิมพ์เล็กเสมอ ส่วนแถวใน `users` เก็บตามที่ import มา บัญชีที่มีอยู่จริงต้องไม่เข้าไม่ได้เพราะความต่างที่มองไม่เห็น |
 
 test อยู่ที่ `apps/api/test/auth.test.ts` (ไม่มี session → `401`, บทบาทผิด → `403`, บทบาทถูก → ผ่าน, token เซ็นด้วย secret ผิด → `401`, token หมดอายุ → `401`, บทบาทที่ `is_active = false` → `403`, และ login/logout/refresh ที่เทียบ attribute ของ cookie ฝั่ง set กับฝั่ง clear ตรงๆ) กับ `apps/api/test/env.test.ts` (import `src/config/env.ts` ใหม่โดยลบค่าลับออก แล้วยืนยันว่ามัน throw — คือ test ที่จะล้มถ้ามีใครใส่ fallback กลับเข้ามาเพื่อให้รัน local ง่ายขึ้น)
 
@@ -271,7 +280,7 @@ test อยู่ที่ `apps/api/test/auth.test.ts` (ไม่มี session
 
 เสร็จเพิ่มใน **#10** — โดเมนของ cookie ปิดแล้ว เดิมตั้งใจยกยอดไปทำพร้อม **#11 (Google OAuth)** เพราะ #11 เขียน flow ของ cookie ใหม่ทั้งก้อนอยู่แล้ว แต่ #10 มีเงื่อนไขว่า logout ต้องเคลียร์ cookie ด้วยโดเมนเดียวกับตอน set ซึ่งทำไม่ได้ถ้าสองฝั่งยังเขียนโดเมนแยกกันคนละที่ ทางที่เล็กที่สุดคือทำให้อ่านจากที่เดียว และ "ที่เดียว" นั้นก็คือ configuration พอดี — `src/config/cookies.ts` ประกอบ attribute ทั้งชุดจาก `COOKIE_DOMAIN` ค่าเริ่มต้นคือเว้นว่าง แปลว่าไม่ใส่ `Domain` เลย (host-only cookie) ซึ่งเป็นค่าที่ถูกสำหรับเครื่อง dev อยู่แล้ว
 
-เหลือ `res.clearCookie("token", { domain: ".deep-core.net" })` ใน logout ที่ยัง hardcode อยู่ ตั้งใจปล่อยไว้ — นั่นเป็น cookie ของโดเมน DEEP Core ที่ API นี้ลบไม่ได้อยู่แล้ว และจะหายไปพร้อมทาง SSO ใน **#11**
+`res.clearCookie("token", { domain: ".deep-core.net" })` ใน logout ที่เคยเหลือค้างอยู่ (ตั้งใจปล่อยไว้ตอน #10 — เป็น cookie ของโดเมน DEEP Core ที่ API นี้ลบไม่ได้อยู่แล้ว) ถูกลบไปพร้อมทาง SSO ใน **#11** ตามที่บอกไว้ ตอนนี้ไม่มีโดเมนที่ hardcode เหลือในโค้ดฝั่ง backend แล้ว
 
 ### D6 — Docker และการรัน
 
@@ -296,7 +305,7 @@ Dockerfile ทั้งสองตัวเป็น multi-stage บน `node:2
 | เรื่อง | ที่ตัดสิน | เหตุผล |
 | --- | --- | --- |
 | ภาพ API ใหญ่ 685 MB เพราะยังมี dev dependency ติดมา | ยอมรับ ไม่ prune | Prisma CLI เป็น dev dependency และเป็นตัวที่ generate `@prisma/client` ตอน install **และ** เป็นตัวที่รัน `migrate deploy` — service `migrate` คือภาพเดียวกันนี้เปลี่ยนแค่ command ตัด dev dependency ออกแล้วพังทั้งสองทาง การแยกให้เล็กลงเป็นงานของ ticket deploy ไม่ใช่ของ local stack |
-| `NODE_ENV` ใน compose ตั้งเป็น `development` | ตั้งใจ | `auth.controller.ts` hardcode โดเมน cookie เป็น `*.deep-core.net` เมื่อเป็น production และตั้ง `secure: true` ด้วย ทำให้ถือ session บน `http://localhost` ไม่ได้เลย stack นี้จึงเป็นของ local ล้วน ๆ จนกว่า **#11** จะย้ายโดเมนไปอยู่ใน configuration |
+| `NODE_ENV` ใน compose ตั้งเป็น `development` | ตั้งใจ | production ตั้ง cookie เป็น `secure: true` ซึ่งเบราว์เซอร์จะไม่ส่งกลับผ่าน http ธรรมดา ทำให้ถือ session บน `http://localhost` ไม่ได้เลย stack นี้จึงเป็นของ local ล้วน ๆ *(ตอนเขียน #7 เหตุผลยังรวมโดเมน `*.deep-core.net` ที่ hardcode ไว้ด้วย ซึ่งย้ายไป configuration แล้วใน #10 และหายไปทั้งหมดใน #11)* |
 | ต้องมี service `minio-init` | จำเป็น | โค้ดไม่เคยสร้าง bucket เอง (ไม่มี `makeBucket` ที่ไหนเลย) มันสมมติว่ามีอยู่แล้ว ถ้าไม่มีตัวนี้ upload จะพังทุกครั้งบน volume ที่เพิ่งสร้าง |
 
 **เรื่อง `.env` สองไฟล์** — `.env` ที่ root เป็นของ compose เท่านั้น ส่วน `apps/api/.env` เป็นของตอนรัน API บนเครื่องตรง ๆ ไม่ใช่ของซ้ำกันและรวมกันไม่ได้ เพราะค่าเดียวกันต้องต่างกัน: ฐานข้อมูลอยู่ที่ `db:5432` เมื่อมองจากใน compose network แต่อยู่ที่ `localhost:5432` เมื่อมองจาก host ไฟล์ที่ root เก็บเฉพาะค่าลับ ส่วนชื่อ host กับ port ที่ compose กำหนดเองเขียนเป็น literal ใน `docker-compose.yml` — ค่าที่จำเป็นใช้ `${VAR:?...}` ทั้งหมด ถ้าลืมเติม compose จะหยุดพร้อมบอกว่าขาดตัวไหน ไม่ใช่สตาร์ตขึ้นมาด้วยรหัสผ่านว่าง

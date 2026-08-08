@@ -50,8 +50,16 @@ export const MINIO = {
 export const TEST_SECRETS = {
   JWT_SECRET: "test-only-not-a-real-secret",
   JWT_REFRESH_SECRET: "test-only-not-a-real-refresh-secret",
-  DEEP_CORE_SECRET: "test-only-not-a-real-sso-secret",
 } as const;
+
+/**
+ * Stands in for a real Google OAuth client id, which the suite does not need:
+ * no test ever reaches Google. The identity provider is swapped for a fake one
+ * (test/helpers/identity.ts), and this value exists only so that importing
+ * src/config/env.ts does not fail the run for a missing variable.
+ */
+export const TEST_GOOGLE_CLIENT_ID =
+  "test-only-not-a-real-client-id.apps.googleusercontent.com";
 
 export function postgresUrl(database: string): string {
   const { user, password, host, port } = POSTGRES;

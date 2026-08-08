@@ -8,8 +8,9 @@ import { TEST_SECRETS } from "../config";
  * There is deliberately no way to skip authentication in this suite. A test
  * that stubs out the middleware proves the controller works for a request the
  * middleware would have rejected — which is the failure mode worth catching.
- * Everything here goes through the real middleware; the only thing being
- * shortcut is the SSO round-trip to DEEP Core, which is a different system.
+ * Everything here goes through the real middleware; the shortcut is only that
+ * the token is minted directly instead of by logging in, which every test in
+ * auth.test.ts does the long way round.
  *
  * Note that a token alone is not authorisation: requireRole looks the role up
  * in user_roles, so a test that needs one has to insert the row as well.
@@ -46,30 +47,6 @@ export function signAccessToken({
  */
 export function sessionCookie(options: SessionOptions): string {
   return `access_token=${signAccessToken(options)}`;
-}
-
-/**
- * The cookie DEEP Core would have set, for the GET /auth/login path.
- *
- * This is the one place the suite stands in for another system: DEEP Core mints
- * this cookie on its own domain, and there is nothing here to mint it with
- * except the shared secret the API verifies it against.
- */
-export function ssoCookie(
-  options: Omit<SessionOptions, "expiresIn"> & { expiresIn?: string },
-): string {
-  const {
-    userId,
-    role,
-    expiresIn = "15m",
-    secret = TEST_SECRETS.DEEP_CORE_SECRET,
-  } = options;
-
-  const token = jwt.sign({ user_id: userId, role }, secret, {
-    expiresIn,
-  } as jwt.SignOptions);
-
-  return `token=${token}`;
 }
 
 /** The refresh cookie, for the POST /auth/refresh path. */

@@ -15,13 +15,14 @@ const StudentInfoDropdown = () => {
   const handleLogout = async () => {
     try {
       await axiosInstance.post(endpoints.auth.logout);
-      window.location.href = "https://deep-core.net/";
-
       message.success("กำลังออกจากระบบ...");
     } catch (error) {
       console.error("Logout failed:", error);
       message.error("เกิดข้อผิดพลาดในการออกจากระบบ");
-      window.location.href = "https://deep-core.net/";
+    } finally {
+      // Either way. A logout that failed still means the person wanted out, and
+      // a full reload is what clears the state this app keeps in memory.
+      window.location.href = paths.login;
     }
   };
 

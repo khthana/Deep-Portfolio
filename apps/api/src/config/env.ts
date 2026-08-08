@@ -86,8 +86,19 @@ export const env = {
    */
   COOKIE_DOMAIN: optional("COOKIE_DOMAIN", ""),
 
-  /** Verifies the SSO cookie minted by DEEP Core. Goes away with Google OAuth (D3). */
-  DEEP_CORE_SECRET: required("DEEP_CORE_SECRET"),
+  /**
+   * The OAuth client every Google ID token this server accepts must have been
+   * issued for. Required, and required for a reason: the audience check is what
+   * stops a token minted for some other site — a real, correctly signed Google
+   * token — from being replayed here as a login. Verifying without it would
+   * accept any Google user of any application.
+   *
+   * Not a secret. A client id is public by construction; it is in the web
+   * bundle too. There is no client secret anywhere in this flow, because the
+   * browser gets the ID token directly from Google and this server only ever
+   * verifies it. See D3 in docs/spec-refactor-redeploy.md.
+   */
+  GOOGLE_CLIENT_ID: required("GOOGLE_CLIENT_ID"),
 
   MINIO_ENDPOINT: required("MINIO_ENDPOINT"),
   MINIO_ACCESS_KEY: required("MINIO_ACCESS_KEY"),

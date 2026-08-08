@@ -19,8 +19,11 @@ const TeacherAuthGuard = ({ children }: AuthGuardProps) => {
     );
   }
 
+  // Not signed in is a different thing from signed in without the role: one is
+  // fixed by logging in, the other never is. The two guards disagreed about
+  // this before — the student one left the site entirely, this one showed 403.
   if (!isAuthenticated) {
-    return <Navigate to="/unauthorized" replace />;
+    return <Navigate to={paths.login} replace />;
   }
 
   if (!roles.includes("TEACHER")) {

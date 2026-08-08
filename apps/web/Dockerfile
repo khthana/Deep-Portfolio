@@ -26,6 +26,13 @@ FROM deps AS build
 ARG VITE_BACKEND_URL=http://localhost:4001
 ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 
+# No default: a build without a client id produces a login page whose Google
+# button never appears, which is far more confusing to debug than a build that
+# refuses to start. This one is public by design (it is an OAuth client id, not
+# a client secret) so baking it into the bundle is exactly what it is for.
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 COPY apps/web apps/web
 RUN npm run build --workspace @deep-portfolio/web
 
