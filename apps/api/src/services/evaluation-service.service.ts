@@ -92,9 +92,15 @@ export default class EvaluationService {
         )
           ? ({
               ...activity,
-              id: studentActivity?.id,
-              score: studentActivity?.score,
-              status: studentActivity?.status,
+              id: studentActivity.id,
+              // A Decimal serialises to a JSON string, and both this response
+              // type and the frontend's copy of it say number — so convert it
+              // here rather than let the two disagree with the wire.
+              score:
+                studentActivity.score !== null
+                  ? Number(studentActivity.score)
+                  : null,
+              status: studentActivity.status,
               type: "activity",
             } as StudentEvaluationData)
           : null;

@@ -6,6 +6,19 @@ import {
 } from "../models/gradebook.model";
 import prisma from "../config/prisma";
 
+/**
+ * A score is Decimal(5,2) in the database — a whole number of hundredths — but
+ * an ordinary double by the time it reaches here, and a double cannot hold
+ * 10.01. Both views therefore do their arithmetic in hundredths, where every
+ * score is an integer and adding is exact. Only a mean can land between two
+ * hundredths, and `Math.round` settles that half upwards; rounding the double
+ * instead would settle it whichever way the representation error happened to
+ * fall, which for a mean of 1.00 and 1.01 is downwards.
+ */
+function toHundredths(score: number): number {
+  return Math.round(score * 100);
+}
+
 export class GradebookService {
   async getGradebookPerStudent(
     section_id: number,
@@ -72,27 +85,21 @@ export class GradebookService {
       const studentData = studentMap.get(sa.student_id);
       if (!studentData) continue;
 
-      const status = sa.status;
-      if (
-        status === "SUBMITTED" &&
+      // Whether work was late is a fact about when it was handed in, so it is
+      // decided by the dates alone. Marking it does not change it.
+      if (sa.status === "NOT_SUBMITTED") {
+        studentData.missing_submissions++;
+      } else if (
         sa.activities.deadline_date &&
-        sa.submitted_at! > sa.activities.deadline_date
+        sa.submitted_at &&
+        sa.submitted_at > sa.activities.deadline_date
       ) {
         studentData.late_submissions++;
-      } else if (
-        status === "SUBMITTED" ||
-        status === "GRADED" ||
-        status === "GRADING"
-      ) {
+      } else {
         studentData.on_time_submissions++;
-      } else if (status === "NOT_SUBMITTED") {
-        studentData.missing_submissions++;
       }
 
       const score = sa.score ? Number(sa.score) : null;
-      if (score) {
-        studentData.total_score += score;
-      }
 
       studentData.activities.push({
         activity_id: sa.activities.id,
@@ -105,8 +112,15 @@ export class GradebookService {
 
     const studentsResult = Array.from(studentMap.values());
 
+    // The total is the marks already collected above, added up once they are
+    // all in — 1000 + 1001 is exactly 2001, where 10 + 10.01 is not 20.01.
     for (const student of studentsResult) {
-      student.total_score = Math.round(student.total_score * 100) / 100;
+      const hundredths = student.activities.reduce(
+        (total, activity) =>
+          total + (activity.score !== null ? toHundredths(activity.score) : 0),
+        0,
+      );
+      student.total_score = hundredths / 100;
     }
 
     return {
@@ -151,7 +165,10 @@ export class GradebookService {
       const minScore = scores.length > 0 ? Math.min(...scores) : 0;
       const meanScore =
         scores.length > 0
-          ? scores.reduce((a, b) => a + b, 0) / scores.length
+          ? Math.round(
+              scores.reduce((total, score) => total + toHundredths(score), 0) /
+                scores.length,
+            ) / 100
           : 0;
 
       const submittedCount = activity.student_activity.filter(
