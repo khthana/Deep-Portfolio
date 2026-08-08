@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { BACKEND_API_URL } from "../../../../lib/axios";
 import { getFile } from "../../../../utils/get-file";
+import { cleanNullStr } from "../../../../utils/clean-null-str";
 import type {
   PortfolioData,
   Work,
@@ -111,17 +112,6 @@ export const usePortfolio = (
           getAllPortfolioSkill(studentId),
           getAllPortfolioThesis(studentId),
         ]);
-
-        const cleanNullStr = (val: any): any => {
-          if (val === "null" || val === "undefined") return "";
-          if (Array.isArray(val)) return val.map(cleanNullStr);
-          if (val !== null && typeof val === "object") {
-            return Object.fromEntries(
-              Object.entries(val).map(([k, v]) => [k, cleanNullStr(v)]),
-            );
-          }
-          return val;
-        };
 
         const userData = cleanNullStr(userResponse.data);
         const portfolioPersonalData = cleanNullStr(portfolioResponse.data);

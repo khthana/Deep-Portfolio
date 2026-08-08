@@ -24,7 +24,10 @@ type TeacherHomeSlice = {
 };
 
 const initialState: TeacherHomeSlice = {
-  user_id: "2771a2eb",
+  // Empty until `fetchAllCourse` comes back and says who the teacher is. The
+  // hand-over shipped one developer's own id here; the only reader sends it as
+  // `teacher_id`, which the API ignores in favour of the session.
+  user_id: "",
   semester: 2,
   academicYear: "2568",
 

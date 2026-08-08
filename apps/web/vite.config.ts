@@ -11,14 +11,22 @@ export default defineConfig({
     strictPort: true,
   },
   test: {
-    // Node, not jsdom. What is testable here today is pure logic — the utils —
-    // and a DOM environment would only slow that down. Component tests (#19)
-    // will need jsdom and can switch this then.
+    // Node, not jsdom. What this suite covers is pure logic — the utils and
+    // the slice reducers — and a DOM environment would only slow that down.
+    // Component tests are deliberately out of scope; whoever adds them will
+    // need jsdom and can switch this then.
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
-    // The frontend formats Thai dates and converts Buddhist-era years, so a
-    // suite that inherited the machine's timezone would not mean the same
-    // thing on two developers' laptops. Same reasoning as the API suite.
-    env: { TZ: "UTC" },
+    env: {
+      // One zone for everyone, as in the API suite, so a failure reads the
+      // same on two developers' laptops. The date cases do not lean on it —
+      // they are written from local parts and pass under Bangkok, New York and
+      // Kiritimati alike — which is what #19 asked for.
+      TZ: "UTC",
+      // Read at module load by src/utils/get-file.ts, which builds the URL an
+      // attachment is fetched from. Named here rather than left to a local
+      // .env so the suite states the value it asserts against.
+      VITE_BACKEND_URL: "http://backend.test",
+    },
   },
 });

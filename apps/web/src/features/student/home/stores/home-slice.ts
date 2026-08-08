@@ -94,7 +94,6 @@ export const homeSlice = createSlice({
         state.fetchStudentDetailLoading = false;
         state.studentDetail = action.payload.data;
         state.studentId = action.payload.data.student_id;
-        console.log("student id : ", action.payload.data.student_id);
       })
       .addCase(fetchStudentDetail.rejected, (state, action) => {
         state.fetchStudentDetailLoading = false;
