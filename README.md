@@ -111,7 +111,8 @@ npm run dev
 | `npm run build`     | build ทุก workspace                             |
 | `npm run typecheck` | ตรวจ type ทุก workspace                         |
 | `npm run lint`      | รัน lint ทุก workspace                          |
-| `npm test`          | รัน test ทุก workspace (ยังไม่มี test — [issue #1](https://github.com/khthana/Deep-Portfolio/issues/1)) |
+| `npm test`          | รัน test ทุก workspace (ยก container ของ test ให้เอง — ดูหัวข้อถัดไป) |
+| `npm run test:down` | ปิดคอนเทนเนอร์ของ test แล้วลบ volume ทิ้ง       |
 
 `build` / `typecheck` / `lint` / `test` ใช้ `--workspaces --if-present` ทั้งหมด
 workspace ที่ยังไม่มี script นั้นจะถูกข้ามไปเงียบ ๆ ไม่ทำให้คำสั่งล้ม
@@ -122,6 +123,38 @@ workspace ที่ยังไม่มี script นั้นจะถูก�
 npm run typecheck -w @deep-portfolio/api
 npm run prisma:generate -w @deep-portfolio/api
 ```
+
+## Test
+
+```bash
+npm test
+```
+
+ต้องมี Docker เปิดอยู่ นอกนั้นไม่ต้องเตรียมอะไรเลย — ไม่ต้องมี `.env` ไม่ต้องสร้าง
+ฐานข้อมูลไว้ก่อน คำสั่งเดียวนี้ยก PostgreSQL กับ MinIO ของ test ขึ้นมา รัน migration
+แล้วรัน test ทั้งสอง workspace
+
+**คอนเทนเนอร์ของ test แยกจาก stack ที่ใช้พัฒนาโดยสิ้นเชิง** — คนละ compose file
+(`docker-compose.test.yml`) คนละชื่อ project และคนละ port (Postgres 55432, MinIO 59000)
+เพราะชุด test สร้างและลบฐานข้อมูลตลอดเวลา จะไปแตะฐานข้อมูลที่กำลังพัฒนาอยู่ไม่ได้เด็ดขาด
+
+**แต่ละ test file ได้ฐานข้อมูลของตัวเอง** สร้างจากฐานข้อมูลต้นแบบด้วย
+`CREATE DATABASE ... TEMPLATE ...` (PostgreSQL คัดลอกไฟล์ให้ เร็วกว่ารัน migration ใหม่มาก)
+และได้ bucket ของตัวเองใน MinIO ทั้งคู่ถูกลบทิ้งเมื่อไฟล์นั้นจบ ผลคือ **test รันขนานข้ามไฟล์ได้จริง**
+
+จบแล้วคอนเทนเนอร์จะยังเปิดค้างไว้ เพื่อให้รอบถัดไปเริ่มเร็ว ปิดเมื่อไม่ใช้แล้วด้วย
+
+```bash
+npm run test:down
+```
+
+เขียน test เพิ่ม
+
+- test ของ API อยู่ที่ `apps/api/test/` ยิง request เข้า Express app ที่ import มาด้วย supertest
+- session ใน test สร้างด้วย helper ที่ `apps/api/test/helpers/session.ts` ซึ่งเซ็น token
+  ด้วย secret ของ test แล้ว **วิ่งผ่าน middleware ตรวจสิทธิ์ตัวจริง ไม่ bypass** — token
+  อย่างเดียวไม่พอ ถ้าเคสต้องการบทบาทไหนต้อง insert แถวใน `user_roles` ด้วย
+- test ของเว็บวางไว้ข้างไฟล์ที่ทดสอบ (`*.test.ts`) ตอนนี้ครอบคลุมเฉพาะฟังก์ชันบริสุทธิ์
 
 ## ฐานข้อมูล
 

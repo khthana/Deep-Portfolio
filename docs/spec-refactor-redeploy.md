@@ -226,6 +226,8 @@ Portfolio เป็นเจ้าของฐานข้อมูล **ทั�
 
 พิสูจน์ด้วยสคริปต์ชั่วคราวว่า import `src/app` แล้ว **ไม่เปิด socket, ไม่โหลดโมดูล `node-cron` เลย, ไม่มี cron task ถูก schedule** และ app ยังตอบ request ได้ครบเมื่อสั่ง listen เอง สคริปต์นี้ไม่ได้ commit ไว้ เพราะยังไม่มี test harness — **T2/#8 ควรแปลงเป็น test จริง** เพื่อกันไม่ให้ side effect เล็ดลอดกลับเข้า `app.ts` อีก
 
+> **ปิดข้อค้างนี้แล้ว (issue #8)** — `apps/api/test/app.test.ts` มีเคส `expect(cron.getTasks().size).toBe(0)` หลัง import app จริง เท่ากับสคริปต์ชั่วคราวถูกแปลงเป็น test ที่รันทุกครั้งแล้ว
+
 ### D5 — การจัดการ Configuration
 
 รวมการอ่าน environment variable ไว้ที่ **โมดูลเดียว** ที่ตรวจสอบความถูกต้องตอนระบบเริ่มทำงาน และล้มทันทีพร้อมข้อความชัดเจนถ้าค่าจำเป็นขาดหาย
@@ -431,6 +433,34 @@ import ฟังก์ชันมาเรียกตรงๆ ไม่มี
 
 เหตุผลที่ไม่ห่อทุกเคสใน transaction แล้ว rollback: โค้ดใช้ `$transaction` เองอยู่ 24 จุด การซ้อน transaction จะทำให้ทดสอบพฤติกรรม transaction จริงไม่ได้
 
+**สถานะ: เสร็จแล้ว** (issue #8) — `npm test` ที่ root สั่งเดียวจบ ยกคอนเทนเนอร์เอง migrate เอง แล้วรัน test ทั้งสอง workspace
+
+โครงที่ได้
+
+| ไฟล์ | หน้าที่ |
+| --- | --- |
+| `docker-compose.test.yml` | Postgres + MinIO สำหรับ test โดยเฉพาะ คนละ project name และคนละ port กับ stack ของ dev |
+| `apps/api/test/global-setup.ts` | รันครั้งเดียวต่อการเรียก `vitest` — `docker compose up --wait` แล้ว `prisma migrate deploy` ลงฐานข้อมูลต้นแบบ |
+| `apps/api/test/setup.ts` | รันครั้งเดียว**ต่อ test file** — สร้างฐานข้อมูลจาก template และ bucket ของไฟล์นั้น แล้วลบทิ้งใน `afterAll` |
+| `apps/api/test/config.ts` | ค่าที่ใช้ต่อกับ service ทั้งหมดอยู่ที่เดียว มี env override ไว้ให้ CI |
+| `apps/api/test/helpers/session.ts` | สร้าง cookie ที่เซ็นด้วย secret ของ test |
+
+การตัดสินใจที่เกิดขึ้นระหว่างทำ
+
+| เรื่อง | ที่ตัดสิน | เหตุผล |
+| --- | --- | --- |
+| จุดที่ตั้งค่า `DATABASE_URL` | ใน `setupFiles` ไม่ใช่ `globalSetup` | Vitest รัน setup file และรอ top-level `await` ของมัน **ก่อน** import ของ test file — จังหวะนี้คือจังหวะเดียวที่ยังตั้งค่าได้ก่อน `new PrismaClient()` ทั้งสามจุดในโค้ดจะถูกสร้าง แปลว่าโค้ดจริงไม่ต้องรู้เลยว่ากำลังถูกทดสอบ |
+| การสร้างฐานข้อมูลต่อไฟล์ | ล็อกด้วย `pg_advisory_lock` | PostgreSQL ปฏิเสธ `CREATE DATABASE ... TEMPLATE` ถ้ามี session อื่นต่ออยู่กับ template — เมื่อหลายไฟล์เริ่มพร้อมกันจะชนกันเอง |
+| การลบฐานข้อมูล | `DROP DATABASE ... WITH (FORCE)` | connection pool ของ Prisma ไม่ได้ปิดทันทีเสมอ ถ้าไม่ force จะเหลือฐานข้อมูลค้างสะสม |
+| client ที่ใช้สั่ง DDL | `pg` ไม่ใช่ Prisma | ไม่ต้องเปิด query engine เพิ่มอีกตัวต่อไฟล์ (`pg` เคยถูกถอดออกใน #4 เพราะไม่มีใครใช้ — รอบนี้กลับมาในฐานะ devDependency ที่มีผู้ใช้จริง) |
+| ข้อมูลของ Postgres ใน test | `tmpfs` + `fsync=off` | ทุกไบต์ทิ้งได้อยู่แล้ว และ fsync คือต้นทุนหลักของการสร้างฐานข้อมูลหนึ่งตัวต่อไฟล์ |
+| คอนเทนเนอร์หลัง test จบ | ไม่ปิดให้ | รอบถัดไปเริ่มใน ~1 วินาทีแทน ~10 วินาที ปิดเองได้ด้วย `npm run test:down` |
+| credential ใน `docker-compose.test.yml` | เขียนตรงๆ | คอนเทนเนอร์ใช้แล้วทิ้ง ผูกกับ loopback อย่างเดียว และค่าเดียวกันอยู่ใน `test/config.ts` อยู่แล้ว — ถ้าทำเป็นตัวแปรจะกลายเป็นว่า `npm test` ต้องตั้งค่าก่อนถึงจะรันได้ ซึ่งคือสิ่งที่ทั้งงานนี้พยายามเลี่ยง |
+
+พิสูจน์แล้วว่าแยกกันจริง ไม่ใช่แค่ test เขียว: ลองแก้ให้ทุกไฟล์ใช้ชื่อฐานข้อมูลเดียวกันชั่วคราว แล้ว `isolation.a` / `isolation.b` ล้มทันทีด้วย `database "..." already exists` — แปลว่าสองไฟล์รันขนานกันจริงและได้ฐานข้อมูลคนละตัวจริง
+
+**ยังไม่ทำในตั๋วนี้** — baseline seed และ factory helper ตาม T4 (จะทำพร้อมชุด test แรกใน #9), ตารางเทียบ TC-01..TC-75 ตาม T5, และ CI
+
 ### T4 — การเตรียมข้อมูล
 
 **Baseline seed + factory helper**
@@ -465,11 +495,11 @@ import ฟังก์ชันมาเรียกตรงๆ ไม่มี
 
 ### T6 — สิ่งที่ต้องระวังใน Test
 
-**Cron job** — `setupAssignTasksCron()` ต้องไม่ทำงานระหว่าง test (แก้ได้โดยการแยก app ออกจาก server ตาม D4)
+**Cron job** — `setupAssignTasksCron()` ต้องไม่ทำงานระหว่าง test (แก้ได้โดยการแยก app ออกจาก server ตาม D4) — *ปิดแล้วใน #8 ด้วยเคสที่ assert `cron.getTasks().size === 0` หลัง import app*
 
-**การอัปโหลดไฟล์** — endpoint ที่ใช้ multer และ MinIO ต้องทดสอบกับ MinIO จริงใน container และแยก bucket ของ test ออกจาก bucket อื่น
+**การอัปโหลดไฟล์** — endpoint ที่ใช้ multer และ MinIO ต้องทดสอบกับ MinIO จริงใน container และแยก bucket ของ test ออกจาก bucket อื่น — *ปิดแล้วใน #8: MinIO ตัวจริงใน container และ **bucket ต่อ test file** ไม่ใช่ bucket เดียวร่วมกัน*
 
-**เขตเวลา** — schema ใช้ `AT TIME ZONE 'Asia/Bangkok'` เป็นค่า default ของหลายคอลัมน์ และมีคอลัมน์คำนวณอัตโนมัติ (เช่น `student.admission_year` ที่คำนวณจากรหัสนักศึกษา, `student.full_name_th` ที่ต่อจากชื่อและนามสกุล) — test ต้องไม่ตั้งสมมติฐานว่าเครื่องที่รันอยู่เขตเวลาใด
+**เขตเวลา** — schema ใช้ `AT TIME ZONE 'Asia/Bangkok'` เป็นค่า default ของหลายคอลัมน์ และมีคอลัมน์คำนวณอัตโนมัติ (เช่น `student.admission_year` ที่คำนวณจากรหัสนักศึกษา, `student.full_name_th` ที่ต่อจากชื่อและนามสกุล) — test ต้องไม่ตั้งสมมติฐานว่าเครื่องที่รันอยู่เขตเวลาใด — *ปิดแล้วใน #8: บังคับ UTC ทั้งฝั่ง container (`TZ`/`PGTZ`) และฝั่ง Node ทั้งสอง workspace พร้อมเคสที่ assert `getTimezoneOffset() === 0` เพื่อไม่ให้การบังคับนั้นหลุดไปเงียบๆ*
 
 **คะแนนทศนิยม** — คอลัมน์คะแนนเป็น `Decimal` การเปรียบเทียบต้องไม่ใช้การเทียบ float ตรงๆ และ `gradebook.service` มีการปัดเศษที่ต้องยืนยันว่าถูกต้อง
 

@@ -21,6 +21,7 @@
     "db:reset": "npm run db:reset -w @deep-portfolio/api",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "test:down": "docker compose -f docker-compose.test.yml down -v",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present"
   },

@@ -1,0 +1,75 @@
+# Backing services for the test suite. Separate from docker-compose.yml on
+# purpose: `npm test` must never touch the database you are developing against,
+# and it drops and recreates databases constantly.
+#
+# Brought up automatically by test/global-setup.ts, so `npm test` is still one
+# command. To manage it by hand:
+#
+#     docker compose -f docker-compose.test.yml up -d --wait
+#     docker compose -f docker-compose.test.yml down -v
+#
+# The credentials below are literals, unlike docker-compose.yml where they come
+# from .env. That is not an oversight. These containers hold nothing but
+# throwaway fixtures, listen on loopback only, and the values are also compiled
+# into test/config.ts — a variable would only mean `npm test` needs setup before
+# it works, which is the thing this file exists to avoid.
+
+name: deep-portfolio-test
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test-only-not-a-real-secret
+      POSTGRES_DB: postgres
+      # Fixes the server's clock to UTC so a test is not quietly reading the
+      # timezone of whoever ran it. See test/setup.ts, which does the same for
+      # the Node process.
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      # Deliberately not 5432: the dev stack owns that, and a test run must not
+      # be able to reach it by accident.
+      - "127.0.0.1:55432:5432"
+    tmpfs:
+      # The data directory lives in RAM. Every byte here is disposable — the
+      # suite recreates the template database from migrations on each run — and
+      # this is what makes CREATE DATABASE ... TEMPLATE fast enough to do per file.
+      - /var/lib/postgresql/data
+    command:
+      # Same reasoning: durability buys nothing for data that cannot outlive the
+      # run, and fsync is the dominant cost of creating ~1 database per test file.
+      - postgres
+      - -c
+      - fsync=off
+      - -c
+      - full_page_writes=off
+      - -c
+      - synchronous_commit=off
+      # Each test file holds its own database open, and Prisma opens a pool per
+      # client. The default of 100 runs out with parallel files.
+      - -c
+      - max_connections=300
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  minio:
+    image: minio/minio:latest
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: testminio
+      MINIO_ROOT_PASSWORD: test-only-not-a-real-secret
+    ports:
+      # Not 9002 either — that is the dev stack's.
+      - "127.0.0.1:59000:9000"
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

@@ -27,6 +27,13 @@ logs/
 **/*.log
 coverage/
 
+# The test suite. It is never run from inside an image — it drives its own
+# containers from the host — and the build stage would otherwise copy it in.
+apps/api/test/
+docker-compose.test.yml
+**/*.test.ts
+**/*.test.tsx
+
 # Repo furniture with no bearing on a build
 .git/
 .github/
