@@ -48,10 +48,16 @@ Run `gh issue view <number> --comments`.
   the project owner supplies a sample data file. Blocking edges use GitHub's native
   issue dependencies, so the frontier query below is the authoritative "what can I
   pick up next" — don't infer readiness from the issue number.
-- Issues #12–#18 (the endpoint test batches) are deliberately chained one after
+  **#2–#19 are closed**; what is left of the breakdown is #20 (request validation),
+  #21 (frontend hygiene), #22 (TC traceability table), #23 and #24 (README).
+- Issues #12–#18 (the endpoint test batches) were deliberately chained one after
   another even though they are technically independent. They all edit the same test
-  factory files, so running them in parallel would conflict. If you want them
-  parallel, delete the chain edges — the only real gate on #12–#17 is #10.
+  factory files, so running them in parallel would have conflicted. All are closed
+  now, so the chain no longer gates anything.
+- **#25 and up** are defects found while writing the tests, filed rather than fixed
+  because each one needs a decision or reaches past the ticket that found it. They
+  are not part of the #1 breakdown and carry no parent. `BEHAVIOR-CHANGES.md`
+  records the same findings from the caller's point of view.
 
 ## Wayfinding operations
 

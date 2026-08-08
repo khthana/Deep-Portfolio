@@ -4,18 +4,77 @@ An outcome-based education platform (CLO/PLO, rubrics, gradebook, student
 e-Portfolio) handed over as a student capstone project and currently being
 re-deployed and refactored.
 
-Current state: the original hand-over, restructuring not yet started. The
-plan of record is [`docs/spec-refactor-redeploy.md`](docs/spec-refactor-redeploy.md),
+The plan of record is [`docs/spec-refactor-redeploy.md`](docs/spec-refactor-redeploy.md),
 tracked as [issue #1](https://github.com/khthana/Deep-Portfolio/issues/1).
 Read the spec before proposing structural changes — most of the obvious
 questions are already answered there, including what is deliberately out of
 scope.
 
+## Current state
+
+Restructuring is done and the system stands on its own; what is left is
+mostly correctness work on top of it.
+
+- **Monorepo**: npm workspaces — `apps/api` (Express 5 + Prisma + PostgreSQL),
+  `apps/web` (React 19 + Vite + Ant Design), `packages/` empty and reserved.
+  One lockfile at the root; never run `npm install` in a subfolder.
+- **Runs locally in one command**: `docker compose up --build` brings up web,
+  API, PostgreSQL and MinIO, and applies migrations on the way. Nothing is
+  deployed to a server yet, and there is no CI.
+- **Auth is Google sign-in**, not the DEEP Core SSO cookie the hand-over
+  assumed. There is no connection back to DEEP Core at all.
+- **The database is standalone** — 72 tables from one baseline migration.
+  `apps/api/prisma/schema.prisma` is the source of truth for the schema,
+  including where it disagrees with the thesis document.
+- **Tests**: `npm test` at the root runs both workspaces. 690 API cases over
+  38 files, 390 web cases over 22 files. Both were written against the
+  behaviour that was already there — see the testing rules below.
+
+Open work is in the issue tracker: request validation (#20), frontend hygiene
+(#21), the TC-01..TC-75 traceability table (#22), the master-data importer
+(#23, waiting on a file format), the README rewrite (#24), and the defects
+filed while testing (#25–#31, #33).
+
 ## Language convention
 
 - **Code, tests, commit messages, and agent-facing docs**: English.
-- **Explanatory documentation** (`docs/*.md`): Thai.
+- **Explanatory documentation** (`README.md`, `BEHAVIOR-CHANGES.md`,
+  `docs/*.md`, and issue bodies and comments): Thai.
 - **Error messages shown to end users**: Thai — the frontend renders them directly.
+
+## Testing
+
+Both seams named in T2 of the spec are in place. Add to them; don't invent a
+third one.
+
+- **API — the HTTP edge.** `apps/api/test/*.test.ts` fire requests at the
+  imported Express app with supertest, against a real PostgreSQL and a real
+  MinIO in containers. Assert status, response body and database state only —
+  never which service or query ran (T1). Every endpoint gets at least one
+  success and one failure case (T5). Data comes from the factories in
+  `apps/api/test/factories/`; pass only the fields the case is about.
+- **Web — pure functions.** Tests sit beside the file they cover. No DOM, no
+  module mocking, no component renders — component and E2E tests are
+  deliberately out of scope. `apps/web/src/test/slice-cases.ts` holds the
+  table the slice reducer tests share.
+- **Dates**: no case may assume the machine's timezone. The suites pin
+  `TZ=UTC` so failures read the same everywhere, but cases are written to
+  pass without it.
+- **Verified state, not remembered state**: run `npm test` at the root before
+  saying a change is green, and `npm run typecheck` alongside it.
+
+## Behaviour changes
+
+Per D9, a defect found while writing tests is fixed on the spot and the test
+is written to the correct behaviour — not pinned to the wrong one. Anything
+that changes what a caller sees goes in
+[`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md), in Thai, with what it did
+before, what it does now, why, and which frontend callers need to follow.
+
+When a defect cannot be fixed inside the current ticket — because the fix
+spans the whole system, or the decision belongs to someone else — pin it with
+a test that documents it, say so in the test, and record it in the same file
+under the "pinned" list.
 
 ## Agent skills
 
@@ -29,4 +88,6 @@ The five canonical triage roles, each label named after its role. See `docs/agen
 
 ### Domain docs
 
-Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context, but neither `CONTEXT.md` nor `docs/adr/` exists yet — the
+spec's D1–D13 and T1–T7 sections stand in for ADRs meanwhile. See
+`docs/agents/domain.md`.

@@ -47,10 +47,10 @@ Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
         └── docs/adr/
 ```
 
-Note: the spec plans an npm-workspaces layout (`apps/api`, `apps/web`,
-`packages/`). That is a package boundary, not a bounded-context boundary —
-it does not on its own justify switching to multi-context. Revisit only if
-`packages/` grows genuinely separate domains.
+Note: this repo uses an npm-workspaces layout (`apps/api`, `apps/web`, and an
+empty `packages/`). That is a package boundary, not a bounded-context
+boundary — it does not on its own justify switching to multi-context. Revisit
+only if `packages/` grows genuinely separate domains.
 
 ## Use the glossary's vocabulary
 
