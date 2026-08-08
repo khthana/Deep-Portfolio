@@ -50,6 +50,8 @@ desktop.ini
 *.local
 
 # Source thesis document (46 MB binary).
-# The content we need is extracted into docs/*.md; the original is kept
-# outside the repo so it never enters git history. See docs/spec-refactor-redeploy.md (D12).
+# Its content is now extracted into docs/database-schema.md, docs/test-cases.md
+# and docs/requirements.md, and the .docx itself has been removed from the
+# working copy. The pattern stays as a guard: if anyone drops the original back
+# in, it must not enter git history. See docs/spec-refactor-redeploy.md (D12).
 docs/*.docx
