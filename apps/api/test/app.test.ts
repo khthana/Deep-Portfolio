@@ -2,9 +2,7 @@ import { describe, expect, it } from "vitest";
 import request from "supertest";
 import cron from "node-cron";
 import app from "../src/app";
-import prisma from "../src/config/prisma";
 import { BUCKET_NAME, minioClient } from "../src/config/minio";
-import { sessionCookie } from "./helpers/session";
 
 /**
  * The first real tests in this repository. They are deliberately about the
@@ -73,102 +71,13 @@ describe("GET /files", () => {
   });
 });
 
-describe("GET /auth — verifyAnyRole", () => {
-  it("rejects a request with no cookie", async () => {
+describe("a protected route", () => {
+  it("goes through the real auth middleware", async () => {
+    // The seam this file is about: requests reach the middleware rather than
+    // some test-only bypass. What the middleware then decides is auth.test.ts's
+    // subject, not this one's.
     const response = await request(app).get("/auth");
 
     expect(response.status).toBe(401);
-    expect(response.body).toEqual({ message: "Unauthorized" });
-  });
-
-  it("rejects a token signed with the wrong secret", async () => {
-    // The point of signing rather than stubbing: this is the case a mocked
-    // middleware could never fail on.
-    const cookie = sessionCookie({
-      userId: "10000001",
-      secret: "a-different-secret-entirely",
-    });
-
-    const response = await request(app).get("/auth").set("Cookie", cookie);
-
-    expect(response.status).toBe(401);
-  });
-
-  it("rejects an expired token", async () => {
-    const cookie = sessionCookie({ userId: "10000001", expiresIn: "-1s" });
-
-    const response = await request(app).get("/auth").set("Cookie", cookie);
-
-    expect(response.status).toBe(401);
-  });
-
-  it("answers 404 when the token is valid but the user does not exist", async () => {
-    const cookie = sessionCookie({ userId: "99999999" });
-
-    const response = await request(app).get("/auth").set("Cookie", cookie);
-
-    expect(response.status).toBe(404);
-    expect(response.body).toEqual({ message: "ไม่พบข้อมูลผู้ใช้งาน" });
-  });
-
-  it("returns the profile and active roles for a real user", async () => {
-    // The TEACHER role itself is baseline reference data — seeded into the
-    // template, so it is already there. Only the person is new.
-    await prisma.users.create({
-      data: {
-        user_id: "10000001",
-        email: "teacher@example.test",
-        title_th: "อ.",
-        first_name_th: "สมชาย",
-        last_name_th: "ใจดี",
-        user_roles_user_roles_user_idTousers: {
-          create: { role_id: "TEACHER", is_active: true },
-        },
-      },
-    });
-
-    const response = await request(app)
-      .get("/auth")
-      .set("Cookie", sessionCookie({ userId: "10000001" }));
-
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual({
-      user_id: "10000001",
-      email: "teacher@example.test",
-      name: "อ. สมชาย ใจดี",
-      roles: ["TEACHER"],
-    });
-  });
-});
-
-describe("GET /user/student — verifyStudent", () => {
-  it("answers 401 without a cookie", async () => {
-    const response = await request(app).get("/user/student");
-
-    expect(response.status).toBe(401);
-  });
-
-  it("answers 403 for a valid session that lacks the STUDENT role", async () => {
-    // Authenticated is not authorised: the middleware re-reads the role from
-    // user_roles rather than trusting the claim in the token, so a token that
-    // says role: "STUDENT" gets nowhere without the row.
-    await prisma.users.create({
-      data: {
-        user_id: "20000002",
-        email: "lecturer@example.test",
-        user_roles_user_roles_user_idTousers: {
-          create: { role_id: "TEACHER", is_active: true },
-        },
-      },
-    });
-
-    const response = await request(app)
-      .get("/user/student")
-      .set("Cookie", sessionCookie({ userId: "20000002", role: "STUDENT" }));
-
-    expect(response.status).toBe(403);
-    expect(response.body).toEqual({
-      message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
-    });
   });
 });

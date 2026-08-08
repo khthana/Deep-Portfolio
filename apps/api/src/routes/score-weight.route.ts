@@ -1,7 +1,7 @@
 import { Router } from "express";
 import CourseController from "../controllers/course.controller";
 import ScoreWeightController from "../controllers/score-weight.controller";
-import { verifyTeacher } from "../middlewares/auth.middleware";
+import { requireRole } from "../middlewares/auth.middleware";
 
 const scoreWeightRouter = Router();
 const scoreWeightController = new ScoreWeightController();
@@ -13,19 +13,19 @@ scoreWeightRouter.get(
 
 scoreWeightRouter.post(
   "/",
-  verifyTeacher,
+  requireRole("TEACHER"),
   scoreWeightController.addScoreWeight.bind(scoreWeightController),
 );
 
 scoreWeightRouter.put(
   "/",
-  verifyTeacher,
+  requireRole("TEACHER"),
   scoreWeightController.updateScoreWeight.bind(scoreWeightController),
 );
 
 scoreWeightRouter.delete(
   "/",
-  verifyTeacher,
+  requireRole("TEACHER"),
   scoreWeightController.deleteScoreWeight.bind(scoreWeightController),
 );
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import CourseController from "../controllers/course.controller";
 import LessonPlanController from "../controllers/lesson-plan.controller";
-import { verifyTeacher } from "../middlewares/auth.middleware";
+import { requireRole } from "../middlewares/auth.middleware";
 
 const lessonPlanRouter = Router();
 const lessonPlanController = new LessonPlanController();
@@ -13,21 +13,21 @@ lessonPlanRouter.get(
 
 lessonPlanRouter.post(
   "/",
-  verifyTeacher,
+  requireRole("TEACHER"),
 
   lessonPlanController.addLessonPlan.bind(lessonPlanController),
 );
 
 lessonPlanRouter.put(
   "/",
-  verifyTeacher,
+  requireRole("TEACHER"),
 
   lessonPlanController.updateLessonPlan.bind(lessonPlanController),
 );
 
 lessonPlanRouter.delete(
   "/",
-  verifyTeacher,
+  requireRole("TEACHER"),
 
   lessonPlanController.deleteLessonPlan.bind(lessonPlanController),
 );

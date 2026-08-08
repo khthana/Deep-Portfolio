@@ -79,6 +79,13 @@ export const env = {
   JWT_SECRET: required("JWT_SECRET"),
   JWT_REFRESH_SECRET: required("JWT_REFRESH_SECRET"),
 
+  /**
+   * Domain attribute of the session cookies. Blank means host-only, which is
+   * what a local server wants — see src/config/cookies.ts for why this is one
+   * value rather than one at each call site.
+   */
+  COOKIE_DOMAIN: optional("COOKIE_DOMAIN", ""),
+
   /** Verifies the SSO cookie minted by DEEP Core. Goes away with Google OAuth (D3). */
   DEEP_CORE_SECRET: required("DEEP_CORE_SECRET"),
 

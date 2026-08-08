@@ -1,9 +1,10 @@
 import express, { NextFunction, Request, Response } from "express";
 import UserService from "../services/user.service";
-import { AuthRequest } from "../middlewares/auth.middleware";
+import { sessionUserId } from "../middlewares/auth.middleware";
 import AuthService from "../services/auth.service";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
+import { sessionCookieOptions } from "../config/cookies";
 
 export default class AuthController {
   private readonly authService = new AuthService();
@@ -14,7 +15,7 @@ export default class AuthController {
 
   async getUser(req: Request, res: Response, next: NextFunction) {
     try {
-      const user_id = (req as AuthRequest).user?.user_id;
+      const user_id = sessionUserId(req);
 
       const userDetail = await this.authService.getUserDetail(user_id);
       if (!userDetail) {
@@ -31,6 +32,9 @@ export default class AuthController {
   }
 
   async logout(req: Request, res: Response) {
+    // The SSO cookie belongs to DEEP Core's domain, not this API's, so this
+    // line has never actually removed it — a server can only clear cookies for
+    // itself. Left in place until the SSO path goes away with Google OAuth (D3).
     res.clearCookie("token", {
       path: "/",
       httpOnly: true,
@@ -38,20 +42,11 @@ export default class AuthController {
       domain: ".deep-core.net",
       sameSite: "lax",
     });
-    res.clearCookie("access_token", {
-      path: "/",
-      httpOnly: true,
-      secure: env.isProduction,
-      domain: "portfolio-api.deep-core.net",
-      sameSite: "lax",
-    });
-    res.clearCookie("refresh_token", {
-      path: "/",
-      httpOnly: true,
-      secure: env.isProduction,
-      domain: "portfolio-api.deep-core.net",
-      sameSite: "lax",
-    });
+
+    // Cleared with exactly the attributes ssoLogin set them with. Anything else
+    // is a no-op that looks like a logout.
+    res.clearCookie("access_token", sessionCookieOptions());
+    res.clearCookie("refresh_token", sessionCookieOptions());
 
     return res.status(200).json({ message: "Logout successful" });
   }
@@ -82,29 +77,8 @@ export default class AuthController {
         { expiresIn: "7d" },
       );
 
-      res.cookie("access_token", accessToken, {
-        httpOnly: true,
-        secure: env.isProduction,
-
-        sameSite: "lax",
-        domain:
-          env.isProduction
-            ? "portfolio-api.deep-core.net"
-            : "localhost",
-        path: "/",
-      });
-
-      res.cookie("refresh_token", refreshToken, {
-        httpOnly: true,
-        secure: env.isProduction,
-
-        sameSite: "lax",
-        domain:
-          env.isProduction
-            ? "portfolio-api.deep-core.net"
-            : "localhost",
-        path: "/",
-      });
+      res.cookie("access_token", accessToken, sessionCookieOptions());
+      res.cookie("refresh_token", refreshToken, sessionCookieOptions());
 
       return res.status(200).json({ message: "login successful" });
     } catch (err) {
@@ -125,29 +99,17 @@ export default class AuthController {
         env.JWT_REFRESH_SECRET,
       ) as any;
 
-      res.clearCookie("access_token", {
-        path: "/",
-        httpOnly: true,
-        secure: env.isProduction,
-        domain: "portfolio-api.deep-core.net",
-        sameSite: "lax",
-      });
-
       const newAccessToken = jwt.sign(
         { user_id: decoded.user_id },
         env.JWT_SECRET,
         { expiresIn: "15m" },
       );
 
-      res.cookie("access_token", newAccessToken, {
-        httpOnly: true,
-        secure: env.isProduction,
-        sameSite: "lax",
-        domain:
-          env.isProduction
-            ? "portfolio-api.deep-core.net"
-            : "localhost",
-      });
+      // Setting it is enough — a cookie of the same name, domain and path
+      // replaces the old one. The clearCookie that used to run first cleared a
+      // different domain, and the replacement was then set without a path, so
+      // it landed scoped to /auth/refresh and was never sent to anything else.
+      res.cookie("access_token", newAccessToken, sessionCookieOptions());
 
       return res.json({ success: true });
     } catch {

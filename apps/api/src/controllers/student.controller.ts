@@ -5,7 +5,7 @@ import {
   SubmitActivityBody,
   SubmitLearningActivityBody,
 } from "../models/student.model";
-import { AuthRequest } from "../middlewares/auth.middleware";
+import { sessionUserId } from "../middlewares/auth.middleware";
 
 export default class StudentController {
   private readonly studentService: StudentService;
@@ -34,7 +34,7 @@ export default class StudentController {
   async submitActivity(req: Request, res: Response, next: NextFunction) {
     try {
       const files = req.files as Express.Multer.File[];
-      const student_id = (req as AuthRequest).user?.user_id;
+      const student_id = sessionUserId(req);
 
       const urlList: { title: string; url: string; uploaded_by: string }[] = req
         .body.urls
@@ -80,7 +80,7 @@ export default class StudentController {
   ) {
     try {
       const files = req.files as Express.Multer.File[];
-      const student_id = (req as AuthRequest).user?.user_id;
+      const student_id = sessionUserId(req);
       const urlList: { title: string; url: string; uploaded_by: string }[] = req
         .body.urls
         ? JSON.parse(req.body.urls)
@@ -121,7 +121,7 @@ export default class StudentController {
 
   async getStudentCourseList(req: Request, res: Response, next: NextFunction) {
     try {
-      const student_id = (req as AuthRequest).user?.user_id;
+      const student_id = sessionUserId(req);
 
       const semester = req.query?.semester as string;
       const academic_year = req.query?.academic_year as string;
@@ -148,7 +148,7 @@ export default class StudentController {
     next: NextFunction,
   ) {
     try {
-      const student_id = (req as AuthRequest).user?.user_id;
+      const student_id = sessionUserId(req);
 
       const semester = req.query?.semester as string;
       const academic_year = req.query?.academic_year as string;
@@ -175,7 +175,7 @@ export default class StudentController {
     next: NextFunction,
   ) {
     try {
-      const student_id = (req as AuthRequest).user?.user_id;
+      const student_id = sessionUserId(req);
 
       const section_id = req.query?.section_id as string;
 
@@ -200,7 +200,7 @@ export default class StudentController {
     next: NextFunction,
   ) {
     try {
-      const student_id = (req as AuthRequest).user?.user_id;
+      const student_id = sessionUserId(req);
       const semester = req.query?.semester as string;
       const academic_year = req.query?.academic_year as string;
 

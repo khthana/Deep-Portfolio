@@ -60,9 +60,9 @@ export async function createUser(options: UserOptions = {}) {
 }
 
 /**
- * A user who will get past verifyTeacher. The role is granted in the database,
- * not asserted in the token — the middleware re-reads it either way — so this
- * is the only way to make a teacher.
+ * A user who will get past requireRole("TEACHER"). The role is granted in the
+ * database, not asserted in the token — the middleware re-reads it either way
+ * — so this is the only way to make a teacher.
  */
 export function createTeacher(options: UserOptions = {}) {
   return createUser({ roles: ["TEACHER"], ...options });

@@ -3,7 +3,7 @@ import CourseController from "../controllers/course.controller";
 import UserController from "../controllers/user.controller";
 import CourseMaterialController from "../controllers/course-material.controller";
 import upload from "../middlewares/upload-minio";
-import { verifyTeacher } from "../middlewares/auth.middleware";
+import { requireRole } from "../middlewares/auth.middleware";
 
 const courseMaterialRouter = Router();
 const courseMaterialController = new CourseMaterialController();
@@ -19,14 +19,14 @@ courseMaterialRouter.post(
     { name: "lecture_files", maxCount: 10 },
     { name: "record_files", maxCount: 10 },
   ]),
-  verifyTeacher,
+  requireRole("TEACHER"),
 
   courseMaterialController.createCourseMaterial.bind(courseMaterialController),
 );
 
 courseMaterialRouter.delete(
   "/",
-  verifyTeacher,
+  requireRole("TEACHER"),
 
   courseMaterialController.deleteCourseMaterial.bind(courseMaterialController),
 );

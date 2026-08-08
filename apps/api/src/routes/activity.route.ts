@@ -1,7 +1,7 @@
 import { Router } from "express";
 import ActivityController from "../controllers/activity.controller";
 import upload from "../middlewares/upload-minio";
-import { verifyTeacher } from "../middlewares/auth.middleware";
+import { requireRole } from "../middlewares/auth.middleware";
 
 const activityRouter = Router();
 const activityController = new ActivityController();
@@ -9,7 +9,7 @@ const activityController = new ActivityController();
 activityRouter.post(
   "/",
   upload.array("files"),
-  verifyTeacher,
+  requireRole("TEACHER"),
 
   activityController.createActivity.bind(activityController),
 );
@@ -17,14 +17,14 @@ activityRouter.post(
 activityRouter.put(
   "/",
   upload.array("files"),
-  verifyTeacher,
+  requireRole("TEACHER"),
 
   activityController.updateActivity.bind(activityController),
 );
 
 activityRouter.delete(
   "/",
-  verifyTeacher,
+  requireRole("TEACHER"),
 
   activityController.deleteActivity.bind(activityController),
 );
@@ -51,7 +51,7 @@ activityRouter.get(
 
 activityRouter.get(
   "/submitted/list",
-  verifyTeacher,
+  requireRole("TEACHER"),
 
   activityController.getAllSubmittedActivityList.bind(activityController),
 );

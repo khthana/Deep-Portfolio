@@ -1,6 +1,6 @@
 import { Router } from "express";
 import StudentLearningActivityController from "../controllers/student-learning-activity.controller";
-import { verifyTeacher } from "../middlewares/auth.middleware";
+import { requireRole } from "../middlewares/auth.middleware";
 
 const studentLearningActivityRouter = Router();
 const studentLearningActivityController =
@@ -8,7 +8,7 @@ const studentLearningActivityController =
 
 studentLearningActivityRouter.post(
   "/grade",
-  verifyTeacher,
+  requireRole("TEACHER"),
 
   studentLearningActivityController.gradeStudentActivity.bind(
     studentLearningActivityController,
@@ -17,7 +17,7 @@ studentLearningActivityRouter.post(
 
 studentLearningActivityRouter.patch(
   "/bookmark",
-  verifyTeacher,
+  requireRole("TEACHER"),
 
   studentLearningActivityController.addStudentLearningActivityToBookmark.bind(
     studentLearningActivityController,

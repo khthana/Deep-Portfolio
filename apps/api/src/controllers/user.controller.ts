@@ -1,6 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
 import UserService from "../services/user.service";
-import { AuthRequest } from "../middlewares/auth.middleware";
+import { sessionUserId } from "../middlewares/auth.middleware";
 
 export default class UserController {
   private readonly userService: UserService;
@@ -26,7 +26,7 @@ export default class UserController {
 
   async getStudentDetail(req: Request, res: Response, next: NextFunction) {
     try {
-      const student_id = (req as AuthRequest).user?.user_id;
+      const student_id = sessionUserId(req);
       const courses = await this.userService.getStudentDetail(student_id);
 
       res.status(200).json({

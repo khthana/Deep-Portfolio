@@ -61,8 +61,8 @@ export const BASELINE = {
 
   /**
    * One row per value of role_enum. The role_id is the natural primary key and
-   * the application compares against it as a literal — verifyTeacher looks for
-   * role_id "TEACHER" — so the ids here are not free to change.
+   * the application compares against it as a literal — requireRole is called with
+   * "TEACHER" at the route — so the ids here are not free to change.
    */
   roles: [
     { role_id: "FULL_ADMIN", role_name: "Full admin", priority: 1 },

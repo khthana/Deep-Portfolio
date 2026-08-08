@@ -1,36 +1,36 @@
 import { Router } from "express";
 import CourseController from "../controllers/course.controller";
-import { verifyTeacher } from "../middlewares/auth.middleware";
+import { requireRole } from "../middlewares/auth.middleware";
 
 const courseRouter = Router();
 const courseController = new CourseController();
 
 courseRouter.get(
   "/list",
-  verifyTeacher,
+  requireRole("TEACHER"),
   courseController.getAllCourses.bind(courseController),
 );
 courseRouter.get("/", courseController.getCourseDetail.bind(courseController));
 courseRouter.post(
   "/schedule",
-  verifyTeacher,
+  requireRole("TEACHER"),
   courseController.createCourseSectionSchedule.bind(courseController),
 );
 
 courseRouter.get("/clo", courseController.getCLO.bind(courseController));
 courseRouter.post(
   "/clo",
-  verifyTeacher,
+  requireRole("TEACHER"),
   courseController.addCLO.bind(courseController),
 );
 courseRouter.put(
   "/clo",
-  verifyTeacher,
+  requireRole("TEACHER"),
   courseController.updateCLO.bind(courseController),
 );
 courseRouter.delete(
   "/clo",
-  verifyTeacher,
+  requireRole("TEACHER"),
   courseController.deleteCLO.bind(courseController),
 );
 

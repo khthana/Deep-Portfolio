@@ -1,13 +1,13 @@
 import { Router } from "express";
 import StudentActivityGroupController from "../controllers/student-activity-group.controller";
-import { verifyStudent } from "../middlewares/auth.middleware";
+import { requireRole } from "../middlewares/auth.middleware";
 
 const studentActivityGroupRouter = Router();
 const studentActivityGroupController = new StudentActivityGroupController();
 
 studentActivityGroupRouter.patch(
   "/",
-  verifyStudent,
+  requireRole("STUDENT"),
   studentActivityGroupController.updateStudentActivityGroup.bind(
     studentActivityGroupController,
   ),
@@ -15,7 +15,7 @@ studentActivityGroupRouter.patch(
 
 studentActivityGroupRouter.post(
   "/",
-  verifyStudent,
+  requireRole("STUDENT"),
   studentActivityGroupController.createStudentActivityGroup.bind(
     studentActivityGroupController,
   ),

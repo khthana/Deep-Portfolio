@@ -1,6 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
 import EvaluationService from "../services/evaluation-service.service";
-import { AuthRequest } from "../middlewares/auth.middleware";
+import { sessionUserId } from "../middlewares/auth.middleware";
 
 export default class EvaluationController {
   private readonly evaluationService: EvaluationService;
@@ -15,7 +15,7 @@ export default class EvaluationController {
     next: NextFunction,
   ) {
     try {
-      const student_id = (req as AuthRequest).user?.user_id;
+      const student_id = sessionUserId(req);
       const section_id = req.query.section_id as string;
       const evaluation = await this.evaluationService.getStudentEvaluationList(
         student_id,

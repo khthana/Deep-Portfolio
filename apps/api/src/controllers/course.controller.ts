@@ -4,7 +4,7 @@ import { successResponse } from "../utils/response";
 import UserService from "../services/user.service";
 import CLOService from "../services/clo.service";
 import PLOService from "../services/plo.service";
-import { AuthRequest } from "../middlewares/auth.middleware";
+import { sessionUserId } from "../middlewares/auth.middleware";
 
 export default class CourseController {
   private readonly courseService: CourseService;
@@ -19,7 +19,7 @@ export default class CourseController {
 
   async getAllCourses(req: Request, res: Response, next: NextFunction) {
     try {
-      const teacher_id = (req as AuthRequest).user?.user_id;
+      const teacher_id = sessionUserId(req);
 
       // const teacher_id = req.query?.teacher_id as string;
       const academic_year = req.query?.academic_year as string;

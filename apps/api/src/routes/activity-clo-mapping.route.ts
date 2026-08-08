@@ -1,13 +1,13 @@
 import { Router } from "express";
 import ActivityCLOMappingController from "../controllers/activity-clo-mapping.controller";
-import { verifyTeacher } from "../middlewares/auth.middleware";
+import { requireRole } from "../middlewares/auth.middleware";
 
 const activityCLOMappingRouter = Router();
 const activityCLOMappingController = new ActivityCLOMappingController();
 
 activityCLOMappingRouter.post(
   "/",
-  verifyTeacher,
+  requireRole("TEACHER"),
 
   activityCLOMappingController.createActivityCLOMapping.bind(
     activityCLOMappingController,

@@ -6,6 +6,9 @@
 แผนงานหลักอยู่ที่ [`docs/spec-refactor-redeploy.md`](docs/spec-refactor-redeploy.md)
 ติดตามความคืบหน้าได้ที่ [issue #1](https://github.com/khthana/Deep-Portfolio/issues/1)
 
+ถ้ากำลังหาว่า API ตอบไม่เหมือนเดิมตรงไหนบ้างหลัง refactor ดูที่
+[`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md)
+
 ## โครงสร้าง
 
 repo นี้เป็น monorepo ที่ใช้ [npm workspaces](https://docs.npmjs.com/cli/using-npm/workspaces)
@@ -61,12 +64,12 @@ docker compose up --build web  # build เว็บใหม่ (จำเป็
 ```
 
 > **stack นี้เป็นของ local เท่านั้น ยังเอาไป deploy จริงไม่ได้** — `NODE_ENV` ถูกตั้งเป็น
-> `development` โดยตั้งใจ เพราะ `auth.controller.ts` hardcode โดเมนของ cookie ไว้เป็น
-> `*.deep-core.net` เมื่อเป็น production ทำให้เก็บ session บน `http://localhost` ไม่ได้เลย
-> เรื่องนี้เป็นงานของ [issue #11](https://github.com/khthana/Deep-Portfolio/issues/11)
-> ที่เปลี่ยนไปใช้ Google OAuth และย้ายโดเมนไปอยู่ใน configuration
+> `development` โดยตั้งใจ เพราะ production จะตั้ง `secure: true` บน cookie ทำให้เก็บ
+> session บน `http://localhost` ไม่ได้ (ส่วนโดเมนของ cookie ไม่ hardcode แล้ว มาจาก
+> `COOKIE_DOMAIN` ตั้งแต่ [issue #10](https://github.com/khthana/Deep-Portfolio/issues/10)
+> ค่าเริ่มต้นคือเว้นว่าง แปลว่า cookie เป็นแบบ host-only)
 >
-> ด้วยเหตุผลเดียวกัน **ตอนนี้ยัง login ไม่ได้** ทางเข้าเดียวที่มีคือ SSO cookie ที่ระบบ
+> **ตอนนี้ยัง login ไม่ได้** ทางเข้าเดียวที่มีคือ SSO cookie ที่ระบบ
 > DEEP Core เป็นคนออกให้ ซึ่ง local ไม่มี stack ชุดนี้จึงยืนยันได้แค่ว่าทุก service
 > ขึ้นครบและคุยกันได้ ยังไม่ใช่การใช้งานจริงตั้งแต่หน้า login
 

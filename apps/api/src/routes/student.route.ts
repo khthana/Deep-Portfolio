@@ -1,7 +1,7 @@
 import { Router } from "express";
 import StudentController from "../controllers/student.controller";
 import upload from "../middlewares/upload-minio";
-import { verifyStudent } from "../middlewares/auth.middleware";
+import { requireRole } from "../middlewares/auth.middleware";
 
 const studentRouter = Router();
 const studentController = new StudentController();
@@ -13,39 +13,39 @@ studentRouter.get(
 
 studentRouter.get(
   "/course/list",
-  verifyStudent,
+  requireRole("STUDENT"),
   studentController.getStudentCourseList.bind(studentController),
 );
 
 studentRouter.get(
   "/classwork/list",
-  verifyStudent,
+  requireRole("STUDENT"),
   studentController.getStudentCourseClassworkList.bind(studentController),
 );
 
 studentRouter.get(
   "/calendar",
-  verifyStudent,
+  requireRole("STUDENT"),
   studentController.getStudentCalendarEvent.bind(studentController),
 );
 
 studentRouter.get(
   "/all/classwork/list",
-  verifyStudent,
+  requireRole("STUDENT"),
   studentController.getStudentAllClassworkList.bind(studentController),
 );
 
 studentRouter.post(
   "/submit/activity",
   upload.array("files"),
-  verifyStudent,
+  requireRole("STUDENT"),
   studentController.submitActivity.bind(studentController),
 );
 
 studentRouter.post(
   "/submit/learning-activity",
   upload.array("files"),
-  verifyStudent,
+  requireRole("STUDENT"),
   studentController.submitLearningActivity.bind(studentController),
 );
 
