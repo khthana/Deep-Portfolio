@@ -143,11 +143,14 @@ export default class LessonPlanService {
       where: { id: lesson_plan_id },
     });
 
+    // Every remaining week of the section, in the order they are displayed, so
+    // that renumbering them 1..n below closes the gap the delete left instead
+    // of shuffling them. Scoped by section only: week numbers belong to the
+    // section's plan, and filtering by created_by as well used to leave a
+    // co-teacher's weeks out of the renumbering and the numbers duplicated.
     const allLessonPlan = await prisma.course_syllabus.findMany({
-      where: {
-        created_by: lessonPlan?.created_by,
-        section_id: lessonPlan?.section_id,
-      },
+      where: { section_id: lessonPlan?.section_id },
+      orderBy: { week_no: "asc" },
     });
 
     for (let i = 0; i < allLessonPlan.length; i++) {

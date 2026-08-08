@@ -13,14 +13,17 @@ courseMaterialRouter.get(
   courseMaterialController.getCourseMaterial.bind(courseMaterialController),
 );
 
+// requireRole before upload, not after: multer runs to completion before the
+// next middleware is called, so with the two the other way round a request
+// that was about to be refused had already had its files read into memory and
+// its handler was one step from putting them in the bucket.
 courseMaterialRouter.post(
   "/",
+  requireRole("TEACHER"),
   upload.fields([
     { name: "lecture_files", maxCount: 10 },
     { name: "record_files", maxCount: 10 },
   ]),
-  requireRole("TEACHER"),
-
   courseMaterialController.createCourseMaterial.bind(courseMaterialController),
 );
 

@@ -14,6 +14,7 @@
 let users = 0;
 let students = 0;
 let subjects = 0;
+let outcomes = 0;
 
 /** users.user_id — VarChar(8). */
 export function nextUserId(): string {
@@ -30,4 +31,10 @@ export function nextStudentId(): string {
  *  is VarChar(8) even though subjects.subject_id is VarChar(20). */
 export function nextSubjectId(): string {
   return `90${String(++subjects).padStart(6, "0")}`;
+}
+
+/** learning_outcomes.outcome_code — unique per programme, not globally, but a
+ *  counter is simpler than tracking which programme a case used. */
+export function nextOutcomeCode(): string {
+  return `PLO${++outcomes}`;
 }

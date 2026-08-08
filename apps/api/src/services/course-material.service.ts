@@ -15,7 +15,6 @@ export default class CourseMaterialService {
   async createCourseMaterial(data: CreateCourseMaterialReqBody) {
     return prisma.$transaction(async (tx) => {
       if (data.lecture.urls.length > 0 || data.lecture.files.length > 0) {
-        console.log("data.lecture.urls : ", data.lecture.urls);
         const attachmentIds = await this.attachmentsService.createAttachments(
           data.lecture,
           `course-material/${data.section_id}/${data.course_syllabus_id}/lecture`,

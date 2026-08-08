@@ -16,5 +16,31 @@ export type { UserOptions, StudentOptions } from "./user";
 export { createCourse, setCourseSchedule, enrolStudent } from "./course";
 export type { CourseOptions, CreatedCourse, ScheduleOptions } from "./course";
 
-export { createActivity, createSubmission } from "./activity";
-export type { ActivityOptions, SubmissionOptions } from "./activity";
+export {
+  createActivity,
+  createLearningActivity,
+  createSubmission,
+} from "./activity";
+export type {
+  ActivityOptions,
+  LearningActivityOptions,
+  SubmissionOptions,
+} from "./activity";
+
+export { createPLO, createCLO } from "./outcome";
+export type { PLOOptions, CLOOptions } from "./outcome";
+
+export { createScoreWeight } from "./score-weight";
+export type { ScoreWeightOptions } from "./score-weight";
+
+export { createLessonPlan, createCourseMaterial } from "./syllabus";
+export type { LessonPlanOptions, CourseMaterialOptions } from "./syllabus";
+
+export { createFileAttachment, createLinkAttachment } from "./attachment";
+export type {
+  FileAttachmentOptions,
+  LinkAttachmentOptions,
+} from "./attachment";
+
+export { createAnnouncement } from "./announcement";
+export type { AnnouncementOptions } from "./announcement";

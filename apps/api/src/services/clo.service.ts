@@ -69,9 +69,14 @@ export default class CLOService {
       where: { clo_id: clo_id },
     });
 
-    // re-index clo
+    // re-index clo. orderBy is not decoration: without it Postgres is free to
+    // return the survivors in whatever order it likes, and the loop below
+    // renumbers them in exactly that order — so deleting a CLO could reshuffle
+    // the rest. clo_id ascending is the order getCLO returns them in, which is
+    // the order the teacher sees on screen.
     const allCLO = await prisma.subject_clo.findMany({
       where: { section_id: clo?.section_id },
+      orderBy: { clo_id: "asc" },
     });
 
     for (let i = 0; i < allCLO.length; i++) {
