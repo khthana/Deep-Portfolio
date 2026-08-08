@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, student_activity_status } from "@prisma/client";
 import { Weekday } from "./course.model";
 import { UploadURLDetail } from "./attachments.model";
 
@@ -85,13 +85,25 @@ export type CalendarEventResp = {
   courses: CalendarCourseEvent[];
 };
 
+/**
+ * What the service builds, not what the caller reads: `res.json` turns the
+ * Date into an ISO string and drops `course` when it is undefined, so the
+ * response body has a string date and may have no `course` key at all.
+ *
+ * Every widened field below was a lie the old `as` cast was hiding. `type` is
+ * a VarChar with no enum behind it; the course name comes from a `find` that
+ * can miss; and the status is whatever the column holds, which includes
+ * GRADING — a value ClassworkStatus does not have, because that union is the
+ * *classwork list's* vocabulary and carries a computed LATE the database has
+ * never heard of.
+ */
 export type CalendarClassworkEvent = {
   id: number;
   name: string;
-  deadline_date: string | null;
-  type: ClassworkType;
-  status: ClassworkStatus;
-  course: string;
+  deadline_date: Date | null;
+  type: string;
+  status: student_activity_status;
+  course: string | undefined;
 };
 
 export type CalendarCourseEvent = {

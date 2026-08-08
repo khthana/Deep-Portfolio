@@ -32,6 +32,13 @@ export interface ActivityOptions {
   is_self_assessment?: boolean;
   detail?: Prisma.InputJsonValue;
   expected_level?: number;
+  /**
+   * subject_score_ratio.score_ratio_id — which of the section's score
+   * categories this piece of work counts towards. The column is only reachable
+   * through the relation, never as a scalar, which is why it is set here rather
+   * than in the case.
+   */
+  score_weight_id?: number;
 }
 
 export async function createActivity(options: ActivityOptions = {}) {
@@ -41,6 +48,9 @@ export async function createActivity(options: ActivityOptions = {}) {
     data: {
       section_id,
       course_syllabus_id: options.course_syllabus_id,
+      subject_score_ratio: options.score_weight_id
+        ? { connect: { score_ratio_id: options.score_weight_id } }
+        : undefined,
       activity_name: options.activity_name ?? "งานตัวอย่าง",
       activity_type: options.activity_type ?? "individual",
       description: options.description ?? "รายละเอียดงานตัวอย่าง",

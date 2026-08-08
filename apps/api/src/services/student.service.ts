@@ -102,25 +102,30 @@ export default class StudentService {
       },
     });
 
-    const calendarActivities = activities.map(
-      (c) =>
-        (checkIsOverAnnouncementDate(c.activities.announcement_date) && {
-          id: c.id,
-          name: c.activities.activity_name,
-          deadline_date: c.activities.deadline_date,
-          type: c.activities.activity_type,
-          status: c.status,
-          course: studentCourses.find(
-            (sc) => sc.section_id === c.activities.section_id,
-          )?.course_name_en,
-        }) as CalendarClassworkEvent,
-    );
+    // Filter, then map. Written the other way round — map over everything and
+    // let `announced && {...}` decide — the unannounced entries stayed in the
+    // array as the literal `false`, and only the cast made that typecheck.
+    const calendarActivities: CalendarClassworkEvent[] = activities
+      .filter((c) =>
+        checkIsOverAnnouncementDate(c.activities.announcement_date),
+      )
+      .map((c) => ({
+        id: c.id,
+        name: c.activities.activity_name,
+        deadline_date: c.activities.deadline_date,
+        type: c.activities.activity_type,
+        status: c.status,
+        course: studentCourses.find(
+          (sc) => sc.section_id === c.activities.section_id,
+        )?.course_name_en,
+      }));
 
-    const calendarLearningActivities = learningActivities.map(
-      (c) =>
-        (checkIsOverAnnouncementDate(
-          c.learning_activities.announcement_date,
-        ) && {
+    const calendarLearningActivities: CalendarClassworkEvent[] =
+      learningActivities
+        .filter((c) =>
+          checkIsOverAnnouncementDate(c.learning_activities.announcement_date),
+        )
+        .map((c) => ({
           id: c.id,
           name: c.learning_activities.learning_activity_name,
           deadline_date: c.learning_activities.deadline_date,
@@ -129,8 +134,7 @@ export default class StudentService {
           course: studentCourses.find(
             (sc) => sc.section_id === c.learning_activities.section_id,
           )?.course_name_en,
-        }) as CalendarClassworkEvent,
-    );
+        }));
 
     const courses = studentCourses.map(
       (sc) =>
