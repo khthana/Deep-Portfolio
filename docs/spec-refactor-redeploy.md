@@ -263,11 +263,23 @@ Dockerfile ต้องรองรับโครงสร้าง npm workspa
 | `verifyTeacher`/`verifyStudent` คัดลอกกันมาต่างแค่ชื่อบทบาท | รวมเป็น middleware เดียวที่รับบทบาทเป็นพารามิเตอร์ |
 | logout เคลียร์ cookie ด้วยโดเมนที่ไม่ตรงกับตอน set ทำให้ลบไม่ออกจริง | ใช้ค่าเดียวกันจาก configuration |
 | ไม่มี `build`/`start` script | เพิ่ม พร้อมแก้ Dockerfile ให้ใช้ |
-| `nodemailer` ติดตั้งไว้แต่ไม่มีการเรียกใช้ และ invite flow ถูก comment ทิ้งทั้งหมด | ลบโค้ดที่ comment ทิ้ง และถอด dependency |
+| ~~`nodemailer` ติดตั้งไว้แต่ไม่มีการเรียกใช้ และ invite flow ถูก comment ทิ้งทั้งหมด~~ **ข้อนี้ผิด** ดูหมายเหตุใต้ตาราง | ~~ลบโค้ดที่ comment ทิ้ง และถอด dependency~~ เก็บไว้ทั้งหมด |
 | route ทดสอบที่คืนข้อความขยะ | ลบ |
 | `AuthRequest.user` เป็น `any` | กำหนด type ที่ชัดเจน |
 | ไม่มีการ validate request body เลย มี `any` 25 จุด | เพิ่ม validation ที่ endpoint ซึ่งรับข้อมูลจากผู้ใช้ |
 | error handler คืน stack trace เมื่อ `NODE_ENV === "development"` | ตรวจสอบว่าปลอดภัยและไม่รั่วใน production |
+
+> **แก้ข้อมูลผิดในสเปก (พบตอนทำ issue #4)** — ข้อ `nodemailer` ข้างบนเขียนไว้ผิด
+> flow ส่งอีเมลเชิญเข้ากลุ่มยัง**ทำงานอยู่จริงทั้งเส้น**: `group.service.ts` เรียก
+> `transporter.sendMail` และถูกเรียกจาก 4 จุดใน `student-activity-group.service.ts`
+> กับ `student-learning-activity-group.service.ts` ทุกครั้งที่สร้างหรือแก้ไขกลุ่ม
+> ส่วน `groupRouter` ก็ mount อยู่ที่ `/group` ตามปกติ สิ่งที่ถูก comment ทิ้งจริงมีแค่
+> route `/:groupId/invite` กับ `inviteMember` ใน controller ซึ่งเป็นทางเข้าเส้นที่สอง
+> (เชิญทีหลังเป็นรายคน) เท่านั้น — สองอันนั้นลบไปแล้ว แต่ `nodemailer`,
+> `config/mailer.ts` และ `sendInviteEmail` เก็บไว้ทั้งหมด
+>
+> ผลที่ตามมา: `EMAIL_USER` / `EMAIL_PASS` เป็นตัวแปรที่ใช้งานจริง ไม่ใช่ของตกค้าง
+> (ถ้าเว้นว่างไว้ การสร้างกลุ่มยังสำเร็จ เพราะการส่งอยู่ใน try/catch แค่อีเมลไม่ถึงปลายทาง)
 
 **Frontend**
 

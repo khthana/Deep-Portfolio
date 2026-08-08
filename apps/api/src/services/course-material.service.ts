@@ -133,21 +133,4 @@ export default class CourseMaterialService {
       });
     });
   }
-
-  //   async deleteCourseMaterial(course_material_id: number) {
-  //     return prisma.$transaction(async (tx) => {
-  //       const courseMaterial = await tx.course_material.findUnique({
-  //         where: { id: course_material_id },
-  //         select: { attachment_id: true },
-  //       });
-
-  //       await tx.course_material.delete({
-  //         where: { id: course_material_id },
-  //       });
-
-  //       await tx.attachments.delete({
-  //         where: { attachment_id: courseMaterial?.attachment_id },
-  //       });
-  //     });
-  //   }
 }

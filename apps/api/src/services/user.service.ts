@@ -5,16 +5,6 @@ export default class UserService {
   async getUserDetail(userId: string) {
     const result = await prisma.users.findUnique({
       where: { user_id: userId },
-      // select: {
-      //   user_id: true,
-      //   full_name_th: true,
-      //   full_name_en: true,
-      //   title_th: true,
-      //   title_en: true,
-      //   email: true,
-      //   phone: true,
-      //   role: true,
-      // },
     });
 
     return result;
@@ -67,23 +57,5 @@ export default class UserService {
     };
 
     return result;
-  }
-
-  async getTeacherDetail(teacher_id: string) {
-    const teacher = await prisma.users.findUnique({
-      where: { user_id: teacher_id },
-      select: {
-        user_id: true,
-        full_name_th: true,
-        full_name_en: true,
-        title_th: true,
-        title_en: true,
-        email: true,
-        phone: true,
-        role: true,
-      },
-    });
-
-    return teacher;
   }
 }

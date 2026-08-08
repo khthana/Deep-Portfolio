@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from "express";
+import express, { type Response } from "express";
 import router from "./routes";
 import cors from "cors";
 import { errorHandler } from "./middlewares/error.middleware";
@@ -50,10 +50,6 @@ app.get("/files", async (req, res: Response) => {
 
 app.use(router);
 app.use(errorHandler);
-
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello, worldcddddddddjjjjjjjjjjjjddddddvvv!");
-});
 
 setupAssignTasksCron();
 

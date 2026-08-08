@@ -89,20 +89,6 @@ export default class LearningActivityController {
       next(err);
     }
   }
-  // async createLearningActivity(
-  //   req: Request,
-  //   res: Response,
-  //   next: NextFunction
-  // ) {
-  //   try {
-  //     const activity =
-  //       await this.learningActivityService.createLearningActivity(req.body);
-
-  //     successResponse(res, activity, "Created learning activity");
-  //   } catch (err) {
-  //     next(err);
-  //   }
-  // }
 
   async getAllLearningActivity(
     req: Request,

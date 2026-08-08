@@ -16,25 +16,6 @@ announcementRouter.post(
   announcementController.createAnnouncement.bind(announcementController)
 );
 
-// announcementRouter.post(
-//   "/:id/upload/file",
-//   upload.single("file"),
-//   announcementController.uploadFile.bind(announcementController)
-// );
-
-// announcementRouter.post(
-//   "/:id/upload/url",
-//   announcementController.uploadURL.bind(announcementController)
-// );
-
-// announcementRouter.post(
-//   "/with-attachments",
-//   upload.array("files"),
-//   announcementController.createAnnouncementWithAttachments.bind(
-//     announcementController
-//   )
-// );
-
 announcementRouter.get(
   "/:id/attachments",
   announcementController.getAllAttachments.bind(announcementController)
