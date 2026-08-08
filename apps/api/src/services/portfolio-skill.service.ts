@@ -241,7 +241,14 @@ export default class PortfolioSkillService {
       });
 
       if (ownedSkills.length !== skill_ids.length) {
-        throw new Error("One or more skills do not belong to this user");
+        // A refusal, not a fault. Without a status the error handler reports
+        // this as a 500, which tells the caller the server broke when in fact
+        // it declined. Same shape as the expired share link in
+        // portfolio.service.ts.
+        throw Object.assign(
+          new Error("One or more skills do not belong to this user"),
+          { status: 403 },
+        );
       }
 
       await tx.portfolio_skill_activity_mapping.deleteMany({

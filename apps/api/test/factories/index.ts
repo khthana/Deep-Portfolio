@@ -80,6 +80,11 @@ export {
   createPortfolioEducation,
   createPortfolioTraining,
   createPortfolioCertificate,
+  createPortfolioInternship,
+  createPortfolioAward,
+  createPortfolioThesis,
+  createPortfolioActivity,
+  createPortfolioSkillActivityMapping,
 } from "./portfolio";
 export type {
   PortfolioOptions,
@@ -89,4 +94,9 @@ export type {
   PortfolioEducationOptions,
   PortfolioTrainingOptions,
   PortfolioCertificateOptions,
+  PortfolioInternshipOptions,
+  PortfolioAwardOptions,
+  PortfolioThesisOptions,
+  PortfolioActivityOptions,
+  PortfolioSkillActivityMappingOptions,
 } from "./portfolio";

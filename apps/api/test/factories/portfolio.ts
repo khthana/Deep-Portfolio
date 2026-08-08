@@ -1,5 +1,6 @@
 import prisma from "../../src/config/prisma";
 import { createStudent } from "./user";
+import { createSubmission } from "./activity";
 
 /**
  * The e-Portfolio — a student's own record of who they are and what they have
@@ -268,4 +269,246 @@ export async function createPortfolioCertificate(
   }
 
   return certificate;
+}
+
+export interface PortfolioInternshipOptions {
+  user_id?: string;
+  /** NOT NULL, VarChar(20) — the one required column here, which is why a POST
+   *  that omits it is a 500. The frontend sends "internship" or "coop". */
+  type?: string;
+  title?: string;
+  position?: string;
+  company?: string;
+  country?: string;
+  province?: string;
+  /** What the list is ordered by, descending. */
+  start_date?: Date;
+  end_date?: Date;
+  resp?: string;
+  is_show_resp?: boolean;
+  learning_out?: string;
+  is_show_learning?: boolean;
+  reflection?: string;
+  is_show_reflec?: boolean;
+  /** attachments.attachment_id values, joined on through
+   *  portfolio_internship_attachments. */
+  attachment_ids?: number[];
+}
+
+export async function createPortfolioInternship(
+  options: PortfolioInternshipOptions = {},
+) {
+  const internship = await prisma.portfolio_internship.create({
+    data: {
+      user_id: options.user_id ?? (await someStudent()),
+      type: options.type ?? "internship",
+      title: options.title ?? "ฝึกงานตัวอย่าง",
+      position: options.position,
+      company: options.company ?? "บริษัทตัวอย่าง",
+      country: options.country,
+      province: options.province,
+      start_date: options.start_date,
+      end_date: options.end_date,
+      resp: options.resp,
+      is_show_resp: options.is_show_resp,
+      learning_out: options.learning_out,
+      is_show_learning: options.is_show_learning,
+      reflection: options.reflection,
+      is_show_reflec: options.is_show_reflec,
+    },
+  });
+
+  if (options.attachment_ids?.length) {
+    await prisma.portfolio_internship_attachments.createMany({
+      data: options.attachment_ids.map((attachment_id) => ({
+        internship_id: internship.id,
+        attachment_id,
+      })),
+    });
+  }
+
+  return internship;
+}
+
+export interface PortfolioAwardOptions {
+  user_id?: string;
+  organize?: string;
+  name?: string;
+  /** The prize itself — "รางวัลชนะเลิศ" — where `name` is what it was for. */
+  award?: string;
+  /** A date column, so the time of day is dropped. What the list is ordered
+   *  by, descending. */
+  date?: Date;
+  description?: string;
+  is_show?: boolean;
+  /** attachments.attachment_id values, joined on through
+   *  portfolio_award_attachments. */
+  attachment_ids?: number[];
+}
+
+export async function createPortfolioAward(options: PortfolioAwardOptions = {}) {
+  const award = await prisma.portfolio_award.create({
+    data: {
+      user_id: options.user_id ?? (await someStudent()),
+      organize: options.organize ?? "หน่วยงานตัวอย่าง",
+      name: options.name ?? "การแข่งขันตัวอย่าง",
+      award: options.award ?? "รางวัลชนะเลิศ",
+      date: options.date,
+      description: options.description,
+      is_show: options.is_show,
+    },
+  });
+
+  if (options.attachment_ids?.length) {
+    await prisma.portfolio_award_attachments.createMany({
+      data: options.attachment_ids.map((attachment_id) => ({
+        award_id: award.id,
+        attachment_id,
+      })),
+    });
+  }
+
+  return award;
+}
+
+export interface PortfolioThesisOptions {
+  user_id?: string;
+  name?: string;
+  repository?: string;
+  role_and_resp?: string;
+  init_expect?: string;
+  reflection?: string;
+  is_show_repo?: boolean;
+  is_show_role?: boolean;
+  is_show_init?: boolean;
+  is_show_reflec?: boolean;
+  /** attachments.attachment_id values, joined on through
+   *  portfolio_thesis_attachments. */
+  attachment_ids?: number[];
+}
+
+/** The final-year project. Has no date column of any kind, which is why its
+ *  list is ordered by id and newest simply means most recently written. */
+export async function createPortfolioThesis(
+  options: PortfolioThesisOptions = {},
+) {
+  const thesis = await prisma.portfolio_thesis.create({
+    data: {
+      user_id: options.user_id ?? (await someStudent()),
+      name: options.name ?? "ปริญญานิพนธ์ตัวอย่าง",
+      repository: options.repository,
+      role_and_resp: options.role_and_resp,
+      init_expect: options.init_expect,
+      reflection: options.reflection,
+      is_show_repo: options.is_show_repo,
+      is_show_role: options.is_show_role,
+      is_show_init: options.is_show_init,
+      is_show_reflec: options.is_show_reflec,
+    },
+  });
+
+  if (options.attachment_ids?.length) {
+    await prisma.portfolio_thesis_attachments.createMany({
+      data: options.attachment_ids.map((attachment_id) => ({
+        thesis_id: thesis.id,
+        attachment_id,
+      })),
+    });
+  }
+
+  return thesis;
+}
+
+export interface PortfolioActivityOptions {
+  user_id?: string;
+  /** NOT NULL — the one required column here, which is why a POST that omits
+   *  it is a 500. */
+  name?: string;
+  /** A date column, so the time of day is dropped. What the list is ordered
+   *  by, descending. */
+  date?: Date;
+  role?: string;
+  description?: string;
+  is_show?: boolean;
+  /** attachments.attachment_id values, joined on through
+   *  portfolio_activity_attachments. */
+  attachment_ids?: number[];
+}
+
+/**
+ * Something the student took part in outside their coursework — a camp, a club,
+ * volunteering. Not to be confused with `activities`, the work a teacher sets,
+ * which `createActivity` makes.
+ */
+export async function createPortfolioActivity(
+  options: PortfolioActivityOptions = {},
+) {
+  const activity = await prisma.portfolio_activities.create({
+    data: {
+      user_id: options.user_id ?? (await someStudent()),
+      name: options.name ?? "กิจกรรมตัวอย่าง",
+      date: options.date,
+      role: options.role,
+      description: options.description,
+      is_show: options.is_show,
+    },
+  });
+
+  if (options.attachment_ids?.length) {
+    await prisma.portfolio_activity_attachments.createMany({
+      data: options.attachment_ids.map((attachment_id) => ({
+        activity_id: activity.id,
+        attachment_id,
+      })),
+    });
+  }
+
+  return activity;
+}
+
+export interface PortfolioSkillActivityMappingOptions {
+  /** portfolio_skill.id. A skill is created if this is left out. */
+  skill_id?: number;
+  /**
+   * student_activity.id — a piece of submitted coursework the student is
+   * pointing at as evidence of the skill. There is **no foreign key** on this
+   * column, so a mapping can name a submission that does not exist; the works
+   * endpoint simply finds no feedback for it.
+   */
+  student_activity_id?: number;
+  repository?: string;
+  role_and_resp?: string;
+  init_expect?: string;
+  reflection?: string;
+  isShowRepo?: boolean;
+  isShowRole?: boolean;
+  isShowInit?: boolean;
+  isShowReflec?: boolean;
+}
+
+/** Ties a skill to a piece of submitted work. The same submission usually has
+ *  one of these per skill it demonstrates, and the works endpoint groups them
+ *  back together by student_activity_id.
+ *
+ *  Not portfolio_skill_mapping, which is a different table joining a portfolio
+ *  to the skills it shows — that one is written by `skill_ids` on
+ *  createPortfolio. */
+export async function createPortfolioSkillActivityMapping(
+  options: PortfolioSkillActivityMappingOptions = {},
+) {
+  return prisma.portfolio_skill_activity_mapping.create({
+    data: {
+      skill_id: options.skill_id ?? (await createPortfolioSkill()).id,
+      student_activity_id:
+        options.student_activity_id ?? (await createSubmission()).id,
+      repository: options.repository,
+      role_and_resp: options.role_and_resp,
+      init_expect: options.init_expect,
+      reflection: options.reflection,
+      isShowRepo: options.isShowRepo,
+      isShowRole: options.isShowRole,
+      isShowInit: options.isShowInit,
+      isShowReflec: options.isShowReflec,
+    },
+  });
 }
