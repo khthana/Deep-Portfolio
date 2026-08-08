@@ -21,7 +21,56 @@ dependency ทั้งหมดถูกล็อกด้วย `package-lock.
 `node_modules/` ที่ root เป็นหลัก — **ห้ามรัน `npm install` ในโฟลเดอร์ย่อย** เพราะจะสร้าง
 lockfile ซ้อนขึ้นมาแล้วทำให้เวอร์ชันของ dependency แตกจากที่ล็อกไว้
 
-## เริ่มต้นใช้งาน
+## เริ่มต้นใช้งาน — คำสั่งเดียวด้วย Docker
+
+ต้องมี Docker Desktop (หรือ Docker Engine + Compose v2)
+
+```bash
+cp .env.example .env           # แล้วเติมค่าที่ว่างให้ครบ
+docker compose up --build
+```
+
+จบแล้วจะได้ 4 service ทำงานอยู่ พร้อมฐานข้อมูลที่รัน migration ครบและ bucket ที่สร้างไว้ให้แล้ว
+
+| บริการ | เข้าถึงที่ | หมายเหตุ |
+| ------ | ---------- | -------- |
+| เว็บ | http://localhost:3000 | React ที่ build แล้ว เสิร์ฟด้วย nginx |
+| API | http://localhost:4001 | โค้ดที่ compile แล้วใน `dist/` ไม่ใช่ `tsx watch` |
+| MinIO console | http://localhost:9001 | ล็อกอินด้วย `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` |
+| PostgreSQL | `localhost:5432` | เปิด port ออกมาให้เครื่องมือฝั่ง host ต่อได้ |
+
+`.env` ที่ root เก็บ**เฉพาะค่าลับ** — ชื่อ host กับ port ที่ compose เป็นคนกำหนดเองอยู่ใน
+`docker-compose.yml` ตรง ๆ ค่าที่จำเป็นเขียนเป็น `${VAR:?...}` ไว้ ถ้าลืมเติม compose
+จะหยุดพร้อมบอกว่าขาดตัวไหน แทนที่จะสตาร์ตขึ้นมาโดยใช้รหัสผ่านว่าง
+
+port ในตารางข้างบนเป็นค่า default เปลี่ยนได้ทุกตัวจาก `.env` (`WEB_PORT`, `API_PORT`,
+`DB_PORT`, `MINIO_API_PORT`, `MINIO_CONSOLE_PORT`) ซึ่งจำเป็นบ่อยเพราะเครื่อง dev
+มักมีของอื่นจับ 3000 หรือ 5432 อยู่แล้ว URL ที่ขึ้นกับ port ถูก derive จากตัวแปรเดียวกัน
+เปลี่ยน `WEB_PORT` แล้ว origin ที่ API ยอมให้ผ่าน CORS ขยับตามเอง ไม่ต้องไล่แก้เป็นจุด ๆ
+
+**migration รันเองอัตโนมัติ** — service ชื่อ `migrate` รัน `prisma migrate deploy` แล้วจบ
+service `api` รอให้มันจบสำเร็จก่อนถึงจะเริ่ม ไม่ต้องสั่งอะไรเพิ่ม
+
+คำสั่งที่ใช้บ่อย
+
+```bash
+docker compose logs -f api     # ดู log ของ API
+docker compose down            # หยุดทั้งหมด (ข้อมูลยังอยู่)
+docker compose down -v         # หยุดแล้วลบ volume ทิ้งด้วย — ฐานข้อมูลกับไฟล์หายหมด
+docker compose up --build web  # build เว็บใหม่ (จำเป็นเมื่อแก้ VITE_BACKEND_URL)
+```
+
+> **stack นี้เป็นของ local เท่านั้น ยังเอาไป deploy จริงไม่ได้** — `NODE_ENV` ถูกตั้งเป็น
+> `development` โดยตั้งใจ เพราะ `auth.controller.ts` hardcode โดเมนของ cookie ไว้เป็น
+> `*.deep-core.net` เมื่อเป็น production ทำให้เก็บ session บน `http://localhost` ไม่ได้เลย
+> เรื่องนี้เป็นงานของ [issue #11](https://github.com/khthana/Deep-Portfolio/issues/11)
+> ที่เปลี่ยนไปใช้ Google OAuth และย้ายโดเมนไปอยู่ใน configuration
+>
+> ด้วยเหตุผลเดียวกัน **ตอนนี้ยัง login ไม่ได้** ทางเข้าเดียวที่มีคือ SSO cookie ที่ระบบ
+> DEEP Core เป็นคนออกให้ ซึ่ง local ไม่มี stack ชุดนี้จึงยืนยันได้แค่ว่าทุก service
+> ขึ้นครบและคุยกันได้ ยังไม่ใช่การใช้งานจริงตั้งแต่หน้า login
+
+## รันบนเครื่องโดยตรง (ไม่ผ่าน Docker)
 
 ต้องมี Node.js 22 ขึ้นไป
 
@@ -29,20 +78,24 @@ lockfile ซ้อนขึ้นมาแล้วทำให้เวอร�
 npm install                    # ติดตั้ง dependency ของทุก workspace ในคำสั่งเดียว
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
+npm run dev
 ```
 
 แล้วเติมค่าใน `.env` ทั้งสองไฟล์ให้ครบ ในไฟล์ `.env.example` มีคำอธิบายกำกับทุกตัวแปรว่า
 ถูกอ่านที่ไหนและใส่ค่าอะไรได้บ้าง ตัวไหนจำเป็นตัวไหนไม่จำเป็น
 
+**`.env` ที่ root กับ `apps/api/.env` เป็นคนละไฟล์ที่ทำคนละหน้าที่ ไม่ใช่ของซ้ำกัน** —
+ไฟล์ที่ root มีไว้ให้ docker compose อ่าน ส่วน `apps/api/.env` มีไว้ตอนรัน API บนเครื่องตรง ๆ
+ค่าเดียวกันต้องใส่ต่างกันด้วย เช่นฐานข้อมูลอยู่ที่ `db:5432` เมื่อมองจากใน compose network
+แต่อยู่ที่ `localhost:5432` เมื่อมองจาก host
+
+ยัง `docker compose up db minio minio-init` เพื่อยืม PostgreSQL กับ MinIO จาก stack มาใช้
+แล้วรันเฉพาะ API กับเว็บบนเครื่องได้ — ค่าใน `apps/api/.env.example` ตั้งมาให้ตรงกับกรณีนี้อยู่แล้ว
+
 ฝั่ง API มี `src/config/env.ts` เป็น **โมดูลเดียวที่อ่าน `process.env`** และตรวจค่าทั้งหมด
 ตอน startup ถ้าค่าจำเป็นขาด server จะล้มทันทีพร้อมบอกว่าขาดตัวไหนบ้าง แทนที่จะไปพังทีหลัง
 ตอนมี request มาโดน — และ **ค่าลับไม่มี fallback เด็ดขาด** เพราะ fallback จะทำให้ระบบที่ตั้งค่า
 ไม่ครบกลายเป็นระบบที่ token ปลอมได้โดยไม่มีสัญญาณเตือน
-
-> ตอนนี้ยังต้องเตรียม PostgreSQL และ MinIO ขึ้นมาเอง การรวม service เหล่านี้เข้าเป็น
-> local stack ชุดเดียวเป็นงานของ ticket ถัดไป — `Dockerfile` และ `docker-compose.yml`
-> ที่ยังค้างอยู่ใน `apps/api/` และ `apps/web/` เป็นของเดิมจากตอนรับมอบ ยังไม่ได้ปรับ
-> ให้เข้ากับโครง monorepo
 
 ## คำสั่งที่ root
 

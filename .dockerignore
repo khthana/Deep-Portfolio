@@ -1,0 +1,37 @@
+# Build context for every image in docker-compose.yml is the repo root, so this
+# file decides what is sent to the daemon. Keep it tight: node_modules alone is
+# ~1 GB and would be copied on every build only to be overwritten by npm ci.
+
+# Dependencies — reinstalled inside the image from package-lock.json
+node_modules/
+**/node_modules/
+
+# Secrets. .env must never end up in an image layer.
+.env
+.env.*
+!.env.example
+
+# Build output — rebuilt inside the image
+dist/
+**/dist/
+**/dist-ssr/
+*.tsbuildinfo
+
+# Prisma client, regenerated inside the image by the postinstall hook
+**/src/generated/prisma/
+
+# Host-side runtime state
+uploads/
+**/uploads/
+logs/
+**/*.log
+coverage/
+
+# Repo furniture with no bearing on a build
+.git/
+.github/
+.claude/
+.vscode/
+.idea/
+docs/
+*.md

@@ -1,25 +1,38 @@
-# Stage 1: Build React/Vite Code
-FROM node:18-alpine as build
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-# Vite จะ build ไฟล์ไปไว้ที่โฟลเดอร์ dist
-RUN npm run build 
+# syntax=docker/dockerfile:1
+#
+# Web image. Build context is the REPO ROOT, not this folder:
+#
+#     docker build -f apps/web/Dockerfile .
+#
+# See apps/api/Dockerfile for why — the shared package-lock.json lives at the root.
 
-# Stage 2: Serve ด้วย Nginx (ตัวเล็กสำหรับรันเว็บ Frontend โดยเฉพาะ)
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
+FROM node:22-alpine AS base
+WORKDIR /repo
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 
-# จัดการ React Router (ป้องกันปัญหาเวลากด Refresh หน้าเว็บแล้วขึ้น 404)
-RUN echo 'server { \
-    listen 80; \
-    location / { \
-    root   /usr/share/nginx/html; \
-    index  index.html index.htm; \
-    try_files $uri $uri/ /index.html; \
-    } \
-    }' > /etc/nginx/conf.d/default.conf
+# --- deps -------------------------------------------------------------------
+FROM base AS deps
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+RUN npm ci --workspace @deep-portfolio/web --include-workspace-root
 
+# --- build ------------------------------------------------------------------
+FROM deps AS build
+
+# Vite inlines VITE_* variables into the bundle at build time — they cannot be
+# supplied at run time. Whatever value is baked in here is also public: it ends
+# up verbatim in JavaScript the browser downloads. Never pass a secret this way.
+ARG VITE_BACKEND_URL=http://localhost:4001
+ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
+
+COPY apps/web apps/web
+RUN npm run build --workspace @deep-portfolio/web
+
+# --- runtime ----------------------------------------------------------------
+# Static files only. Nothing from node_modules ships.
+FROM nginx:1.27-alpine AS runtime
+COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /repo/apps/web/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

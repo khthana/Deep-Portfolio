@@ -1,0 +1,195 @@
+# The whole DEEP Portfolio stack, for local development.
+#
+#     cp .env.example .env      # fill in the blanks, then:
+#     docker compose up --build
+#
+#     web   http://localhost:3000        (WEB_PORT)
+#     api   http://localhost:4001        (API_PORT)
+#     minio http://localhost:9001        (MINIO_CONSOLE_PORT — the web console)
+#     db    postgres://localhost:5432    (DB_PORT)
+#
+# Two kinds of value appear below, and the split is deliberate:
+#
+#   * Topology — hostnames and ports inside the compose network. Written here as
+#     literals, because they are decided by this file and are correct by
+#     construction. `db` and `minio` resolve to the containers; changing them
+#     would only break things.
+#   * Credentials — read from .env via ${...}. Never literals: this file is in a
+#     public git repository. Required ones use ${VAR:?message} so a missing value
+#     stops `docker compose up` with an explanation instead of silently starting
+#     an instance with a blank password.
+#
+# The published (host-side) ports are variables too, because a development
+# machine usually already has something on 3000 or 5432. Every URL that depends
+# on one is derived from the same variable, so overriding WEB_PORT also moves
+# what the API allows through CORS.
+#
+# NOT a production deployment. See the NODE_ENV comment on the api service.
+
+name: deep-portfolio
+
+x-database-url: &database-url >-
+  postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-deep_portfolio}?schema=public
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-deep_portfolio}
+    ports:
+      # Published so host-side tooling can reach it — psql, Prisma Studio, and
+      # the test harness in #8.
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-deep_portfolio}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+    ports:
+      # 9002, not 9000, because the API's own default MINIO_PORT is 9000 and
+      # having both mean different things on the same host is a trap.
+      # MINIO_PUBLIC_HOST below is derived from the same variable.
+      - "${MINIO_API_PORT:-9002}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+
+  # One-shot. The application never creates the bucket — it assumes one exists —
+  # so without this every upload fails against a fresh volume.
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+      MINIO_BUCKET: ${MINIO_BUCKET:-deep-portfolio}
+    entrypoint: ["/bin/sh", "-c"]
+    # Polls instead of relying on a healthcheck: `mc` is the one tool guaranteed
+    # to be present here, and a successful `alias set` is proof the server is
+    # actually serving, not merely listening.
+    command:
+      - |
+        until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; do
+          echo "waiting for minio..."
+          sleep 1
+        done
+        mc mb --ignore-existing "local/$$MINIO_BUCKET"
+        echo "bucket $$MINIO_BUCKET ready"
+
+  # One-shot. Brings the database up to the current migration, then exits; the
+  # api service waits for it to exit successfully. This is why `docker compose
+  # up` needs no separate migrate step.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: *database-url
+    command: ["npm", "run", "db:migrate"]
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "${API_PORT:-4001}:4001"
+    environment:
+      # NOT production, on purpose. src/controllers/auth.controller.ts hardcodes
+      # the cookie domain to *.deep-core.net when NODE_ENV is production and
+      # marks the cookies secure, so a production build cannot hold a session on
+      # http://localhost at all. Issue #11 replaces that flow with Google OAuth
+      # and moves the domain into configuration; until then this stack is
+      # development-only and the value here says so honestly.
+      NODE_ENV: development
+      # The port inside the container is fixed; only the published one varies.
+      PORT: 4001
+      # Origin allowed through CORS. Must be where the browser actually loads
+      # the web app from, hence WEB_PORT.
+      CLIENT_URL: http://localhost:${WEB_PORT:-3000}
+      DATABASE_URL: *database-url
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET in .env}
+      DEEP_CORE_SECRET: ${DEEP_CORE_SECRET:?set DEEP_CORE_SECRET in .env}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+      MINIO_BUCKET: ${MINIO_BUCKET:-deep-portfolio}
+      # Presigned URLs come back addressed to the in-network host, which a
+      # browser cannot resolve. The API rewrites INTERNAL -> PUBLIC on the way out.
+      MINIO_INTERNAL_HOST: minio:9000
+      MINIO_PUBLIC_HOST: localhost:${MINIO_API_PORT:-9002}
+      # Optional. Blank means group-invite emails are never delivered; it does
+      # not stop the group being created or the server starting.
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+    volumes:
+      # Attachments written by multer land on disk, not in MinIO. Without this
+      # they vanish with the container.
+      - api-uploads:/repo/apps/api/uploads
+    healthcheck:
+      # There is no /health route, so this borrows a real one. Any HTTP response
+      # is a pass — /auth/login answers 401 without a token, and a 401 already
+      # proves the server is listening, routing and running its middleware. What
+      # is being tested is liveness, not the endpoint. Without this compose
+      # treats the container as ready the instant it starts, and `--wait` says
+      # so before node has finished booting.
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4001/auth/login').then(()=>process.exit(0),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Baked into the bundle at build time, so changing this needs
+        # `docker compose up --build` to take effect. It is the URL the BROWSER
+        # calls, so it is localhost and the published port — not the compose
+        # hostname `api`, which only resolves inside the network.
+        VITE_BACKEND_URL: http://localhost:${API_PORT:-4001}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-3000}:80"
+
+volumes:
+  db-data:
+  minio-data:
+  api-uploads:

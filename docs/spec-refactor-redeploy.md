@@ -246,7 +246,11 @@ Portfolio เป็นเจ้าของฐานข้อมูล **ทั�
 
 `EMAIL_USER` / `EMAIL_PASS` **จงใจไม่บังคับ** เพราะการส่งอีเมลเชิญอยู่ใน try/catch อยู่แล้ว บัญชีเมลว่างต้องไม่ทำให้ server สตาร์ตไม่ขึ้น
 
-ยังไม่เสร็จ — โดเมนของ cookie ที่ยัง hardcode `.deep-core.net` และ `portfolio-api.deep-core.net` อยู่ใน `auth.controller.ts` ยกยอดไปทำพร้อม **#11 (Google OAuth)** ซึ่งเขียน flow ของ cookie ใหม่ทั้งก้อนอยู่แล้ว ทำตอนนี้ก็ต้องรื้อซ้ำ ส่วนรหัสผ่าน MinIO กับ volume path ใน `docker-compose.yml` เป็นงานของ **#7 (local stack)**
+เสร็จเพิ่มใน **#7** — สองข้อล่างของรายการนี้ปิดแล้ว รหัสผ่าน MinIO มาจาก `.env` ที่ root ผ่าน `${MINIO_ROOT_USER:?...}` / `${MINIO_ROOT_PASSWORD:?...}` และ volume ทุกตัวเป็น named volume (`db-data`, `minio-data`, `api-uploads`) ไม่มี path ที่ผูกกับเครื่องใครเหลืออยู่
+
+*(หมายเหตุความถูกต้อง: รหัสผ่านที่เขียนตรง ๆ กับ volume path ที่ชี้ home directory ของนักศึกษาคนเดิม ถูกถอดออกไปตั้งแต่รอบล้าง secret ก่อน push ครั้งแรก จึงไม่ปรากฏใน git history — ที่ #7 เพิ่มขึ้นมาคือย้ายไปอ่านจาก `.env` ที่ root พร้อม guard `:?` และทำ named volume ให้ครบทั้งสามตัว)*
+
+ยังไม่เสร็จ — โดเมนของ cookie ที่ยัง hardcode `.deep-core.net` และ `portfolio-api.deep-core.net` อยู่ใน `auth.controller.ts` ยกยอดไปทำพร้อม **#11 (Google OAuth)** ซึ่งเขียน flow ของ cookie ใหม่ทั้งก้อนอยู่แล้ว ทำตอนนี้ก็ต้องรื้อซ้ำ
 
 ### D6 — Docker และการรัน
 
@@ -259,6 +263,28 @@ Dockerfile ของ API เปลี่ยนเป็น **multi-stage build**
 Dockerfile ต้องรองรับโครงสร้าง npm workspaces (build context ที่ root เพื่อให้เห็น lockfile ร่วม)
 
 คงการใช้ **MinIO** ไว้ ไม่เปลี่ยนไปใช้ S3 หรือบริการ managed อื่น
+
+**สถานะ: เสร็จแล้ว** (issue #7)
+
+`docker-compose.yml` ตัวเดียวที่ root แทนของเดิมที่แยกอยู่สอง app (ลบทิ้งทั้งคู่แล้ว) มี 6 service — `db`, `minio`, `minio-init`, `migrate`, `api`, `web` โดยสองตัวกลางเป็น one-shot ที่ทำงานเสร็จแล้วจบ ส่วน `api` รอทั้งคู่ด้วย `condition: service_completed_successfully` ทำให้ `docker compose up` ครั้งเดียวได้ฐานข้อมูลที่ migrate ครบและ bucket ที่สร้างไว้แล้วโดยไม่ต้องสั่งอะไรเพิ่ม
+
+Dockerfile ทั้งสองตัวเป็น multi-stage บน `node:22-alpine` และใช้ build context ที่ root — จำเป็น เพราะ `package-lock.json` อยู่ที่ root ถ้า context เป็น `apps/api` จะเห็น `package.json` ที่ไม่มี lockfile อยู่ข้าง ๆ แล้ว `npm ci` จะไม่ยอมรัน แต่ละตัวติดตั้งเฉพาะ workspace ของตัวเองด้วย `npm ci --workspace ... --include-workspace-root` จึงไม่ลาก dependency ของอีกฝั่งเข้ามา ภาพของเว็บเป็น nginx ที่มีแต่ไฟล์ static (98 MB) ส่วนภาพของ API รัน `node dist/server.js` ในฐานะ user `node` ไม่ใช่ root
+
+**ประเด็นที่ต้องตัดสินใจ 3 ข้อ**
+
+| เรื่อง | ที่ตัดสิน | เหตุผล |
+| --- | --- | --- |
+| ภาพ API ใหญ่ 685 MB เพราะยังมี dev dependency ติดมา | ยอมรับ ไม่ prune | Prisma CLI เป็น dev dependency และเป็นตัวที่ generate `@prisma/client` ตอน install **และ** เป็นตัวที่รัน `migrate deploy` — service `migrate` คือภาพเดียวกันนี้เปลี่ยนแค่ command ตัด dev dependency ออกแล้วพังทั้งสองทาง การแยกให้เล็กลงเป็นงานของ ticket deploy ไม่ใช่ของ local stack |
+| `NODE_ENV` ใน compose ตั้งเป็น `development` | ตั้งใจ | `auth.controller.ts` hardcode โดเมน cookie เป็น `*.deep-core.net` เมื่อเป็น production และตั้ง `secure: true` ด้วย ทำให้ถือ session บน `http://localhost` ไม่ได้เลย stack นี้จึงเป็นของ local ล้วน ๆ จนกว่า **#11** จะย้ายโดเมนไปอยู่ใน configuration |
+| ต้องมี service `minio-init` | จำเป็น | โค้ดไม่เคยสร้าง bucket เอง (ไม่มี `makeBucket` ที่ไหนเลย) มันสมมติว่ามีอยู่แล้ว ถ้าไม่มีตัวนี้ upload จะพังทุกครั้งบน volume ที่เพิ่งสร้าง |
+
+**เรื่อง `.env` สองไฟล์** — `.env` ที่ root เป็นของ compose เท่านั้น ส่วน `apps/api/.env` เป็นของตอนรัน API บนเครื่องตรง ๆ ไม่ใช่ของซ้ำกันและรวมกันไม่ได้ เพราะค่าเดียวกันต้องต่างกัน: ฐานข้อมูลอยู่ที่ `db:5432` เมื่อมองจากใน compose network แต่อยู่ที่ `localhost:5432` เมื่อมองจาก host ไฟล์ที่ root เก็บเฉพาะค่าลับ ส่วนชื่อ host กับ port ที่ compose กำหนดเองเขียนเป็น literal ใน `docker-compose.yml` — ค่าที่จำเป็นใช้ `${VAR:?...}` ทั้งหมด ถ้าลืมเติม compose จะหยุดพร้อมบอกว่าขาดตัวไหน ไม่ใช่สตาร์ตขึ้นมาด้วยรหัสผ่านว่าง
+
+port ฝั่ง host ทุกตัวเป็นตัวแปร (`WEB_PORT`, `API_PORT`, `DB_PORT`, `MINIO_API_PORT`, `MINIO_CONSOLE_PORT`) และ URL ที่ขึ้นกับ port ถูก derive จากตัวแปรเดียวกัน — เปลี่ยน `WEB_PORT` แล้ว `CLIENT_URL` (คือ origin ที่ API ยอมให้ผ่าน CORS) ขยับตามเอง ที่ต้องทำแบบนี้เพราะเครื่อง dev มักมีของอื่นจับ 3000 หรือ 5432 อยู่แล้ว ซึ่งเกิดขึ้นจริงตอนทดสอบ
+
+**ผลตรวจสอบจริง** (ไม่ใช่แค่ `config` ผ่าน) — `docker compose up` จากศูนย์ขึ้นครบทั้ง 6 service, migration ลงครบได้ 73 ตาราง (72 + `_prisma_migrations`) กับ enum 17 ตัว, bucket ถูกสร้าง, API ต่อ MinIO ด้วย credential จริงแล้ว `bucketExists` เป็น true, เว็บเสิร์ฟ SPA fallback ได้ (`/login` → 200), CORS ตอบ origin ที่ derive มาถูกต้อง, volume `uploads` เขียนได้จาก user `node`, `down` แล้ว `up` ใหม่ข้อมูลอยู่ครบและ migration ขึ้น "No pending migrations", `down -v` แล้ว `up` ใหม่ migrate ใหม่จากศูนย์ได้
+
+**ที่ยังทำไม่ได้ในนี้** — ยัง login ไม่ได้ ทางเข้าเดียวที่โค้ดมีคือ SSO cookie ที่ระบบ DEEP Core เป็นคนออก ซึ่ง local ไม่มี stack นี้จึงพิสูจน์ได้ว่าทุก service ขึ้นครบและคุยกันได้ แต่ยังไม่ใช่การใช้งานจริงตั้งแต่หน้า login — ต้องรอ **#11**
 
 ### D7 — เครื่องมือนำเข้าข้อมูล
 
