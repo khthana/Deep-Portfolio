@@ -5,9 +5,11 @@ import prisma from "../src/config/prisma";
 import { BASELINE } from "./seed";
 import {
   createActivity,
+  createActivityGroup,
   createActivityRubric,
   createCourse,
   createLearningActivity,
+  createLearningActivityGroup,
   createLearningSubmission,
   createSharedRubric,
   createSharedRubricDetail,
@@ -239,6 +241,111 @@ describe("createLearningActivity and createLearningSubmission", () => {
 
     expect(activity.section_id).toBe(course.section_id);
     expect(activity.learning_activity_type).toBe("group");
+  });
+});
+
+describe("createActivityGroup and createLearningActivityGroup", () => {
+  it("builds a group of two out of nothing at all", async () => {
+    const group = await createActivityGroup();
+
+    // A leader who is already in, and one member still waiting to answer —
+    // how a group looks the moment the endpoint creates it.
+    expect(
+      group.student_activity_group_member.map((member) => [
+        member.role,
+        member.status,
+      ]),
+    ).toEqual([
+      ["LEADER", "ACCEPT"],
+      ["MEMBER", "PENDING"],
+    ]);
+    expect(
+      await prisma.activities.findUnique({ where: { id: group.activity_id } }),
+    ).not.toBeNull();
+  });
+
+  it("gives every member their own submission row", async () => {
+    // student_activity_group_member.student_activity_id is unique and a real
+    // foreign key, so a group cannot exist without one submission per member.
+    const group = await createActivityGroup();
+
+    const submissionIds = group.student_activity_group_member.map(
+      (member) => member.student_activity_id,
+    );
+    expect(new Set(submissionIds).size).toBe(2);
+    expect(
+      await prisma.student_activity.findMany({
+        where: { id: { in: submissionIds } },
+        select: { activity_id: true, status: true },
+      }),
+    ).toEqual([
+      { activity_id: group.activity_id, status: "NOT_SUBMITTED" },
+      { activity_id: group.activity_id, status: "NOT_SUBMITTED" },
+    ]);
+  });
+
+  it("gives a token only to the people who have something to answer", async () => {
+    const group = await createActivityGroup();
+    const [leader, member] = group.student_activity_group_member;
+
+    expect(leader.invite_token).toBeNull();
+    expect(leader.token_expiry).toBeNull();
+    expect(member.invite_token).toEqual(expect.any(String));
+    // A week out, as the endpoint mints them — so a case about an expired
+    // invite has to say so.
+    expect(member.token_expiry?.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("uses the token and expiry a case names", async () => {
+    const group = await createActivityGroup({
+      members: [
+        {},
+        { invite_token: "known-token", token_expiry: new Date("2020-01-01") },
+      ],
+    });
+
+    expect(group.student_activity_group_member[1]).toMatchObject({
+      invite_token: "known-token",
+    });
+    expect(
+      group.student_activity_group_member[1].token_expiry?.getFullYear(),
+    ).toBe(2020);
+  });
+
+  it("gives two groups arranged in one case different tokens", async () => {
+    const [first, second] = [
+      await createActivityGroup(),
+      await createActivityGroup(),
+    ];
+
+    expect(first.student_activity_group_member[1].invite_token).not.toBe(
+      second.student_activity_group_member[1].invite_token,
+    );
+  });
+
+  it("builds the learning-activity side the same way", async () => {
+    const group = await createLearningActivityGroup();
+
+    expect(
+      group.student_learning_activity_group_member.map((member) => [
+        member.role,
+        member.status,
+      ]),
+    ).toEqual([
+      ["LEADER", "ACCEPT"],
+      ["MEMBER", "PENDING"],
+    ]);
+    expect(
+      await prisma.student_learning_activity.findMany({
+        where: {
+          id: {
+            in: group.student_learning_activity_group_member.map(
+              (member) => member.student_learning_activity_id,
+            ),
+          },
+        },
+      }),
+    ).toHaveLength(2);
   });
 });
 

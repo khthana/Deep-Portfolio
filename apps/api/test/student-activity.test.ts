@@ -1,0 +1,607 @@
+import { describe, expect, it } from "vitest";
+import request from "supertest";
+import app from "../src/app";
+import prisma from "../src/config/prisma";
+import {
+  createActivity,
+  createActivityGroup,
+  createActivityRubric,
+  createCLO,
+  createCourse,
+  createFileAttachment,
+  createLinkAttachment,
+  createStudent,
+  createSubmission,
+  createTeacher,
+  mapActivityToCLO,
+} from "./factories";
+import { sessionCookie } from "./helpers/session";
+
+/**
+ * Marking a submission — /student-activity.
+ *
+ * Grading is where the rubric turns into a number. The teacher sends one level
+ * per criterion; the endpoint works out what that is worth out of the
+ * activity's full score, writes it on the submission, and pushes the same
+ * proportion through to every CLO the activity is mapped to. For group work it
+ * does all of that to every member at once, which is the whole reason the two
+ * paths are separate — `activity_type` in the body picks between them.
+ *
+ * Grading and bookmarking are teacher-only. Reading a submission's attachments
+ * is not guarded at all.
+ */
+
+/** An activity out of 100 with a single criterion worth all of it, so a level
+ *  out of four is a score anyone can check in their head. */
+async function gradableActivity(section_id?: number) {
+  const activity = await createActivity({
+    section_id,
+    score_number: 100,
+    activity_type: "individual",
+  });
+  const rubric = await createActivityRubric({
+    activity_id: activity.id,
+    weight: 100,
+  });
+  const levels = await prisma.rubric_levels.findMany({
+    where: { rubric_id: rubric.id },
+    orderBy: { level_no: "asc" },
+  });
+
+  return { activity, rubric, levels };
+}
+
+/** The body /student-activity/grade wants, for one criterion at one level. */
+function gradeBody(options: {
+  activity_id: number;
+  student_id: string;
+  student_activity_id: number;
+  rubric_id: number;
+  rubric_level_id: number;
+  rubric_level_no: number;
+  activity_type?: "INDIVIDUAL" | "GROUP";
+  feedback?: string;
+  remark?: string;
+}) {
+  return {
+    activity_id: options.activity_id,
+    student_id: options.student_id,
+    student_activity_id: options.student_activity_id,
+    activity_type: options.activity_type ?? "INDIVIDUAL",
+    feedback: options.feedback ?? "ทำได้ดี",
+    remark: options.remark ?? "",
+    full_score: 100,
+    total_level: 4,
+    rubric_detail: [
+      {
+        rubric_id: options.rubric_id,
+        rubric_level_id: options.rubric_level_id,
+        rubric_level_no: options.rubric_level_no,
+      },
+    ],
+  };
+}
+
+describe("POST /student-activity/grade", () => {
+  it("scores an individual submission from the levels it is given", async () => {
+    const teacher = await createTeacher();
+    const { activity, rubric, levels } = await gradableActivity();
+    const student = await createStudent();
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      student_id: student.student_id,
+    });
+
+    const response = await request(app)
+      .post("/student-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send(
+        gradeBody({
+          activity_id: activity.id,
+          student_id: student.student_id,
+          student_activity_id: submission.id,
+          rubric_id: rubric.id,
+          rubric_level_id: levels[2].id,
+          rubric_level_no: 3,
+        }),
+      );
+
+    // One criterion worth all 100, marked 3 of 4 → 75.
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({
+      student_activity_id: submission.id,
+      total_score: 75,
+    });
+
+    const graded = await prisma.student_activity.findUniqueOrThrow({
+      where: { id: submission.id },
+    });
+    expect(graded).toMatchObject({ status: "GRADED", feedback: "ทำได้ดี" });
+    expect(Number(graded.score)).toBe(75);
+    expect(graded.graded_at).not.toBeNull();
+
+    // And the level chosen is kept, so re-opening the marking shows it back.
+    expect(
+      await prisma.student_activity_rubric_score.findMany({
+        where: { student_activity_id: submission.id },
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        rubric_activity_mapping_id: rubric.id,
+        rubric_level_id: levels[2].id,
+      }),
+    ]);
+  });
+
+  it("replaces the levels a re-marked submission was given before", async () => {
+    const teacher = await createTeacher();
+    const { activity, rubric, levels } = await gradableActivity();
+    const student = await createStudent();
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      student_id: student.student_id,
+    });
+    const body = gradeBody({
+      activity_id: activity.id,
+      student_id: student.student_id,
+      student_activity_id: submission.id,
+      rubric_id: rubric.id,
+      rubric_level_id: levels[0].id,
+      rubric_level_no: 1,
+    });
+
+    await request(app)
+      .post("/student-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send(body);
+
+    const response = await request(app)
+      .post("/student-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        ...body,
+        rubric_detail: [
+          {
+            rubric_id: rubric.id,
+            rubric_level_id: levels[3].id,
+            rubric_level_no: 4,
+          },
+        ],
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.total_score).toBe(100);
+    // One row, not two — the old marking is deleted rather than added to.
+    expect(
+      await prisma.student_activity_rubric_score.findMany({
+        where: { student_activity_id: submission.id },
+      }),
+    ).toEqual([expect.objectContaining({ rubric_level_id: levels[3].id })]);
+  });
+
+  it("writes the student's share of every CLO the activity is mapped to", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse();
+    const { activity, rubric, levels } = await gradableActivity(
+      course.section_id,
+    );
+    const clo = await createCLO({ section_id: course.section_id });
+    await mapActivityToCLO({
+      activity_id: activity.id,
+      clo_id: clo.clo_id,
+      weight: 50,
+    });
+    const student = await createStudent();
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      student_id: student.student_id,
+    });
+
+    const response = await request(app)
+      .post("/student-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send(
+        gradeBody({
+          activity_id: activity.id,
+          student_id: student.student_id,
+          student_activity_id: submission.id,
+          rubric_id: rubric.id,
+          rubric_level_id: levels[3].id,
+          rubric_level_no: 4,
+        }),
+      );
+
+    expect(response.status).toBe(200);
+
+    // 100 out of 100 on an activity carrying 50% of the CLO → 50 towards it,
+    // and the mapping itself records what the CLO was out of.
+    const score = await prisma.activity_scores.findFirstOrThrow({
+      where: { student_id: student.student_id, activity_id: activity.id },
+    });
+    expect(Number(score.score)).toBe(50);
+    expect(score.clo_id).toBe(clo.clo_id.toString());
+
+    const mapping = await prisma.activity_clo_mapping.findFirstOrThrow({
+      where: { activity_id: activity.id },
+    });
+    expect(Number(mapping.score)).toBe(50);
+  });
+
+  it("gives every member of a group the same score", async () => {
+    const teacher = await createTeacher();
+    const { activity, rubric, levels } = await gradableActivity();
+    const group = await createActivityGroup({ activity_id: activity.id });
+    const [leader, member] = group.student_activity_group_member;
+    // Recorded, not endorsed, and the same on the learning-activity side:
+    // members are collected by group_id with no status filter, so the one who
+    // never answered the invitation is marked along with everyone else.
+    expect(member.status).toBe("PENDING");
+
+    const response = await request(app)
+      .post("/student-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send(
+        gradeBody({
+          activity_id: activity.id,
+          student_id: leader.student_id,
+          student_activity_id: leader.student_activity_id,
+          rubric_id: rubric.id,
+          rubric_level_id: levels[1].id,
+          rubric_level_no: 2,
+          activity_type: "GROUP",
+        }),
+      );
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.total_score).toBe(50);
+
+    const submissions = await prisma.student_activity.findMany({
+      where: {
+        id: { in: [leader.student_activity_id, member.student_activity_id] },
+      },
+    });
+    expect(
+      submissions.map((row) => [Number(row.score), row.status]),
+    ).toEqual([
+      [50, "GRADED"],
+      [50, "GRADED"],
+    ]);
+
+    // The group is marked as a whole, so the group row moves too.
+    expect(
+      await prisma.student_activity_group.findUniqueOrThrow({
+        where: { id: group.id },
+      }),
+    ).toMatchObject({ status: "GRADED" });
+  });
+
+  it("refuses to grade a group submission that is not in a group", async () => {
+    const teacher = await createTeacher();
+    const { activity, rubric, levels } = await gradableActivity();
+    const student = await createStudent();
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      student_id: student.student_id,
+    });
+
+    const response = await request(app)
+      .post("/student-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send(
+        gradeBody({
+          activity_id: activity.id,
+          student_id: student.student_id,
+          student_activity_id: submission.id,
+          rubric_id: rubric.id,
+          rubric_level_id: levels[0].id,
+          rubric_level_no: 1,
+          activity_type: "GROUP",
+        }),
+      );
+
+    expect(response.status).toBe(500);
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ status: "SUBMITTED", score: null });
+  });
+
+  it("refuses a criterion that does not belong to the activity", async () => {
+    const teacher = await createTeacher();
+    const { activity, levels } = await gradableActivity();
+    const student = await createStudent();
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      student_id: student.student_id,
+    });
+
+    const response = await request(app)
+      .post("/student-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send(
+        gradeBody({
+          activity_id: activity.id,
+          student_id: student.student_id,
+          student_activity_id: submission.id,
+          rubric_id: 999_999,
+          rubric_level_id: levels[0].id,
+          rubric_level_no: 1,
+        }),
+      );
+
+    expect(response.status).toBe(500);
+    // Nothing is written: the whole marking is one transaction, so a criterion
+    // it cannot price leaves the submission as it was.
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ status: "SUBMITTED", score: null });
+  });
+
+  it("refuses a request with no session", async () => {
+    const { activity, rubric, levels } = await gradableActivity();
+    const student = await createStudent();
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      student_id: student.student_id,
+    });
+
+    const response = await request(app)
+      .post("/student-activity/grade")
+      .send(
+        gradeBody({
+          activity_id: activity.id,
+          student_id: student.student_id,
+          student_activity_id: submission.id,
+          rubric_id: rubric.id,
+          rubric_level_id: levels[3].id,
+          rubric_level_no: 4,
+        }),
+      );
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
+    });
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ status: "SUBMITTED" });
+  });
+
+  it("refuses a student marking their own work", async () => {
+    const { activity, rubric, levels } = await gradableActivity();
+    const student = await createStudent();
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      student_id: student.student_id,
+    });
+
+    const response = await request(app)
+      .post("/student-activity/grade")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send(
+        gradeBody({
+          activity_id: activity.id,
+          student_id: student.student_id,
+          student_activity_id: submission.id,
+          rubric_id: rubric.id,
+          rubric_level_id: levels[3].id,
+          rubric_level_no: 4,
+        }),
+      );
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
+    });
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ status: "SUBMITTED", score: null });
+  });
+});
+
+describe("PATCH /student-activity/bookmark", () => {
+  it("bookmarks an individual submission", async () => {
+    const teacher = await createTeacher();
+    const submission = await createSubmission();
+
+    const response = await request(app)
+      .patch("/student-activity/bookmark")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        activity_type: "INDIVIDUAL",
+        student_activity_id: submission.id,
+        is_bookmark: true,
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({ is_bookmark: true });
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ is_bookmark: true });
+  });
+
+  it("clears a bookmark it was asked to clear", async () => {
+    const teacher = await createTeacher();
+    const submission = await createSubmission({ is_bookmark: true });
+
+    const response = await request(app)
+      .patch("/student-activity/bookmark")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        activity_type: "INDIVIDUAL",
+        student_activity_id: submission.id,
+        is_bookmark: false,
+      });
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ is_bookmark: false });
+  });
+
+  it("bookmarks every member's submission for group work", async () => {
+    const teacher = await createTeacher();
+    const group = await createActivityGroup();
+    const [leader, member] = group.student_activity_group_member;
+
+    const response = await request(app)
+      .patch("/student-activity/bookmark")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        activity_type: "GROUP",
+        student_activity_id: leader.student_activity_id,
+        is_bookmark: true,
+      });
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.student_activity.findMany({
+        where: {
+          id: { in: [leader.student_activity_id, member.student_activity_id] },
+        },
+        select: { is_bookmark: true },
+      }),
+    ).toEqual([{ is_bookmark: true }, { is_bookmark: true }]);
+  });
+
+  it("refuses a submission that does not exist", async () => {
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .patch("/student-activity/bookmark")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        activity_type: "INDIVIDUAL",
+        student_activity_id: 999_999,
+        is_bookmark: true,
+      });
+
+    expect(response.status).toBe(500);
+  });
+
+  it("refuses a request with no session", async () => {
+    const submission = await createSubmission();
+
+    const response = await request(app)
+      .patch("/student-activity/bookmark")
+      .send({
+        activity_type: "INDIVIDUAL",
+        student_activity_id: submission.id,
+        is_bookmark: true,
+      });
+
+    expect(response.status).toBe(401);
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ is_bookmark: false });
+  });
+
+  it("refuses a student", async () => {
+    const student = await createStudent();
+    const submission = await createSubmission({
+      student_id: student.student_id,
+    });
+
+    const response = await request(app)
+      .patch("/student-activity/bookmark")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({
+        activity_type: "INDIVIDUAL",
+        student_activity_id: submission.id,
+        is_bookmark: true,
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
+    });
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ is_bookmark: false });
+  });
+});
+
+describe("GET /student-activity/attachments", () => {
+  it("returns the files and links handed in with a submission, in one list", async () => {
+    const submission = await createSubmission();
+    const file = await createFileAttachment({
+      original_filename: "รายงาน.pdf",
+      file_size: 2048,
+    });
+    const link = await createLinkAttachment({
+      title: "ลิงก์งาน",
+      url: "https://example.test/work",
+    });
+    await prisma.student_activity_attachments.createMany({
+      data: [
+        {
+          student_activity_id: submission.id,
+          attachment_id: file.attachment_id,
+        },
+        {
+          student_activity_id: submission.id,
+          attachment_id: link.attachment_id,
+        },
+      ],
+    });
+
+    const response = await request(app)
+      .get("/student-activity/attachments")
+      .query({ student_activity_id: submission.id });
+
+    expect(response.status).toBe(200);
+    // Both kinds come back under the same keys, with the ones a link has no
+    // answer for left null — that is what lets the caller list them together.
+    expect(response.body.data).toEqual([
+      {
+        attachment_id: file.attachment_id,
+        url: "example/รายงาน.pdf",
+        file_path: "example/รายงาน.pdf",
+        original_filename: "รายงาน.pdf",
+        file_size: 2048,
+      },
+      {
+        attachment_id: link.attachment_id,
+        url: "https://example.test/work",
+        file_path: null,
+        original_filename: "ลิงก์งาน",
+        file_size: null,
+      },
+    ]);
+  });
+
+  it("returns an empty list for a submission with nothing attached", async () => {
+    const submission = await createSubmission();
+
+    const response = await request(app)
+      .get("/student-activity/attachments")
+      .query({ student_activity_id: submission.id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([]);
+  });
+
+  it("answers 500 when the student_activity_id is missing", async () => {
+    // parseInt(undefined) is NaN, which Prisma sends as null, and the column is
+    // NOT NULL — so the query is rejected rather than matching nothing. #20
+    // turns this into a 400, here and everywhere else it happens.
+    const response = await request(app).get("/student-activity/attachments");
+
+    expect(response.status).toBe(500);
+  });
+});

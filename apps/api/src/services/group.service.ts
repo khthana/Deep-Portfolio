@@ -1,5 +1,4 @@
 import prisma from "../config/prisma";
-import crypto from "crypto";
 import { transporter } from "../config/mailer";
 import { env } from "../config/env";
 
@@ -11,6 +10,13 @@ export default class GroupService {
     activityName: string,
     type: "learning-activity" | "activity",
   ) {
+    // No account configured means no mail can be sent, so don't open a
+    // connection to find that out. env.ts already treats EMAIL_USER as
+    // optional and the callers already treat a failure to send as survivable;
+    // without this, every group created on a deployment with no mail account
+    // waits out an SMTP handshake per invited member before returning.
+    if (!env.EMAIL_USER) return;
+
     const inviteLink = `${env.CLIENT_URL}/group/accept-invite?token=${inviteToken}&type=${type}`;
 
     const mailOptions = {

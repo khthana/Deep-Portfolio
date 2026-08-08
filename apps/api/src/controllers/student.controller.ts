@@ -62,7 +62,6 @@ export default class StudentController {
           ? await this.studentService.submitActivity(data)
           : await this.studentService.submitGroupActivity(data);
 
-      console.log(activity);
       res.status(200).json({
         success: true,
         message: "submit activity successfully",

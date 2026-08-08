@@ -35,17 +35,20 @@ studentRouter.get(
   studentController.getStudentAllClassworkList.bind(studentController),
 );
 
+// requireRole ahead of upload: multer reads the whole request body before it
+// hands on, so registering it first means a caller who is about to be refused
+// has already had their files buffered.
 studentRouter.post(
   "/submit/activity",
-  upload.array("files"),
   requireRole("STUDENT"),
+  upload.array("files"),
   studentController.submitActivity.bind(studentController),
 );
 
 studentRouter.post(
   "/submit/learning-activity",
-  upload.array("files"),
   requireRole("STUDENT"),
+  upload.array("files"),
   studentController.submitLearningActivity.bind(studentController),
 );
 

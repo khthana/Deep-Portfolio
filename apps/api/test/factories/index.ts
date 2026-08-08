@@ -41,6 +41,13 @@ export type {
   ActivityRubricLevel,
 } from "./rubric";
 
+export { createActivityGroup, createLearningActivityGroup } from "./group";
+export type {
+  ActivityGroupOptions,
+  LearningActivityGroupOptions,
+  GroupMemberOptions,
+} from "./group";
+
 export { mapActivityToCLO, mapLearningActivityToCLO } from "./mapping";
 export type {
   ActivityCLOMappingOptions,
