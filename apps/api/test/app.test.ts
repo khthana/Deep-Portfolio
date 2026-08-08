@@ -112,9 +112,8 @@ describe("GET /auth — verifyAnyRole", () => {
   });
 
   it("returns the profile and active roles for a real user", async () => {
-    await prisma.roles.create({
-      data: { role_id: "TEACHER", role_name: "Teacher", priority: 1 },
-    });
+    // The TEACHER role itself is baseline reference data — seeded into the
+    // template, so it is already there. Only the person is new.
     await prisma.users.create({
       data: {
         user_id: "10000001",
@@ -153,15 +152,12 @@ describe("GET /user/student — verifyStudent", () => {
     // Authenticated is not authorised: the middleware re-reads the role from
     // user_roles rather than trusting the claim in the token, so a token that
     // says role: "STUDENT" gets nowhere without the row.
-    await prisma.roles.create({
-      data: { role_id: "LECTURER", role_name: "Lecturer", priority: 2 },
-    });
     await prisma.users.create({
       data: {
         user_id: "20000002",
         email: "lecturer@example.test",
         user_roles_user_roles_user_idTousers: {
-          create: { role_id: "LECTURER", is_active: true },
+          create: { role_id: "TEACHER", is_active: true },
         },
       },
     });

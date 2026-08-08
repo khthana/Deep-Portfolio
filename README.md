@@ -148,12 +148,23 @@ npm test
 npm run test:down
 ```
 
+**ข้อมูลอ้างอิงมีอยู่แล้วตั้งแต่ต้น** — คณะ ภาควิชา หลักสูตร และบทบาททั้งเจ็ด ถูก seed ลง
+ฐานข้อมูลต้นแบบครั้งเดียวต่อการรัน (`apps/api/test/seed.ts`) แล้วมาถึงทุกไฟล์พร้อมกับการคัดลอก
+ทุกค่าเป็นข้อมูลสังเคราะห์ ไม่ผูกกับข้อมูลจริงของสถาบัน และไม่มีข้อมูลส่วนบุคคลใน repository
+
 เขียน test เพิ่ม
 
 - test ของ API อยู่ที่ `apps/api/test/` ยิง request เข้า Express app ที่ import มาด้วย supertest
 - session ใน test สร้างด้วย helper ที่ `apps/api/test/helpers/session.ts` ซึ่งเซ็น token
   ด้วย secret ของ test แล้ว **วิ่งผ่าน middleware ตรวจสิทธิ์ตัวจริง ไม่ bypass** — token
   อย่างเดียวไม่พอ ถ้าเคสต้องการบทบาทไหนต้อง insert แถวใน `user_roles` ด้วย
+  (หรือใช้ `createTeacher()` / `createStudent()` ซึ่งใส่ให้แล้ว)
+- ข้อมูลของเคสสร้างด้วย factory ใน `apps/api/test/factories/` — `createUser`, `createTeacher`,
+  `createStudent`, `createCourse`, `enrolStudent`, `createActivity`, `createSubmission`
+  แต่ละตัวสร้าง parent ที่ยังไม่มีให้เอง เช่น `createSubmission()` เปล่าๆ จะได้ทั้งนักศึกษา
+  กิจกรรม และหมู่เรียนครบ
+- **ส่งเฉพาะค่าที่เคสนั้นสนใจให้ factory** ที่เหลือปล่อยให้เป็น default — คนอ่าน test
+  จะได้รู้ทันทีว่าอะไรคือประเด็นของเคส ดูตัวอย่างได้ที่ `apps/api/test/course.test.ts`
 - test ของเว็บวางไว้ข้างไฟล์ที่ทดสอบ (`*.test.ts`) ตอนนี้ครอบคลุมเฉพาะฟังก์ชันบริสุทธิ์
 
 ## ฐานข้อมูล

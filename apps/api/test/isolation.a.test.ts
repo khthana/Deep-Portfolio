@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import prisma from "../src/config/prisma";
+import { BASELINE } from "./seed";
 
 /**
  * Half of a pair. isolation.b.test.ts is identical apart from the name, and
@@ -23,7 +24,12 @@ describe("cross-file isolation", () => {
 
     const roles = await prisma.roles.findMany();
 
-    expect(roles).toHaveLength(1);
-    expect(roles[0]?.role_name).toBe("Shared");
+    // The baseline seed and this file's row, and nothing else. Counting rather
+    // than looking SHARED_KEY up is the part that catches a shared database in
+    // which the other file's row happened not to collide.
+    expect(roles).toHaveLength(BASELINE.roles.length + 1);
+    expect(roles.find((role) => role.role_id === "SHARED_KEY")?.role_name).toBe(
+      "Shared",
+    );
   });
 });

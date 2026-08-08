@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { Client } from "pg";
 import * as Minio from "minio";
 import { emptyAndRemoveBucket } from "./bucket";
+import { seedBaseline } from "./seed";
 import {
   MINIO,
   POSTGRES,
@@ -44,16 +45,22 @@ function composeUp(): void {
   );
 }
 
-async function connectMaintenance(): Promise<Client> {
+async function connect(database: string): Promise<Client> {
   const client = new Client({
     host: POSTGRES.host,
     port: POSTGRES.port,
     user: POSTGRES.user,
     password: POSTGRES.password,
-    database: POSTGRES.maintenanceDatabase,
+    database,
   });
   await client.connect();
   return client;
+}
+
+/** Neither CREATE DATABASE nor DROP DATABASE can run from inside the database
+ *  it is about, so both are issued from this connection instead. */
+function connectMaintenance(): Promise<Client> {
+  return connect(POSTGRES.maintenanceDatabase);
 }
 
 /**
@@ -108,6 +115,10 @@ async function waitForMinio(): Promise<void> {
  * of seconds, and the alternative — keeping a template around between runs —
  * means a stale template silently outliving the migration that should have
  * invalidated it.
+ *
+ * The baseline seed goes in here rather than into each test file, so the
+ * reference data is inserted once per run and arrives everywhere else as part
+ * of the file copy.
  */
 async function buildTemplateDatabase(): Promise<void> {
   const client = await connectMaintenance();
@@ -135,6 +146,16 @@ async function buildTemplateDatabase(): Promise<void> {
       DATABASE_URL: postgresUrl(TEMPLATE_DATABASE),
     },
   });
+
+  const template = await connect(TEMPLATE_DATABASE);
+
+  try {
+    await seedBaseline(template);
+  } finally {
+    // Not optional: leaving this open would make every test file's
+    // CREATE DATABASE ... TEMPLATE fail.
+    await template.end();
+  }
 }
 
 /**
