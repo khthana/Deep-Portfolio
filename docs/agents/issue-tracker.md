@@ -43,6 +43,15 @@ Run `gh issue view <number> --comments`.
 - **#1 — the refactor / re-deploy spec.** Labelled `spec`, `ready-for-agent`, `documentation`.
   Its canonical source is `docs/spec-refactor-redeploy.md`; the issue is a copy kept
   for tracking. Edit the file first, then sync the issue — never only the issue.
+- **#2–#24 — the 23 tickets that break #1 down.** Every one names `#1` as its parent
+  and carries `ready-for-agent`, except #23 (importer), which is `needs-info` until
+  the project owner supplies a sample data file. Blocking edges use GitHub's native
+  issue dependencies, so the frontier query below is the authoritative "what can I
+  pick up next" — don't infer readiness from the issue number.
+- Issues #12–#18 (the endpoint test batches) are deliberately chained one after
+  another even though they are technically independent. They all edit the same test
+  factory files, so running them in parallel would conflict. If you want them
+  parallel, delete the chain edges — the only real gate on #12–#17 is #10.
 
 ## Wayfinding operations
 
