@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { env } from "../config/env";
 
 export function errorHandler(
   err: any,
@@ -14,6 +15,6 @@ export function errorHandler(
   res.status(status).json({
     success: false,
     message,
-    error: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    error: env.isDevelopment ? err.stack : undefined,
   });
 }

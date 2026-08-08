@@ -222,6 +222,10 @@ Portfolio เป็นเจ้าของฐานข้อมูล **ทั�
 
 ย้าย route จัดการไฟล์ที่เขียน inline อยู่ใน `app.ts` (`/uploads/:filename` และ `/files`) ไปอยู่ใน router ให้เหมือนส่วนอื่น และลบ route ทดสอบที่คืนข้อความขยะออก
 
+**สถานะ: เสร็จแล้ว** (issue #6) — `src/app.ts` export Express app ที่ยังไม่ listen, `src/server.ts` เป็น entry point ที่ listen และเริ่ม cron, route ไฟล์ย้ายไป `src/routes/files.route.ts` แล้ว mount เป็นตัวแรกใน `routes/index.ts` เพื่อรักษาลำดับเดิม
+
+พิสูจน์ด้วยสคริปต์ชั่วคราวว่า import `src/app` แล้ว **ไม่เปิด socket, ไม่โหลดโมดูล `node-cron` เลย, ไม่มี cron task ถูก schedule** และ app ยังตอบ request ได้ครบเมื่อสั่ง listen เอง สคริปต์นี้ไม่ได้ commit ไว้ เพราะยังไม่มี test harness — **T2/#8 ควรแปลงเป็น test จริง** เพื่อกันไม่ให้ side effect เล็ดลอดกลับเข้า `app.ts` อีก
+
 ### D5 — การจัดการ Configuration
 
 รวมการอ่าน environment variable ไว้ที่ **โมดูลเดียว** ที่ตรวจสอบความถูกต้องตอนระบบเริ่มทำงาน และล้มทันทีพร้อมข้อความชัดเจนถ้าค่าจำเป็นขาดหาย
@@ -235,6 +239,14 @@ Portfolio เป็นเจ้าของฐานข้อมูล **ทั�
 - volume path ของ MinIO (ปัจจุบันชี้ home directory ของนักศึกษาคนเดิม)
 
 จัดทำ `.env.example` ที่ครอบคลุม environment variable ทุกตัวพร้อมคำอธิบายและค่าตัวอย่าง
+
+**สถานะ: เสร็จบางส่วน** (issue #6)
+
+เสร็จแล้ว — `src/config/env.ts` เป็นโมดูลเดียวที่อ่าน `process.env` ตรวจทุกค่าตอน import (คือตอน startup ก่อน listen) และรวบรวมตัวที่ขาดทั้งหมดมาแจ้งในข้อความเดียว ไม่ใช่แจ้งทีละตัว ค่าลับไม่มี fallback สักตัว ผลข้างเคียงที่ตั้งใจให้เกิดคือ `JWT_REFRESH_SECRET` กับ `DEEP_CORE_SECRET` ซึ่งเดิมเขียน `process.env.X!` ลอย ๆ (ไม่ตรวจอะไรเลย) และ `MINIO_INTERNAL_HOST` / `MINIO_PUBLIC_HOST` ซึ่งเดิมตรวจตอนถูกเรียกใช้ ตอนนี้ล้มตั้งแต่ startup ทั้งหมด
+
+`EMAIL_USER` / `EMAIL_PASS` **จงใจไม่บังคับ** เพราะการส่งอีเมลเชิญอยู่ใน try/catch อยู่แล้ว บัญชีเมลว่างต้องไม่ทำให้ server สตาร์ตไม่ขึ้น
+
+ยังไม่เสร็จ — โดเมนของ cookie ที่ยัง hardcode `.deep-core.net` และ `portfolio-api.deep-core.net` อยู่ใน `auth.controller.ts` ยกยอดไปทำพร้อม **#11 (Google OAuth)** ซึ่งเขียน flow ของ cookie ใหม่ทั้งก้อนอยู่แล้ว ทำตอนนี้ก็ต้องรื้อซ้ำ ส่วนรหัสผ่าน MinIO กับ volume path ใน `docker-compose.yml` เป็นงานของ **#7 (local stack)**
 
 ### D6 — Docker และการรัน
 

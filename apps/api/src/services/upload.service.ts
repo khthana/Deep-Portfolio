@@ -1,5 +1,5 @@
 import { minioClient, BUCKET_NAME } from "../config/minio";
-import { requireEnv } from "../config/env";
+import { env } from "../config/env";
 import { sanitizeFilename } from "../utils/sanitize-filename";
 
 export default class MinIOService {
@@ -48,8 +48,8 @@ export default class MinIOService {
     // The presigned URL points at the in-network MinIO host, which the
     // browser cannot resolve. Rewrite it to the externally reachable one.
     return presignedUrl.replace(
-      requireEnv("MINIO_INTERNAL_HOST"),
-      requireEnv("MINIO_PUBLIC_HOST"),
+      env.MINIO_INTERNAL_HOST,
+      env.MINIO_PUBLIC_HOST,
     );
   }
 }

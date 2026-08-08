@@ -3,6 +3,7 @@ import UserService from "../services/user.service";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import AuthService from "../services/auth.service";
 import jwt from "jsonwebtoken";
+import { env } from "../config/env";
 
 export default class AuthController {
   private readonly authService = new AuthService();
@@ -33,21 +34,21 @@ export default class AuthController {
     res.clearCookie("token", {
       path: "/",
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: env.isProduction,
       domain: ".deep-core.net",
       sameSite: "lax",
     });
     res.clearCookie("access_token", {
       path: "/",
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: env.isProduction,
       domain: "portfolio-api.deep-core.net",
       sameSite: "lax",
     });
     res.clearCookie("refresh_token", {
       path: "/",
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: env.isProduction,
       domain: "portfolio-api.deep-core.net",
       sameSite: "lax",
     });
@@ -66,28 +67,28 @@ export default class AuthController {
     try {
       const decoded = jwt.verify(
         coreToken,
-        process.env.DEEP_CORE_SECRET!,
+        env.DEEP_CORE_SECRET,
       ) as any;
 
       const accessToken = jwt.sign(
         { user_id: decoded.user_id, role: decoded.role },
-        process.env.JWT_SECRET!,
+        env.JWT_SECRET,
         { expiresIn: "15m" },
       );
 
       const refreshToken = jwt.sign(
         { user_id: decoded.user_id },
-        process.env.JWT_REFRESH_SECRET!,
+        env.JWT_REFRESH_SECRET,
         { expiresIn: "7d" },
       );
 
       res.cookie("access_token", accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: env.isProduction,
 
         sameSite: "lax",
         domain:
-          process.env.NODE_ENV === "production"
+          env.isProduction
             ? "portfolio-api.deep-core.net"
             : "localhost",
         path: "/",
@@ -95,11 +96,11 @@ export default class AuthController {
 
       res.cookie("refresh_token", refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: env.isProduction,
 
         sameSite: "lax",
         domain:
-          process.env.NODE_ENV === "production"
+          env.isProduction
             ? "portfolio-api.deep-core.net"
             : "localhost",
         path: "/",
@@ -121,29 +122,29 @@ export default class AuthController {
     try {
       const decoded = jwt.verify(
         refreshToken,
-        process.env.JWT_REFRESH_SECRET!,
+        env.JWT_REFRESH_SECRET,
       ) as any;
 
       res.clearCookie("access_token", {
         path: "/",
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: env.isProduction,
         domain: "portfolio-api.deep-core.net",
         sameSite: "lax",
       });
 
       const newAccessToken = jwt.sign(
         { user_id: decoded.user_id },
-        process.env.JWT_SECRET!,
+        env.JWT_SECRET,
         { expiresIn: "15m" },
       );
 
       res.cookie("access_token", newAccessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: env.isProduction,
         sameSite: "lax",
         domain:
-          process.env.NODE_ENV === "production"
+          env.isProduction
             ? "portfolio-api.deep-core.net"
             : "localhost",
       });

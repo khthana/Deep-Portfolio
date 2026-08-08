@@ -1,58 +1,33 @@
-import express, { type Response } from "express";
-import router from "./routes";
-import cors from "cors";
-import { errorHandler } from "./middlewares/error.middleware";
-import path from "path";
+import express from "express";
 import cookieParser from "cookie-parser";
-import { BUCKET_NAME, minioClient } from "./config/minio";
-import { setupAssignTasksCron } from "./jobs/assign-tasks.job";
+import cors from "cors";
+import router from "./routes";
+import { errorHandler } from "./middlewares/error.middleware";
+import { env } from "./config/env";
 
-const port = process.env.PORT || 4001;
-
-const app = express();
+/**
+ * The Express application, fully wired but not listening.
+ *
+ * Importing this module must stay free of side effects that reach outside the
+ * process — no open port, no scheduled job. That is what lets a test import
+ * the app and drive it over the HTTP boundary. Starting the server lives in
+ * server.ts. See D4 in docs/spec-refactor-redeploy.md.
+ */
+export const app = express();
 
 app.use(cookieParser());
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: env.CLIENT_URL,
     credentials: true,
   }),
 );
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.get("/uploads/:filename", (req, res) => {
-  const { filename } = req.params;
-
-  const filePath = path.resolve("uploads", filename);
-
-  const originalName = (req.query.title as string) || filename;
-
-  res.download(filePath, originalName);
-});
-
-app.use("/uploads", express.static("uploads"));
-
-app.get("/files", async (req, res: Response) => {
-  const path = req.query.path as string;
-
-  try {
-    const stream = await minioClient.getObject(BUCKET_NAME, path);
-
-    const stat = await minioClient.statObject(BUCKET_NAME, path);
-    res.setHeader("Content-Type", stat.metaData["content-type"]);
-    stream.pipe(res);
-  } catch (err) {
-    res.status(404).json({ message: "File not found" });
-  }
-});
 
 app.use(router);
 app.use(errorHandler);
 
-setupAssignTasksCron();
-
-app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
-});
+export default app;

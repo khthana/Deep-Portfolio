@@ -1,12 +1,12 @@
 import * as Minio from "minio";
-import { requireEnv } from "./env";
+import { env } from "./env";
 
 export const minioClient = new Minio.Client({
-  endPoint: requireEnv("MINIO_ENDPOINT"),
-  port: process.env.MINIO_PORT ? parseInt(process.env.MINIO_PORT) : 9000,
+  endPoint: env.MINIO_ENDPOINT,
+  port: env.MINIO_PORT,
   useSSL: false,
-  accessKey: requireEnv("MINIO_ACCESS_KEY"),
-  secretKey: requireEnv("MINIO_SECRET_KEY"),
+  accessKey: env.MINIO_ACCESS_KEY,
+  secretKey: env.MINIO_SECRET_KEY,
 });
 
-export const BUCKET_NAME = process.env.MINIO_BUCKET ?? "deep-portfolio";
+export const BUCKET_NAME = env.MINIO_BUCKET;

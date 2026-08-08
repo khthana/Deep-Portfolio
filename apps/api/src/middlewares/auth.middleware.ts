@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
-import { requireEnv } from "../config/env";
+import { env } from "../config/env";
 
 const prisma = new PrismaClient();
 
@@ -14,7 +14,7 @@ const getDecodedToken = (req: Request) => {
   if (!token) return null;
 
   try {
-    return jwt.verify(token, requireEnv("JWT_SECRET")) as any;
+    return jwt.verify(token, env.JWT_SECRET) as any;
   } catch (error) {
     return null;
   }

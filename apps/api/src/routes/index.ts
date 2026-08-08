@@ -29,8 +29,13 @@ import evaluationRouter from "./evaluation.route";
 import authRouter from "./auth.route";
 import portfolioRouter from "./portfolio.routes";
 import groupRouter from "./group.routes";
+import filesRouter from "./files.route";
 
 const router = Router();
+
+// Mounted first: these paths used to be registered directly on the app,
+// ahead of everything below.
+router.use(filesRouter);
 
 router.use("/auth", authRouter);
 router.use("/course", courseRouter);

@@ -32,7 +32,12 @@ cp apps/web/.env.example apps/web/.env
 ```
 
 แล้วเติมค่าใน `.env` ทั้งสองไฟล์ให้ครบ ในไฟล์ `.env.example` มีคำอธิบายกำกับทุกตัวแปรว่า
-ถูกอ่านที่ไหนและใส่ค่าอะไรได้บ้าง
+ถูกอ่านที่ไหนและใส่ค่าอะไรได้บ้าง ตัวไหนจำเป็นตัวไหนไม่จำเป็น
+
+ฝั่ง API มี `src/config/env.ts` เป็น **โมดูลเดียวที่อ่าน `process.env`** และตรวจค่าทั้งหมด
+ตอน startup ถ้าค่าจำเป็นขาด server จะล้มทันทีพร้อมบอกว่าขาดตัวไหนบ้าง แทนที่จะไปพังทีหลัง
+ตอนมี request มาโดน — และ **ค่าลับไม่มี fallback เด็ดขาด** เพราะ fallback จะทำให้ระบบที่ตั้งค่า
+ไม่ครบกลายเป็นระบบที่ token ปลอมได้โดยไม่มีสัญญาณเตือน
 
 > ตอนนี้ยังต้องเตรียม PostgreSQL และ MinIO ขึ้นมาเอง การรวม service เหล่านี้เข้าเป็น
 > local stack ชุดเดียวเป็นงานของ ticket ถัดไป — `Dockerfile` และ `docker-compose.yml`
@@ -46,6 +51,7 @@ cp apps/web/.env.example apps/web/.env
 | `npm run dev`       | รัน API กับเว็บพร้อมกัน (API :4001, เว็บ :3000) |
 | `npm run dev:api`   | รันเฉพาะ API                                    |
 | `npm run dev:web`   | รันเฉพาะเว็บ                                    |
+| `npm start`         | รัน API ที่ build แล้วจาก `dist/` (ต้อง `npm run build` ก่อน) |
 | `npm run db:migrate` | สร้าง/อัปเดตตารางในฐานข้อมูลให้ตรงกับ migration |
 | `npm run db:status` | ดูว่าฐานข้อมูลตามหลัง migration อยู่กี่ไฟล์      |
 | `npm run db:reset`  | ล้างฐานข้อมูลแล้วสร้างใหม่ตั้งแต่ต้น            |

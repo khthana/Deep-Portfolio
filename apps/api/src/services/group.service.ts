@@ -1,6 +1,7 @@
 import prisma from "../config/prisma";
 import crypto from "crypto";
 import { transporter } from "../config/mailer";
+import { env } from "../config/env";
 
 export default class GroupService {
   async sendInviteEmail(
@@ -10,10 +11,10 @@ export default class GroupService {
     activityName: string,
     type: "learning-activity" | "activity",
   ) {
-    const inviteLink = `${process.env.CLIENT_URL}/group/accept-invite?token=${inviteToken}&type=${type}`;
+    const inviteLink = `${env.CLIENT_URL}/group/accept-invite?token=${inviteToken}&type=${type}`;
 
     const mailOptions = {
-      from: `DEEP Portfolio <${process.env.EMAIL_USER}>`,
+      from: `DEEP Portfolio <${env.EMAIL_USER}>`,
       to: emailToInvite,
       subject: `คำเชิญให้เข้าร่วมกลุ่ม`,
       html: `
