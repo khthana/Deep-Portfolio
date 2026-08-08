@@ -179,6 +179,18 @@ Portfolio เป็นเจ้าของฐานข้อมูล **ทั�
 
 บันทึกความผิดปกติที่พบไว้ในเอกสาร แต่ไม่แก้ในเฟสนี้ ได้แก่ คอลัมน์ `student.test` ที่เป็นเศษเหลือจากการพัฒนา และการที่ `rubrics`/`rubric_details` ไม่มี write path ขณะที่ `rubric_levels`/`rubric_activity_mapping` มี
 
+**สถานะ: เสร็จแล้ว** (issue #5) — `prisma/migrations/20260808000000_baseline/` สร้างครบ 72 ตาราง พิสูจน์แล้วว่าตั้งจากฐานข้อมูลเปล่าได้ และ `prisma migrate diff` เทียบกับ `schema.prisma` ไม่มีความต่าง
+
+สิ่งที่ค้นพบระหว่างทำ คือ **`schema.prisma` ไม่ได้เป็น source of truth ที่สมบูรณ์จริง** — SQL ที่ Prisma generate ออกมาตรง ๆ รันไม่ผ่าน ต้องแก้มือ 3 จุด ทั้งสามจุดมีคอมเมนต์กำกับไว้ในไฟล์ migration แล้ว
+
+| จุด | ปัญหา | ทำอะไร |
+|---|---|---|
+| `student.full_name_th`, `student.admission_year` | ของเดิมเป็น generated column แต่ Prisma introspect ออกมาเป็น `@default(dbgenerated(...))` ธรรมดา พอ generate SQL กลับจึงได้ `DEFAULT` ที่อ้างถึงคอลัมน์อื่น ซึ่ง PostgreSQL ปฏิเสธ (`cannot use column reference in DEFAULT expression`) | เขียนกลับเป็น `GENERATED ALWAYS AS (...) STORED` ตรวจแล้วว่าไม่มีโค้ดตรงไหนเขียนค่าลงสองคอลัมน์นี้ มีแต่ `select` |
+| `learning_activity_enum`, `cognitive_level_enum` | สองคอลัมน์ใน `subject_clo_measurable_behavior` เป็น `Unsupported(...)` Prisma จึงอ้างชื่อ type แต่ไม่สร้างให้ migration ล้มทันทีที่ถึงตารางนี้ | ประกาศเองเป็น **enum ว่าง** เพราะค่าจริงกู้ไม่ได้ — ฐานข้อมูลเดิมไม่มีแล้ว ไม่มีโค้ดแตะตารางนี้เลย และเอกสารก็ไม่ได้บันทึกไว้ เลือกให้ INSERT ล้มเสียงดัง ดีกว่าเดาค่าขึ้นมาเอง เติมทีหลังด้วย `ALTER TYPE ... ADD VALUE` ได้ |
+| check constraint 4 ตาราง | Prisma ไม่รองรับ check constraint จึง introspect ไม่เห็นตั้งแต่แรก (มีคอมเมนต์เตือนอยู่ใน `schema.prisma` เอง) ฐานข้อมูลที่ migrate แล้วจึงมี check constraint **0 ตัว** | ไม่เพิ่มกลับในเฟสนี้ เพราะไม่รู้เงื่อนไขเดิม บันทึกไว้ให้เห็นแทน |
+
+ข้อสรุปที่ตามมาสำหรับงานถัดไป: การ round-trip `schema.prisma` → SQL → ฐานข้อมูล ไม่ได้ปลอดภัยโดยอัตโนมัติ ทุกครั้งที่เพิ่ม migration ต้องรันจริงบนฐานข้อมูลเปล่า ไม่ใช่แค่ดูว่า generate ผ่าน
+
 ### D3 — การยืนยันตัวตน
 
 เปลี่ยนจาก DEEP Core SSO เป็น **Google OAuth ที่ Portfolio โดยตรง**

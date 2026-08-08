@@ -9,6 +9,10 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:status": "prisma migrate status",
+    "db:reset": "prisma migrate reset",
     "postinstall": "prisma generate"
   },
   "dependencies": {
