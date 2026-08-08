@@ -1,0 +1,26 @@
+{
+  "name": "deep-portfolio",
+  "version": "0.0.0",
+  "private": true,
+  "description": "DEEP Portfolio — outcome-based education platform (monorepo root)",
+  "license": "ISC",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently --names api,web --prefix-colors blue,magenta \"npm run dev -w @deep-portfolio/api\" \"npm run dev -w @deep-portfolio/web\"",
+    "dev:api": "npm run dev -w @deep-portfolio/api",
+    "dev:web": "npm run dev -w @deep-portfolio/web",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

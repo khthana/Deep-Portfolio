@@ -1,23 +1,16 @@
 {
-  "name": "backend",
+  "name": "@deep-portfolio/api",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx watch src/app.ts"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/DEEP-Portfolio/backend.git"
-  },
-  "keywords": [],
-  "author": "",
+  "private": true,
+  "description": "DEEP Portfolio backend — Express + Prisma REST API",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/DEEP-Portfolio/backend/issues"
+  "scripts": {
+    "dev": "tsx watch src/app.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "postinstall": "prisma generate"
   },
-  "homepage": "https://github.com/DEEP-Portfolio/backend#readme",
-  "description": "",
   "dependencies": {
     "@prisma/client": "^6.16.1",
     "@types/pg": "^8.15.5",
