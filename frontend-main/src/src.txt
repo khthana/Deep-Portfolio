@@ -1,0 +1,28 @@
+ Volume in drive D is New Volume
+ Volume Serial Number is 4682-C94A
+
+ Directory of D:\Project 2568\Deep-Portfolio [Done]\frontend-main\src
+
+05/02/2026  05:49 PM    <DIR>          .
+04/08/2026  09:13 PM    <DIR>          ..
+04/04/2026  10:51 PM               636 App.css
+04/04/2026  10:51 PM               237 App.tsx
+04/08/2026  09:13 PM    <DIR>          components
+04/08/2026  09:13 PM    <DIR>          configs
+04/08/2026  09:13 PM    <DIR>          constants
+04/08/2026  09:13 PM    <DIR>          features
+04/08/2026  09:13 PM    <DIR>          guards
+04/08/2026  09:13 PM    <DIR>          hooks
+04/08/2026  09:13 PM    <DIR>          layouts
+04/08/2026  09:13 PM    <DIR>          lib
+04/04/2026  10:51 PM             2,620 main.tsx
+04/08/2026  09:13 PM    <DIR>          routes
+04/08/2026  09:13 PM    <DIR>          services
+05/02/2026  05:49 PM                 0 src.txt
+04/08/2026  09:13 PM    <DIR>          stores
+04/08/2026  09:13 PM    <DIR>          styles
+04/08/2026  09:13 PM    <DIR>          types
+04/08/2026  09:13 PM    <DIR>          utils
+04/04/2026  10:51 PM                38 vite-env.d.ts
+               5 File(s)          3,531 bytes
+              16 Dir(s)  97,531,723,776 bytes free

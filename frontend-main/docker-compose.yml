@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: .                 # สั่งให้ Build จาก Dockerfile ฝั่ง Frontend
+    container_name: deep-portfolio-frontend
+    ports:
+      - "6001:80"            # ชน Port 6001 ของ VM เข้ากับ Port 80 ของ Nginx (ใน Container)
+    restart: always

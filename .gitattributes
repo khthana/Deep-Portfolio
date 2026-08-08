@@ -1,0 +1,26 @@
+# Normalize line endings: LF in the repository and in every working copy.
+# This project is developed on Windows but runs in Linux containers, so CRLF
+# must never reach a shell script, Dockerfile, or Prisma schema.
+* text=auto eol=lf
+
+# Windows-only files keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files: never touch, never diff.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.docx binary
+
+# Lockfiles: generated, collapse them in diffs and reviews.
+package-lock.json -diff linguist-generated

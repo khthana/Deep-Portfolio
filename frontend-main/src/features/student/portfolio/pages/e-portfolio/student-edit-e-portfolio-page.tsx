@@ -1,0 +1,388 @@
+import {
+  Breadcrumb,
+  Form,
+  Input,
+  Select,
+  Table,
+  message,
+  Checkbox,
+  ColorPicker,
+  Spin,
+} from "antd";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import WhiteContainer from "../../../../../components/container/white-container";
+import Button from "../../../../../components/button/button";
+import BackButton from "../../../../../components/button/back-button";
+import { getAllPortfolioSkill } from "../../../../../services/portfolio-skill.service";
+import {
+  getPortfolioById,
+  updatePortfolio,
+  getAllTemplates,
+  type CreatePortfolioReq,
+  type PortfolioTemplate,
+} from "../../../../../services/portfolio.service";
+import type { PortfolioSkillResp } from "../../../../../types/portfolio-skill-type.type";
+import { paths } from "../../../../../routes/paths.config";
+
+type ConfigDataType = {
+  key: string;
+  no: number;
+  dataName: string;
+  isShow: boolean;
+  isHeader?: boolean;
+};
+
+interface FormValues {
+  portfolioName: string;
+  templateName: string;
+  templateColor: string | { toHexString: () => string };
+  about_me: string;
+}
+
+import { useSelector } from "react-redux";
+import type { RootState } from "../../../../../stores/stores";
+
+const StudentEditEPortfolioPage = () => {
+  const { studentId } = useSelector((state: RootState) => state.home);
+  const { portfolioId } = useParams();
+  const navigate = useNavigate();
+  const [form] = Form.useForm<FormValues>();
+  const [messageApi, contextHolder] = message.useMessage();
+  const [configData, setConfigData] = useState<ConfigDataType[]>([]);
+  const [skills, setSkills] = useState<PortfolioSkillResp[]>([]);
+  const [selectedSkillIds, setSelectedSkillIds] = useState<number[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [templates, setTemplates] = useState<PortfolioTemplate[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!portfolioId) return;
+
+      try {
+        setLoading(true);
+
+        // Fetch portfolio detail first
+        const configRes = await getPortfolioById(portfolioId);
+        if (configRes.success) {
+          const portfolio = configRes.data;
+          form.setFieldsValue({
+            portfolioName: portfolio.portfolioName ?? "",
+            templateName: portfolio.templateName ?? "Standard",
+            templateColor: portfolio.templateColor ?? "#0e305cff",
+            about_me: portfolio.about_me ?? "",
+          });
+
+          setSelectedSkillIds(portfolio.selectedSkillIds?.map(Number) || []);
+
+          const initialConfig: ConfigDataType[] = [
+            {
+              key: "personal",
+              no: 1,
+              dataName: "ข้อมูลส่วนตัว",
+              isShow: portfolio.isShowPersonal ?? false,
+            },
+            {
+              key: "education",
+              no: 2,
+              dataName: "ประวัติการศึกษา",
+              isShow: portfolio.isShowEducation ?? false,
+            },
+            {
+              key: "training",
+              no: 3,
+              dataName: "การฝึกอบรม",
+              isShow: portfolio.isShowTraining ?? false,
+            },
+            {
+              key: "certificate",
+              no: 4,
+              dataName: "คุณวุฒิทางวิชาชีพ",
+              isShow: portfolio.isShowCertificate ?? false,
+            },
+            {
+              key: "skill",
+              no: 5,
+              dataName: "ทักษะ",
+              isShow: portfolio.isShowSkill ?? false,
+            },
+            {
+              key: "intern",
+              no: 6,
+              dataName: "การฝึกงาน/สหกิจศึกษา",
+              isShow: portfolio.isShowIntern ?? false,
+            },
+            {
+              key: "thesis",
+              no: 7,
+              dataName: "โครงงานปริญญาตรี",
+              isShow: portfolio.isShowThesis ?? false,
+            },
+            {
+              key: "award",
+              no: 8,
+              dataName: "รางวัลและการแข่งขัน",
+              isShow: portfolio.isShowAward ?? false,
+            },
+            {
+              key: "activity",
+              no: 9,
+              dataName: "กิจกรรม",
+              isShow: portfolio.isShowActivity ?? false,
+            },
+          ];
+          setConfigData(initialConfig);
+        } else {
+          messageApi.error(
+            configRes.message || "ไม่สามารถโหลดข้อมูล Portfolio ได้",
+          );
+        }
+
+        // Fetch skills and templates in parallel, but handle failures individually if needed
+        // For now, simple separate checks
+        const [skillsRes, templatesRes] = await Promise.all([
+          getAllPortfolioSkill(studentId),
+          getAllTemplates(),
+        ]);
+
+        if (skillsRes.success) {
+          setSkills(skillsRes.data);
+        }
+
+        if (templatesRes.success) {
+          setTemplates(templatesRes.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+        messageApi.error("ไม่สามารถโหลดข้อมูลได้");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [portfolioId, form, studentId]);
+
+  const handleCheckboxChange = (key: string, checked: boolean) => {
+    setConfigData((prev) =>
+      prev.map((item) =>
+        item.key === key ? { ...item, isShow: checked } : item,
+      ),
+    );
+  };
+
+  const handleSave = async () => {
+    try {
+      const values = await form.validateFields();
+      setLoading(true);
+
+      const visibilityFlags: Record<string, boolean> = {};
+      configData.forEach((item) => {
+        const flagKey = `isShow${item.key.charAt(0).toUpperCase()}${item.key.slice(1)}`;
+        visibilityFlags[flagKey] = item.isShow;
+      });
+
+      const templateColor =
+        typeof values.templateColor === "string"
+          ? values.templateColor
+          : values.templateColor?.toHexString?.() || "#0e305cff";
+
+      const selectedTemplate = templates.find(
+        (t) => t.name === values.templateName,
+      );
+
+      const payload = {
+        portfolio_name: values.portfolioName,
+        template_color: templateColor,
+        about_me: values.about_me,
+        template_id: selectedTemplate?.id,
+        selectedSkillIds: selectedSkillIds,
+        ...visibilityFlags,
+      } as Partial<CreatePortfolioReq>;
+
+      if (!portfolioId) return;
+      const res = await updatePortfolio(portfolioId, payload);
+
+      if (res.success) {
+        messageApi.success("บันทึกข้อมูลเรียบร้อย");
+        setTimeout(() => {
+          navigate(paths.student.portfolio.ePortfolio.list);
+        }, 1000);
+      } else {
+        messageApi.error(res.message || "เกิดข้อผิดพลาดในการบันทึก");
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      messageApi.error("กรุณากรอกข้อมูลให้ครบถ้วน");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const columns = [
+    {
+      title: "ลำดับที่",
+      dataIndex: "no",
+      key: "no",
+      align: "center" as const,
+      width: 100,
+    },
+    {
+      title: "ชื่อข้อมูล",
+      dataIndex: "dataName",
+      key: "dataName",
+    },
+    {
+      title: "แสดงข้อมูล",
+      dataIndex: "isShow",
+      key: "isShow",
+      align: "center" as const,
+      width: 150,
+      render: (checked: boolean, record: ConfigDataType) => (
+        <Checkbox
+          checked={checked}
+          onChange={(e) => handleCheckboxChange(record.key, e.target.checked)}
+        />
+      ),
+    },
+    {
+      title: "รายละเอียดเพิ่มเติม",
+      key: "detail",
+      width: 500,
+      render: (_unknown: unknown, record: ConfigDataType) => {
+        if (record.key === "skill") {
+          return (
+            <Select
+              mode="multiple"
+              placeholder="เลือกทักษะ"
+              className="w-full"
+              value={selectedSkillIds}
+              onChange={(values: number[]) => setSelectedSkillIds(values)}
+              options={skills.map((s) => ({ label: s.name, value: s.id }))}
+              disabled={!record.isShow}
+            />
+          );
+        }
+        return null;
+      },
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      {contextHolder}
+      <Breadcrumb
+        className="breadcrumb-bold"
+        separator=">"
+        items={[
+          { title: "แฟ้มผลงาน" },
+          {
+            title: "e-Portfolio",
+            onClick: () => navigate(paths.student.portfolio.ePortfolio.list),
+            className: "cursor-pointer",
+          },
+          { title: "แก้ไข e-Portfolio" },
+        ]}
+      />
+
+      <div className="flex items-center">
+        <BackButton
+          href="/student/portfolio/e-portfolio"
+          title=""
+          color="black"
+        />
+        <h2 className="body-bold-1">แก้ไข e-Portfolio</h2>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Spin size="large" />
+        </div>
+      ) : (
+        <WhiteContainer>
+          <div className="flex flex-col gap-4">
+            <Form form={form} layout="vertical">
+              <div className="flex gap-4">
+                <Form.Item
+                  label="ชื่อ Portfolio"
+                  name="portfolioName"
+                  rules={[
+                    { required: true, message: "กรุณากรอกชื่อ Portfolio" },
+                  ]}
+                  className="basis-2/5"
+                >
+                  <Input placeholder="กรอกชื่อ Portfolio" />
+                </Form.Item>
+
+                <Form.Item
+                  label="Portfolio Template"
+                  name="templateName"
+                  rules={[{ required: true, message: "กรุณาเลือก Template" }]}
+                  className="basis-2/5"
+                >
+                  <Select
+                    disabled={templates.length <= 1}
+                    placeholder="เลือก Template"
+                    options={templates.map((t) => ({
+                      value: t.name,
+                      label: t.name,
+                    }))}
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  label="สีของ Template"
+                  name="templateColor"
+                  rules={[{ required: true, message: "กรุณาเลือกสี Template" }]}
+                  className="basis-1/5"
+                >
+                  <ColorPicker
+                    showText
+                    format="hex"
+                    disabledAlpha
+                    className="w-full justify-start"
+                  />
+                </Form.Item>
+              </div>
+
+              <Form.Item label="About Me" name="about_me" className="w-full">
+                <Input.TextArea placeholder="แนะนำตัวเอง" rows={4} />
+              </Form.Item>
+            </Form>
+
+            <div>
+              <h3 className="mb-2 caption-regular">จัดการข้อมูล</h3>
+              <Table
+                dataSource={configData}
+                columns={columns}
+                pagination={false}
+                bordered
+                rowKey="key"
+              />
+            </div>
+
+            <div className="flex justify-end gap-4 mt-4">
+              <Button
+                onClick={() => navigate(-1)}
+                variant="secondary"
+                disabled={loading}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleSave}
+                className="bg-[#0e305cff] text-white"
+                loading={loading}
+              >
+                บันทึก
+              </Button>
+            </div>
+          </div>
+        </WhiteContainer>
+      )}
+    </div>
+  );
+};
+
+export default StudentEditEPortfolioPage;
