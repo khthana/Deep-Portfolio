@@ -9,6 +9,15 @@
 ถ้ากำลังหาว่า API ตอบไม่เหมือนเดิมตรงไหนบ้างหลัง refactor ดูที่
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md)
 
+เอกสารอื่นใน `docs/`
+
+| ไฟล์ | คืออะไร |
+| ---- | ------- |
+| [`spec-refactor-redeploy.md`](docs/spec-refactor-redeploy.md) | แผนงานหลัก ข้อตกลงและเหตุผลของทุกการตัดสินใจ (D1–D13, T1–T7) |
+| [`database-schema.md`](docs/database-schema.md) | data dictionary ของทั้ง 72 ตาราง — ดูความหมายของคอลัมน์ที่นี่ ไม่ต้องเปิดไฟล์ Word |
+| [`requirements.md`](docs/requirements.md) | ความต้องการที่สกัดจากปริญญานิพนธ์ |
+| [`test-cases.md`](docs/test-cases.md) | กรณีทดสอบด้วยมือ TC-01–TC-75 จากเอกสาร ใช้เป็น checklist ความครอบคลุม |
+
 ## โครงสร้าง
 
 repo นี้เป็น monorepo ที่ใช้ [npm workspaces](https://docs.npmjs.com/cli/using-npm/workspaces)
