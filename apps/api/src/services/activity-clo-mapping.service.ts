@@ -53,18 +53,25 @@ export default class ActivityCLOMappingService {
           where: { activity_id: activity.activity_id },
         });
 
-        const rubric_level = await prisma.rubric_levels.aggregate({
-          where: {
-            rubric_id: rubric?.id,
-          },
-          _max: {
-            level_no: true,
-          },
-        });
+        // Guarded rather than relying on `rubric?.id`: an undefined value in a
+        // where clause means "do not filter on this column" to Prisma, not
+        // "match nothing", so an activity with no rubric used to be answered
+        // with the highest level number in the whole table — some other
+        // activity's rubric.
+        const rubric_level = rubric
+          ? await prisma.rubric_levels.aggregate({
+              where: {
+                rubric_id: rubric.id,
+              },
+              _max: {
+                level_no: true,
+              },
+            })
+          : null;
 
         return {
           ...activityDetail,
-          level_no: rubric_level._max.level_no,
+          level_no: rubric_level?._max.level_no ?? null,
           weight: activity.weight,
         };
       }),

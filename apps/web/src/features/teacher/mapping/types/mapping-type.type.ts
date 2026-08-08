@@ -34,7 +34,7 @@ export type ActivityMappingDetailResp = {
   weight?: number | null;
   expected_level?: number;
 
-  level_no?: number;
+  level_no?: number | null;
 };
 
 //----------------------------------------------------------

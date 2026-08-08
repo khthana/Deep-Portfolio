@@ -128,3 +128,43 @@ export async function createSubmission(options: SubmissionOptions = {}) {
     },
   });
 }
+
+export interface LearningSubmissionOptions {
+  student_id?: string;
+  learning_activity_id?: number;
+  status?: "NOT_SUBMITTED" | "SUBMITTED" | "GRADING" | "GRADED";
+  feedback?: string;
+  submitted_at?: Date;
+  graded_at?: Date;
+  /** users.user_id of the grader. */
+  graded_by?: string;
+  is_bookmark?: boolean;
+  remark?: string;
+}
+
+/**
+ * The learning-activity half of the same idea. Note what is missing: there is
+ * no score column on student_learning_activity at all, because classroom work
+ * is marked done or not done rather than out of anything.
+ */
+export async function createLearningSubmission(
+  options: LearningSubmissionOptions = {},
+) {
+  const student_id = options.student_id ?? (await createStudent()).student_id;
+  const learning_activity_id =
+    options.learning_activity_id ?? (await createLearningActivity()).id;
+
+  return prisma.student_learning_activity.create({
+    data: {
+      student_id,
+      learning_activity_id,
+      status: options.status ?? "SUBMITTED",
+      feedback: options.feedback,
+      submitted_at: options.submitted_at ?? new Date(),
+      graded_at: options.graded_at,
+      graded_by: options.graded_by,
+      is_bookmark: options.is_bookmark ?? false,
+      remark: options.remark,
+    },
+  });
+}

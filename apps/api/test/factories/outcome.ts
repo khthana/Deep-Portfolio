@@ -45,7 +45,10 @@ export interface CLOOptions {
    *  case that only needs a CLO to exist can pass any number. */
   section_id: number;
   /** Free text in the schema, and the endpoints treat it as a display label:
-   *  DELETE /course/clo renumbers what is left to "1".."n". */
+   *  DELETE /course/clo renumbers what is left to "1".."n". Left out, the CLO
+   *  gets the next number free in its section, because (section_id,
+   *  clo_number) is unique and two CLOs in one section is an ordinary
+   *  arrangement. A case about the numbering itself should say the number. */
   clo_number?: string;
   clo_detail?: string;
   /** learning_outcomes.outcome_id. A PLO is created if this is left out. */
@@ -54,13 +57,33 @@ export interface CLOOptions {
 
 export async function createCLO(options: CLOOptions) {
   const plo_id = options.plo_id ?? (await createPLO()).outcome_id;
+  const clo_number =
+    options.clo_number ?? (await nextCLONumber(options.section_id));
 
   return prisma.subject_clo.create({
     data: {
       section_id: options.section_id,
-      clo_number: options.clo_number ?? "1",
+      clo_number,
       clo_detail: options.clo_detail ?? "รายละเอียดผลลัพธ์การเรียนรู้ของรายวิชา",
       plo_id,
     },
   });
+}
+
+/** The lowest label not already used in the section, rather than a count — a
+ *  case that arranged "2" by hand must not then be handed "2" again. */
+async function nextCLONumber(section_id: number): Promise<string> {
+  const taken = new Set(
+    (
+      await prisma.subject_clo.findMany({
+        where: { section_id },
+        select: { clo_number: true },
+      })
+    ).map((clo) => clo.clo_number),
+  );
+
+  let next = 1;
+  while (taken.has(String(next))) next++;
+
+  return String(next);
 }

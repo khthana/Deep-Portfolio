@@ -15,6 +15,7 @@ let users = 0;
 let students = 0;
 let subjects = 0;
 let outcomes = 0;
+let rubrics = 0;
 
 /** users.user_id — VarChar(8). */
 export function nextUserId(): string {
@@ -37,4 +38,9 @@ export function nextSubjectId(): string {
  *  counter is simpler than tracking which programme a case used. */
 export function nextOutcomeCode(): string {
   return `PLO${++outcomes}`;
+}
+
+/** rubrics.rubric_code — unique across the whole table, unlike outcome_code. */
+export function nextRubricCode(): string {
+  return `RUB${++rubrics}`;
 }

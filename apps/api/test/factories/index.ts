@@ -20,12 +20,32 @@ export {
   createActivity,
   createLearningActivity,
   createSubmission,
+  createLearningSubmission,
 } from "./activity";
 export type {
   ActivityOptions,
   LearningActivityOptions,
   SubmissionOptions,
+  LearningSubmissionOptions,
 } from "./activity";
+
+export {
+  createSharedRubric,
+  createSharedRubricDetail,
+  createActivityRubric,
+} from "./rubric";
+export type {
+  SharedRubricOptions,
+  SharedRubricDetailOptions,
+  ActivityRubricOptions,
+  ActivityRubricLevel,
+} from "./rubric";
+
+export { mapActivityToCLO, mapLearningActivityToCLO } from "./mapping";
+export type {
+  ActivityCLOMappingOptions,
+  LearningActivityCLOMappingOptions,
+} from "./mapping";
 
 export { createPLO, createCLO } from "./outcome";
 export type { PLOOptions, CLOOptions } from "./outcome";

@@ -6,10 +6,11 @@ import { requireRole } from "../middlewares/auth.middleware";
 const learningActivityRouter = Router();
 const learningActivityController = new LearningActivityController();
 
+// requireRole before upload, not after — see the note in activity.route.ts.
 learningActivityRouter.post(
   "/",
-  upload.array("files"),
   requireRole("TEACHER"),
+  upload.array("files"),
 
   learningActivityController.createLearningActivity.bind(
     learningActivityController,
@@ -18,8 +19,8 @@ learningActivityRouter.post(
 
 learningActivityRouter.put(
   "/",
-  upload.array("files"),
   requireRole("TEACHER"),
+  upload.array("files"),
 
   learningActivityController.updateLearningActivity.bind(
     learningActivityController,
@@ -63,8 +64,13 @@ learningActivityRouter.get(
   ),
 );
 
+// The class roster with every student's submission state on it. The activity
+// half of the same screen (GET /activity/submitted/list) is a teacher's; this
+// one was reachable by anyone at all.
 learningActivityRouter.get(
   "/submitted/list",
+  requireRole("TEACHER"),
+
   learningActivityController.getAllSubmittedLearningActivityList.bind(
     learningActivityController,
   ),

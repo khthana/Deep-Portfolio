@@ -6,18 +6,21 @@ import { requireRole } from "../middlewares/auth.middleware";
 const activityRouter = Router();
 const activityController = new ActivityController();
 
+// requireRole before upload, not after: multer runs to completion before the
+// next middleware is called, so with the two the other way round a request
+// that was about to be refused had already had its files read into memory.
 activityRouter.post(
   "/",
-  upload.array("files"),
   requireRole("TEACHER"),
+  upload.array("files"),
 
   activityController.createActivity.bind(activityController),
 );
 
 activityRouter.put(
   "/",
-  upload.array("files"),
   requireRole("TEACHER"),
+  upload.array("files"),
 
   activityController.updateActivity.bind(activityController),
 );

@@ -5,12 +5,19 @@ import prisma from "../src/config/prisma";
 import { BASELINE } from "./seed";
 import {
   createActivity,
+  createActivityRubric,
   createCourse,
+  createLearningActivity,
+  createLearningSubmission,
+  createSharedRubric,
+  createSharedRubricDetail,
   createStudent,
   createSubmission,
   createTeacher,
   createUser,
   enrolStudent,
+  mapActivityToCLO,
+  mapLearningActivityToCLO,
 } from "./factories";
 import { sessionCookie } from "./helpers/session";
 
@@ -204,5 +211,130 @@ describe("createActivity and createSubmission", () => {
 
     expect(submission.activity_id).toBe(activity.id);
     expect(activity.section_id).toBe(course.section_id);
+  });
+});
+
+describe("createLearningActivity and createLearningSubmission", () => {
+  it("builds a learning submission out of nothing at all", async () => {
+    const submission = await createLearningSubmission();
+
+    expect(
+      await prisma.student.findUnique({
+        where: { student_id: submission.student_id },
+      }),
+    ).not.toBeNull();
+    expect(
+      await prisma.learning_activities.findUnique({
+        where: { id: submission.learning_activity_id },
+      }),
+    ).not.toBeNull();
+  });
+
+  it("puts the learning activity in the section the case names", async () => {
+    const course = await createCourse();
+    const activity = await createLearningActivity({
+      section_id: course.section_id,
+      learning_activity_type: "group",
+    });
+
+    expect(activity.section_id).toBe(course.section_id);
+    expect(activity.learning_activity_type).toBe("group");
+  });
+});
+
+describe("createSharedRubric and createSharedRubricDetail", () => {
+  it("puts a rubric in the baseline programme and gives it a unique code", async () => {
+    const first = await createSharedRubric();
+    const second = await createSharedRubric();
+
+    expect(first.program_id).toBe(BASELINE.program.program_id);
+    // rubric_code is unique across the whole table, so two rubrics arranged in
+    // one case must not collide.
+    expect(first.rubric_code).not.toBe(second.rubric_code);
+  });
+
+  it("hangs a criterion off the rubric it was given", async () => {
+    const rubric = await createSharedRubric();
+    const detail = await createSharedRubricDetail({ rubric_id: rubric.id });
+
+    expect(detail.rubric_id).toBe(rubric.id);
+    // Four levels, four columns — all of them filled in.
+    expect(detail.level_4_description).not.toBeNull();
+    expect(detail.level_1_description).not.toBeNull();
+  });
+});
+
+describe("createActivityRubric", () => {
+  it("builds a criterion with its levels out of nothing at all", async () => {
+    const rubric = await createActivityRubric();
+
+    expect(
+      await prisma.activities.findUnique({ where: { id: rubric.activity_id } }),
+    ).not.toBeNull();
+
+    const levels = await prisma.rubric_levels.findMany({
+      where: { rubric_id: rubric.id },
+      orderBy: { level_no: "asc" },
+    });
+    expect(levels.map((level) => level.level_no)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("gives the criterion only the levels the case asks for", async () => {
+    const rubric = await createActivityRubric({
+      criteria: "ความคิดสร้างสรรค์",
+      levels: [
+        { level_no: 1, description: "ยังไม่ถึงเกณฑ์" },
+        { level_no: 2, description: "ถึงเกณฑ์" },
+      ],
+    });
+
+    expect(rubric.criteria).toBe("ความคิดสร้างสรรค์");
+    expect(
+      await prisma.rubric_levels.count({ where: { rubric_id: rubric.id } }),
+    ).toBe(2);
+  });
+});
+
+describe("mapActivityToCLO and mapLearningActivityToCLO", () => {
+  it("arranges the score category the mapping's foreign key needs", async () => {
+    // activity_clo_mapping.score_ratio_id is NOT NULL with a real foreign key
+    // behind it, so the factory has to make one even though no case is about it.
+    const mapping = await mapActivityToCLO();
+
+    expect(
+      await prisma.subject_score_ratio.findUnique({
+        where: { score_ratio_id: mapping.score_ratio_id },
+      }),
+    ).not.toBeNull();
+    expect(
+      await prisma.subject_clo.findUnique({
+        where: { clo_id: mapping.clo_id ?? 0 },
+      }),
+    ).not.toBeNull();
+  });
+
+  it("numbers a second mapping on the same activity after the first", async () => {
+    const activity = await createActivity();
+    const first = await mapActivityToCLO({ activity_id: activity.id });
+    const second = await mapActivityToCLO({ activity_id: activity.id });
+
+    // The endpoint assigns sequence_order the same way, and the pair is unique.
+    expect(first.sequence_order).toBe(1);
+    expect(second.sequence_order).toBe(2);
+  });
+
+  it("builds a learning-activity mapping out of nothing at all", async () => {
+    const mapping = await mapLearningActivityToCLO();
+
+    expect(
+      await prisma.learning_activities.findUnique({
+        where: { id: mapping.learning_activity_id },
+      }),
+    ).not.toBeNull();
+    expect(
+      await prisma.subject_clo.findUnique({
+        where: { clo_id: mapping.clo_id ?? 0 },
+      }),
+    ).not.toBeNull();
   });
 });
