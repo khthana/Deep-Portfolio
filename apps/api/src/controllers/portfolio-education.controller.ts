@@ -16,6 +16,13 @@ export default class PortfolioEducationController {
   ) {
     try {
       const userId = req.query.user_id as string;
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: "user_id is required",
+        });
+      }
+
       const result =
         await this.portfolioEducationService.getAllPortfolioEducation(userId);
 

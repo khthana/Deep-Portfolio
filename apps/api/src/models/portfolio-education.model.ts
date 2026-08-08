@@ -1,5 +1,3 @@
-import { Decimal } from "@prisma/client/runtime/library";
-
 export type CreatePortfolioEducationReqBody = {
   education_level: string;
   institution?: string;
@@ -24,7 +22,7 @@ export type PortfolioEducationResp = {
   start_year: number | null;
   end_year: number | null;
   country: string | null;
-  gpa: Decimal | null;
+  gpa: number | null;
   study_plan: string | null;
   faculty: string | null;
   major: string | null;

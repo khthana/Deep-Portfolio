@@ -15,12 +15,16 @@ export default class PortfolioPersonalController {
       const portfolio =
         await this.portfolioPersonalService.getPortfolioPersonal(userId);
 
-      // if (!portfolio) {
-      //   return res.status(404).json({
-      //     success: false,
-      //     message: "Portfolio personal not found",
-      //   });
-      // }
+      // The service answers null for an unknown user and only for that — a
+      // user who exists but has entered no details gets the defaults from
+      // their account instead. So this is "no such user", not "nothing filled
+      // in yet".
+      if (!portfolio) {
+        return res.status(404).json({
+          success: false,
+          message: "Portfolio personal not found",
+        });
+      }
 
       successResponse(
         res,

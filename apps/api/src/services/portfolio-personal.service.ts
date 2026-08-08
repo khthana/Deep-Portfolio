@@ -80,38 +80,44 @@ export default class PortfolioPersonalService {
       } as any;
     }
 
-    // Fallback to user data if portfolio fields are null
+    // Fallback to user data if portfolio fields are null. The row the user
+    // signed up with is the one they would otherwise have to type in again,
+    // and the branch above already answers that way for a user who has no
+    // portfolio_personal row at all.
     const result = {
       ...portfolio,
       email: portfolio.email ?? portfolio.users.email,
       phone_number: portfolio.phone_number ?? portfolio.users.phone,
     };
 
+    // The join is how the fallback was reached, not something the caller asked
+    // for — PortfolioPersonalResp does not declare it and the frontend does not
+    // read it.
     delete (result as any).users;
 
     let attachments = null;
     if (portfolio.attachment_id) {
-      const result = await this.attachmentsService.getAttachments([
+      const stored = await this.attachmentsService.getAttachments([
         { attachment_id: portfolio.attachment_id },
       ]);
 
-      if (result.file.length > 0) {
+      if (stored.file.length > 0) {
         attachments = {
-          attachment_id: result.file[0].attachment_id,
-          url: result.file[0].file_path,
-          file_path: result.file[0].file_path,
+          attachment_id: stored.file[0].attachment_id,
+          url: stored.file[0].file_path,
+          file_path: stored.file[0].file_path,
         };
-      } else if (result.url.length > 0) {
+      } else if (stored.url.length > 0) {
         attachments = {
-          attachment_id: result.url[0].attachment_id,
-          url: result.url[0].url,
+          attachment_id: stored.url[0].attachment_id,
+          url: stored.url[0].url,
           file_path: null,
         };
       }
     }
 
     return {
-      ...portfolio,
+      ...result,
       attachments,
     };
   }

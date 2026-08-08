@@ -71,3 +71,22 @@ export type {
 
 export { createAnnouncement } from "./announcement";
 export type { AnnouncementOptions } from "./announcement";
+
+export {
+  createPortfolio,
+  createPortfolioTemplate,
+  createPortfolioSkill,
+  createPortfolioPersonal,
+  createPortfolioEducation,
+  createPortfolioTraining,
+  createPortfolioCertificate,
+} from "./portfolio";
+export type {
+  PortfolioOptions,
+  PortfolioTemplateOptions,
+  PortfolioSkillOptions,
+  PortfolioPersonalOptions,
+  PortfolioEducationOptions,
+  PortfolioTrainingOptions,
+  PortfolioCertificateOptions,
+} from "./portfolio";

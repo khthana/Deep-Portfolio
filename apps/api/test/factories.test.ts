@@ -8,9 +8,17 @@ import {
   createActivityGroup,
   createActivityRubric,
   createCourse,
+  createFileAttachment,
   createLearningActivity,
   createLearningActivityGroup,
   createLearningSubmission,
+  createPortfolio,
+  createPortfolioCertificate,
+  createPortfolioEducation,
+  createPortfolioPersonal,
+  createPortfolioSkill,
+  createPortfolioTemplate,
+  createPortfolioTraining,
   createSharedRubric,
   createSharedRubricDetail,
   createStudent,
@@ -443,5 +451,97 @@ describe("mapActivityToCLO and mapLearningActivityToCLO", () => {
         where: { clo_id: mapping.clo_id ?? 0 },
       }),
     ).not.toBeNull();
+  });
+});
+
+describe("the portfolio factories", () => {
+  it("invents a student for a portfolio row that is not given one", async () => {
+    // Every portfolio table hangs off users.user_id, and the public share
+    // endpoint reads the student row behind it as well — so "invents a user"
+    // has to mean a student, not just an account.
+    const education = await createPortfolioEducation();
+
+    expect(
+      await prisma.student.findUnique({
+        where: { student_id: education.user_id },
+      }),
+    ).not.toBeNull();
+  });
+
+  it("puts every section of one student's portfolio under the same user", async () => {
+    const student = await createStudent();
+    const rows = await Promise.all([
+      createPortfolio({ user_id: student.student_id }),
+      createPortfolioPersonal({ user_id: student.student_id }),
+      createPortfolioEducation({ user_id: student.student_id }),
+      createPortfolioTraining({ user_id: student.student_id }),
+      createPortfolioCertificate({ user_id: student.student_id }),
+      createPortfolioSkill({ user_id: student.student_id }),
+    ]);
+
+    expect(rows.map((row) => row.user_id)).toEqual(
+      rows.map(() => student.student_id),
+    );
+  });
+
+  it("gives a portfolio a share token even when no case asks for one", async () => {
+    // The column defaults to gen_random_uuid(), so a portfolio is shareable
+    // from the moment it exists.
+    const portfolio = await createPortfolio();
+
+    expect(portfolio.public_share_token).not.toBeNull();
+    expect(portfolio.share_expires_at).toBeNull();
+  });
+
+  it("writes the join rows that put an attachment on an entry", async () => {
+    const file = await createFileAttachment();
+    const training = await createPortfolioTraining({
+      attachment_ids: [file.attachment_id],
+    });
+    const certificate = await createPortfolioCertificate({
+      attachment_ids: [file.attachment_id],
+    });
+
+    expect(
+      await prisma.portfolio_training_attachments.findMany({
+        where: { training_id: training.id },
+      }),
+    ).toEqual([
+      { training_id: training.id, attachment_id: file.attachment_id },
+    ]);
+    expect(
+      await prisma.portfolio_certificate_attachments.findMany({
+        where: { certificate_id: certificate.id },
+      }),
+    ).toEqual([
+      { certificate_id: certificate.id, attachment_id: file.attachment_id },
+    ]);
+  });
+
+  it("points a portfolio at the skills the case named", async () => {
+    const student = await createStudent();
+    const skill = await createPortfolioSkill({ user_id: student.student_id });
+    const portfolio = await createPortfolio({
+      user_id: student.student_id,
+      skill_ids: [skill.id],
+    });
+
+    expect(
+      await prisma.portfolio_skill_mapping.findMany({
+        where: { portfolio_id: portfolio.id },
+      }),
+    ).toEqual([{ portfolio_id: portfolio.id, skill_id: skill.id }]);
+  });
+
+  it("hangs a portfolio off the template the case named", async () => {
+    const template = await createPortfolioTemplate({ name: "แม่แบบตัวอย่าง" });
+    const portfolio = await createPortfolio({ template_id: template.id });
+
+    expect(
+      await prisma.portfolio.findUniqueOrThrow({
+        where: { id: portfolio.id },
+        include: { portfolio_template: true },
+      }),
+    ).toMatchObject({ portfolio_template: { name: "แม่แบบตัวอย่าง" } });
   });
 });
