@@ -30,7 +30,7 @@ mostly correctness work on top of it.
   path anywhere in the API. `npm run import --workspace @deep-portfolio/api --
   ./data` reads a directory of CSV files; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 775 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 781 API cases over
   39 files, 400 web cases over 24 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 

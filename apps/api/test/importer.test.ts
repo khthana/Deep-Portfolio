@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import prisma from "../src/config/prisma";
 import { runImport } from "../src/importer/run";
+import { createSharedRubric } from "./factories";
 import { BASELINE } from "./seed";
 
 /**
@@ -154,6 +155,26 @@ describe("runImport", () => {
     });
   });
 
+  it("keeps a field that runs over more than one line together, and counts lines past it", async () => {
+    const directory = await importable({
+      "subjects.csv": [
+        "subject_id,subject_name_th,subject_name_en,credits,description_th",
+        '90009701,วิชาคำอธิบายยาว,Long Description Subject,3,"บรรทัดแรก',
+        'บรรทัดที่สอง ""มีคำพูด"" ด้วย"',
+        "90009702,วิชาถัดไป,Next Subject,3,",
+      ].join("\n"),
+    });
+
+    const result = await runImport(directory);
+
+    expect(result.errors).toEqual([]);
+    expect(await prisma.subjects.findUnique({ where: { subject_id: "90009701" } })).toMatchObject({
+      description_th: 'บรรทัดแรก\nบรรทัดที่สอง "มีคำพูด" ด้วย',
+    });
+    // And the row after it is still one row, not two half-rows.
+    expect(await prisma.subjects.findUnique({ where: { subject_id: "90009702" } })).not.toBeNull();
+  });
+
   it("leaves a column alone when the cell for it is empty", async () => {
     const named = await importable({
       "departments.csv": [
@@ -230,6 +251,52 @@ describe("runImport", () => {
       full_name_th: "นักศึกษา ทดสอบ",
       admission_year: "2565",
     });
+  });
+
+  it("reads the true/false and date columns as their own types", async () => {
+    const directory = await importable({
+      "faculty.csv": [
+        "faculty_id,faculty_name_th,faculty_name_en,is_active",
+        "99,คณะที่ปิดแล้ว,Closed Faculty,FALSE",
+      ].join("\n"),
+      "programs.csv": ["program_id,created_at", "9901,2026-01-02T03:04:05Z"].join("\n"),
+    });
+
+    const result = await runImport(directory);
+
+    expect(result.errors).toEqual([]);
+    expect(await prisma.faculty.findUnique({ where: { faculty_id: "99" } })).toMatchObject({
+      // Written "FALSE" by the spreadsheet, and false in the database.
+      is_active: false,
+    });
+    expect(
+      (await prisma.programs.findUnique({ where: { program_id: "9901" } }))?.created_at,
+    ).toEqual(new Date("2026-01-02T03:04:05Z"));
+  });
+
+  it("keeps a decimal exactly as the file wrote it", async () => {
+    // rubric_details is one of the seven tables with no natural key, so this is
+    // also the case that shows what importing one of those looks like: the file
+    // carries the id, and the rubric it belongs to is already in the database.
+    const rubric = await createSharedRubric();
+    const directory = await importable({
+      "rubric_details.csv": [
+        "id,rubric_id,criteria_name_th,criteria_name_en,weight",
+        `900001,${rubric.id},ความถูกต้อง,Correctness,12.34`,
+      ].join("\n"),
+    });
+
+    const first = await runImport(directory);
+    const second = await runImport(directory);
+
+    expect(first.tables).toEqual([{ table: "rubric_details", created: 1, updated: 0 }]);
+    expect(second.tables).toEqual([{ table: "rubric_details", created: 0, updated: 1 }]);
+
+    const detail = await prisma.rubric_details.findUnique({ where: { id: 900001 } });
+
+    // Decimal(5, 2). Read back as a string so the assertion is about the digits
+    // Postgres stored, not about what a float rounds to.
+    expect(detail?.weight?.toString()).toBe("12.34");
   });
 
   it("updates a row that was already in the database before any import ran", async () => {
@@ -407,6 +474,51 @@ describe("runImport, when the files are wrong", () => {
     // subjects.csv was faultless, and is still not in the database: the run is
     // one decision across every file, not one per file.
     expect(await prisma.subjects.findUnique({ where: { subject_id: "90000001" } })).toBeNull();
+  });
+
+  it("refuses a whole number the column's type cannot hold", async () => {
+    // semester is SmallInt, not Int. Left to Postgres this would be an error
+    // about numeric types raised halfway through the transaction, naming no row.
+    const directory = await importable({
+      "semester_courses.csv": [
+        "academic_year,semester,subject_id",
+        "2568,40000,90000003",
+      ].join("\n"),
+    });
+
+    const result = await runImport(directory);
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toEqual([
+      {
+        table: "semester_courses",
+        line: 2,
+        column: "semester",
+        message: "ต้องอยู่ในช่วง -32767 ถึง 32767",
+      },
+    ]);
+  });
+
+  it("refuses a decimal wider than the column's type", async () => {
+    const rubric = await createSharedRubric();
+    const directory = await importable({
+      "rubric_details.csv": [
+        "id,rubric_id,criteria_name_th,criteria_name_en,weight",
+        `900002,${rubric.id},น้ำหนักเกิน,Overweight,1234.5`,
+      ].join("\n"),
+    });
+
+    const result = await runImport(directory);
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toEqual([
+      {
+        table: "rubric_details",
+        line: 2,
+        column: "weight",
+        message: "ต้องอยู่ในช่วง -999.99 ถึง 999.99",
+      },
+    ]);
   });
 
   it("refuses a number that is not one", async () => {

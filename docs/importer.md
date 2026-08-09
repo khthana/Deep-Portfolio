@@ -121,6 +121,15 @@ faculty_id,faculty_name_th,faculty_name_en
   ทำอะไรไม่ได้ ค่า `role_id` ต้องตรงกับ `roles.role_id`
 - **`departments.department_id` กว้าง 2 ตัวอักษร** ขณะที่ `subjects.department_id`
   กว้าง 20 — ความไม่สมมาตรนี้เป็นของ schema เดิม ให้ใส่รหัสภาควิชา 2 หลักทั้งคู่
+- **`learning_outcomes.parent_outcome_id` ชี้ไปที่แถวในไฟล์เดียวกันไม่ได้** — คอลัมน์นี้
+  ชี้ไปที่ `outcome_id` ซึ่งฐานข้อมูลแจกเลขให้ตอนเขียน ไฟล์จึงไม่มีทางรู้เลขของแถวแม่ที่
+  กำลังจะถูกเขียนพร้อมกันในรอบเดียวกัน ตัวนำเข้าจะฟ้อง
+  `ไม่พบ ... ในตาราง learning_outcomes (คอลัมน์ outcome_id)` ให้เห็นก่อนเขียน
+  **วิธีทำคือรันสองรอบ** รอบแรกนำเข้าแถวแม่ (PLO) โดยยังไม่ใส่คอลัมน์
+  `parent_outcome_id` แล้วอ่านเลข `outcome_id` ที่ได้จริงจากฐานข้อมูล
+  (`SELECT outcome_id, outcome_code FROM learning_outcomes`) จากนั้นเติมเลขนั้นลงไฟล์
+  แล้วรันรอบที่สอง — แถวเดิมจะถูกอัปเดต ไม่ซ้ำ เพราะคีย์คือ `program_id, outcome_code`
+  ไม่ใช่ `outcome_id`
 
 ## ตารางที่ไม่มีคีย์ตามธรรมชาติ
 

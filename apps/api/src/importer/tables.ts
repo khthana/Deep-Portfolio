@@ -80,6 +80,12 @@ export interface Column {
   required: boolean;
   /** From `@db.VarChar(n)` / `@db.Char(n)`. Null where the column is unbounded. */
   maxLength: number | null;
+  /**
+   * The largest magnitude the column's Postgres type holds, so `40000` in a
+   * `SmallInt` is reported as a bad cell rather than left to blow up the write.
+   * Null for kinds where there is no such bound.
+   */
+  maxValue: number | null;
   /** Computed by Postgres. No INSERT or UPDATE may name it, so no file may either. */
   readOnly: boolean;
 }
@@ -111,10 +117,8 @@ export interface Table {
   dependencies: string[];
 }
 
+const INT2_MAX = 32_767;
 const INT4_MAX = 2_147_483_647;
-
-/** Bound on every whole number in this schema, which Postgres stores as `integer`. */
-export const INTEGER_MAX = INT4_MAX;
 
 const SCALAR_KINDS = new Set<string>([
   "String",
@@ -176,6 +180,47 @@ function maxLengthOf(nativeType: readonly [string, readonly string[]] | null): n
 }
 
 /**
+ * The largest value the column will hold, as its Postgres type defines it.
+ *
+ * Postgres refuses an out-of-range number rather than truncating it, and it
+ * refuses it at write time — which for this importer means in the middle of the
+ * transaction, with a message about numeric types rather than about a row. The
+ * schema uses `SmallInt` for a good deal of the master data (`semester`,
+ * `criteria_no`, `clo_id`), so the difference between int2 and int4 is a
+ * difference the file can run into.
+ *
+ * `Decimal(p, s)` holds `p` digits of which `s` are after the point, so the
+ * largest it can hold is `p - s` nines followed by `s` more: `Decimal(5, 2)`
+ * stops at 999.99. Postgres rounds a longer fraction quietly but rejects a
+ * larger whole part, so the bound is the whole part's.
+ */
+function maxValueOf(
+  kind: ColumnKind,
+  nativeType: readonly [string, readonly string[]] | null,
+): number | null {
+  const name = nativeType?.[0];
+
+  if (kind === "Int") {
+    if (name === "SmallInt") return INT2_MAX;
+    // Anything else whole is int4, which is also what Prisma's `Int` means when
+    // no native type is written down at all.
+    return INT4_MAX;
+  }
+
+  if (kind === "Decimal" && name === "Decimal") {
+    const [precision, scale] = (nativeType?.[1] ?? []).map(Number);
+
+    if (!Number.isInteger(precision) || !Number.isInteger(scale)) {
+      return null;
+    }
+
+    return 10 ** ((precision as number) - (scale as number)) - 10 ** -(scale as number);
+  }
+
+  return null;
+}
+
+/**
  * Which columns identify a row, in the order of how much they can be trusted.
  *
  * A composite `@@id` and a natural `@id` are both the institution's own
@@ -188,7 +233,7 @@ function maxLengthOf(nativeType: readonly [string, readonly string[]] | null): n
  * Only when neither exists does this fall back to the surrogate, and it says so
  * — see `keyIsGenerated`.
  */
-function keyOf(model: Prisma.DMMF.Model): { key: string[]; generated: boolean } {
+function keyColumnsOf(model: Prisma.DMMF.Model): { key: string[]; generated: boolean } {
   if (model.primaryKey && model.primaryKey.fields.length > 0) {
     return { key: [...model.primaryKey.fields], generated: false };
   }
@@ -251,21 +296,25 @@ function describe(model: Prisma.DMMF.Model): Table {
       continue;
     }
 
+    const kind: ColumnKind = field.kind === "enum" ? "Enum" : (field.type as ColumnKind);
+    const nativeType = (field.nativeType ?? null) as
+      | readonly [string, readonly string[]]
+      | null;
+
     columns.push({
       name: field.name,
-      kind: field.kind === "enum" ? "Enum" : (field.type as ColumnKind),
+      kind,
       enumValues: field.kind === "enum" ? enumValues(field.type) : [],
       // A column with a default is one the file may leave out, whether the
       // default is written by Postgres or by Prisma.
       required: field.isRequired && field.hasDefaultValue !== true,
-      maxLength: maxLengthOf(
-        (field.nativeType ?? null) as readonly [string, readonly string[]] | null,
-      ),
+      maxLength: maxLengthOf(nativeType),
+      maxValue: maxValueOf(kind, nativeType),
       readOnly: GENERATED_ALWAYS.has(`${model.name}.${field.name}`),
     });
   }
 
-  const { key, generated } = keyOf(model);
+  const { key, generated } = keyColumnsOf(model);
 
   return {
     name: model.name,

@@ -1,6 +1,5 @@
 import type { Sheet } from "./csv";
 import type { Column, Table } from "./tables";
-import { INTEGER_MAX } from "./tables";
 
 /**
  * Turning a sheet of text into rows the database will accept — or into the list
@@ -36,6 +35,21 @@ export interface Prepared {
   errors: ImportError[];
 }
 
+/**
+ * Whether a number is outside what the column's Postgres type holds.
+ *
+ * The bound is symmetric here even though int2 reaches one further down
+ * (-32768): a master data file has no use for that one value, and a range the
+ * operator can read off the message is worth more than the last integer.
+ */
+function outOfRange(value: number, maxValue: number | null): boolean {
+  return maxValue !== null && Math.abs(value) > maxValue;
+}
+
+function rangeError(maxValue: number | null): string {
+  return `ต้องอยู่ในช่วง -${maxValue} ถึง ${maxValue}`;
+}
+
 /** Reads "true"/"false" however the spreadsheet capitalised them. */
 function toBoolean(text: string): boolean | undefined {
   const lowered = text.toLowerCase();
@@ -67,21 +81,37 @@ function coerce(column: Column, text: string): { value: unknown } | { error: str
     }
 
     case "Int": {
-      if (!/^-?\d+$/.test(text)) {
+      if (!/^[+-]?\d+$/.test(text)) {
         return { error: "ต้องเป็นจำนวนเต็ม" };
       }
 
       const parsed = Number(text);
 
-      if (!Number.isSafeInteger(parsed) || Math.abs(parsed) > INTEGER_MAX) {
-        return { error: `ต้องไม่เกิน ${INTEGER_MAX}` };
+      if (!Number.isSafeInteger(parsed) || outOfRange(parsed, column.maxValue)) {
+        return { error: rangeError(column.maxValue) };
       }
 
       return { value: parsed };
     }
 
-    case "Float":
     case "Decimal": {
+      // Kept as text rather than turned into a JS number: `Decimal(5, 2)` is an
+      // exact type and Prisma accepts the digits as they were written, so the
+      // value that reaches Postgres is the value that was in the file. Scientific
+      // notation is refused for the same reason — Postgres would take it, but the
+      // file it came from would no longer read like the column it lands in.
+      if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(text)) {
+        return { error: "ต้องเป็นตัวเลข" };
+      }
+
+      if (outOfRange(Number(text), column.maxValue)) {
+        return { error: rangeError(column.maxValue) };
+      }
+
+      return { value: text };
+    }
+
+    case "Float": {
       const parsed = Number(text);
 
       if (!Number.isFinite(parsed)) {

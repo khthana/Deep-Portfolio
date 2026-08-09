@@ -4,13 +4,7 @@ import type { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import { parseCsv } from "./csv";
 import { keyOf, prepare, type ImportError, type PreparedRow } from "./rows";
-import {
-  isMasterTable,
-  MASTER_TABLES,
-  orderByDependencies,
-  tableOf,
-  type Table,
-} from "./tables";
+import { isMasterTable, orderByDependencies, tableOf, type Table } from "./tables";
 
 /**
  * The importer itself: a directory of CSV files in, rows in the database out.
@@ -203,7 +197,7 @@ async function load(
         column: null,
         message:
           `ชื่อไฟล์ไม่ตรงกับตารางใดที่นำเข้าได้ — ` +
-          `ต้องตั้งชื่อไฟล์ตามชื่อตาราง เช่น ${MASTER_TABLES[6]}.csv`,
+          `ต้องตั้งชื่อไฟล์ตามชื่อตาราง เช่น faculty.csv`,
       });
       continue;
     }
