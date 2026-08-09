@@ -48,8 +48,10 @@ Run `gh issue view <number> --comments`.
   the project owner supplies a sample data file. Blocking edges use GitHub's native
   issue dependencies, so the frontier query below is the authoritative "what can I
   pick up next" — don't infer readiness from the issue number.
-  **#2–#19 are closed**; what is left of the breakdown is #20 (request validation),
-  #21 (frontend hygiene), #22 (TC traceability table), #23 and #24 (README).
+  **#2–#19 are closed.** #20 (request validation), #21 (frontend hygiene) and #22
+  (TC traceability table) have all landed on `main`, but their issues stay open
+  until someone closes them by hand. What is genuinely left of the breakdown is
+  #23 (importer) and #24 (README).
 - Issues #12–#18 (the endpoint test batches) were deliberately chained one after
   another even though they are technically independent. They all edit the same test
   factory files, so running them in parallel would have conflicted. All are closed

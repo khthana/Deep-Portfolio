@@ -29,7 +29,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | สถานะ | ความหมาย |
 | --- | --- |
 | **ครอบคลุมแล้ว** | สิ่งที่ TC ตรวจ — คือระบบทำอะไรกับข้อมูล — มี automated test ยืนยันครบ |
-| **ครอบคลุมบางส่วน** | มีส่วนที่ยืนยันไม่ได้จริง ๆ นอกเหนือจากการวาดหน้าจอ |
+| **ครอบคลุมบางส่วน** | มีส่วนที่ยังไม่มี test ยืนยัน นอกเหนือจากการวาดหน้าจอ — ไม่ว่าจะเพราะรอยต่อแตะไม่ถึง หรือเพราะเขียนได้แต่ยังไม่มีคนเขียน ซึ่งสองอย่างนี้แยกกันไว้ในหัวข้อ "ช่องว่างที่พบ" ท้ายเอกสาร |
 | **ครอบคลุมไม่ได้** | flow ที่ TC บรรยายไม่มีอยู่ในระบบปัจจุบันแล้ว |
 
 สองข้อที่ต้องตกลงกันก่อนอ่านตาราง
@@ -42,8 +42,9 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 2. **inline error ในฟอร์มคือด่านที่ test แตะไม่ถึง** TC กลุ่ม "กรอกข้อมูลไม่ครบ"
    คาดสองอย่าง — บันทึกไม่สำเร็จ และมี inline error ขึ้นในฟอร์ม อย่างแรก API
    ยืนยันได้ อย่างหลังเกิดใน browser ก่อนที่ request จะถูกยิงออกมาด้วยซ้ำ
-   ทุกข้อในกลุ่มนี้จึงเป็น "ครอบคลุมบางส่วน" เหมือนกันหมด และ test ฝั่ง API
-   ที่อ้างถึงคือด่านที่สอง ไม่ใช่ด่านเดียวกับที่ TC ทดสอบ
+   ทุกข้อในกลุ่มนี้จึงเป็น "ครอบคลุมบางส่วน" อย่างน้อยที่สุด และ test ฝั่ง API
+   ที่อ้างถึงคือด่านที่สอง ไม่ใช่ด่านเดียวกับที่ TC ทดสอบ บางข้อในกลุ่มนี้ยัง
+   ขาดด่านที่สองอีกด้วย ซึ่งช่องหมายเหตุระบุไว้ทีละข้อ
 
 ชื่อ test ในตารางเป็นชื่อจริงที่อยู่ในโค้ด (ภาษาอังกฤษตาม convention) ค้นด้วย
 ชื่อนั้นตรง ๆ ได้ในไฟล์ที่ระบุ
@@ -59,7 +60,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 
 ## ฝั่งผู้สอน (TC-01..TC-41)
 
-### เข้าสู่ระบบ
+### การเข้าสู่ระบบ
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
@@ -75,23 +76,23 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC-05 | ดูรายละเอียดรายวิชา | ครอบคลุมแล้ว | `course.test.ts` — `GET /course` "returns the section, its subject, its teacher and its schedule" | |
 | TC-06 | แก้ไขวัน เวลา และห้องเรียน | ครอบคลุมแล้ว | `course.test.ts` — `POST /course/schedule` "gives an unscheduled section a schedule", "moves the existing schedule rather than adding a second one" | ครอบทั้งสามฟิลด์ — case ที่สองยืนยันว่า `classroom` เปลี่ยนเป็นค่าใหม่และไม่มีตารางซ้อนขึ้นมาอีกแถว |
 | TC-07 | เพิ่มเกณฑ์คะแนน | ครอบคลุมแล้ว | `score-weight.test.ts` — `POST /score-weight` "adds a category and returns its id", "puts each new category after the last one in the section" | |
-| TC-08 | เพิ่มเกณฑ์คะแนนโดยกรอกข้อมูลไม่ครบ | ครอบคลุมบางส่วน | `score-weight.test.ts` — `POST /score-weight` "answers 400 for a weight that is not a number" | ตามกติกาข้อ 2 — API ปฏิเสธและไม่บันทึก ยืนยันแล้ว แต่ inline error ในฟอร์มอยู่นอกรอยต่อทั้งสอง |
+| TC-08 | เพิ่มเกณฑ์คะแนนโดยกรอกข้อมูลไม่ครบ | ครอบคลุมบางส่วน | `score-weight.test.ts` — `POST /score-weight` "answers 400 for a weight that is not a number" | ตามกติกาข้อ 2 และยังขาดอีกครึ่ง — case ที่มีเป็นการส่ง**ผิดชนิด** ไม่ใช่ส่ง**ไม่ครบ** `addScoreWeightBody` บังคับ `score_category` อยู่แล้วแต่ยังไม่มี case ไหนยิง request ที่ขาดมันเข้าไป → [#35](https://github.com/khthana/Deep-Portfolio/issues/35) |
 | TC-09 | แก้ไขเกณฑ์คะแนน | ครอบคลุมแล้ว | `score-weight.test.ts` — `PUT /score-weight` "changes the category name and its weight" | |
 | TC-10 | ลบเกณฑ์คะแนน | ครอบคลุมแล้ว | `score-weight.test.ts` — `DELETE /score-weight` "removes the category", "leaves the activities that used it, unassigned", "does not leave the section's numbering contiguous" | case ที่สามบันทึกไว้ว่าเลขลำดับไม่ถูกเรียงใหม่หลังลบ ซึ่งต่างจากแผนการสอนที่เรียงใหม่ |
 | TC-11 | เพิ่มผลการเรียนรู้ระดับรายวิชา (CLO) | ครอบคลุมแล้ว | `course-clo.test.ts` — `POST /course/clo` "adds an outcome to the section and returns its id" | |
-| TC-12 | เพิ่ม CLO โดยกรอกข้อมูลไม่ครบ | ครอบคลุมบางส่วน | `course-clo.test.ts` — `POST /course/clo` "fails when the section already has that outcome number" | ตามกติกาข้อ 2 และยังมีอีกครึ่ง — `addCLOBody` ใน `course.schema.ts` บังคับ `clo_number`, `clo_detail`, `section_id` แต่ยังไม่มี case ที่ยิง request ขาดฟิลด์เข้าไปตรง ๆ บน endpoint นี้ |
+| TC-12 | เพิ่ม CLO โดยกรอกข้อมูลไม่ครบ | ครอบคลุมบางส่วน | `course-clo.test.ts` — `POST /course/clo` "fails when the section already has that outcome number" | ตามกติกาข้อ 2 และยังขาดอีกครึ่ง — `addCLOBody` ใน `course.schema.ts` บังคับ `clo_number`, `clo_detail`, `section_id` แต่ยังไม่มี case ที่ยิง request ขาดฟิลด์เข้าไปตรง ๆ บน endpoint นี้ → [#35](https://github.com/khthana/Deep-Portfolio/issues/35) |
 | TC-13 | แก้ไข CLO | ครอบคลุมแล้ว | `course-clo.test.ts` — `PUT /course/clo` "changes the detail and the PLO it maps onto", "leaves the outcome number alone" | |
 | TC-14 | ลบ CLO | ครอบคลุมแล้ว | `course-clo.test.ts` — `DELETE /course/clo` "removes the outcome and renumbers what is left", "renumbers only the section the outcome belonged to" | |
 
-### ประกาศ
+### การจัดการประกาศ
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
 | TC-15 | สร้างประกาศพร้อมไฟล์ รูปภาพ และลิงก์ | ครอบคลุมแล้ว | `announcement.test.ts` — `POST /announcement` "posts to the section and answers with the new id", "uploads the attached files and links them to the announcement", "posts to every section of the course when all_section is set" | |
-| TC-16 | สร้างประกาศโดยกรอกข้อมูลไม่ครบ | ครอบคลุมบางส่วน | `announcement.test.ts` — `POST /announcement` "answers 400 when the request leaves out all_section", "answers 400 for content that is not JSON, and uploads nothing" | ตามกติกาข้อ 2 — `createAnnouncementBody` บังคับ `title` และ `content` ด้วย แต่ case ที่มีอยู่ยิงเข้าคนละฟิลด์กับที่ TC บรรยาย |
-| TC-17 | ดูประกาศและดาวน์โหลดไฟล์แนบ | ครอบคลุมแล้ว | `announcement.test.ts` — `GET /announcement` "returns the section's announcements, newest first", "splits each announcement's attachments into files and links"; `GET /announcement/:id/attachments` "returns the announcement's files and links"; `app.test.ts` — `GET /files` "returns the object when it exists in the bucket" | การดาวน์โหลดจริงยืนยันที่ `GET /files` ซึ่งอ่านไฟล์ออกจาก MinIO จริงในคอนเทนเนอร์ |
+| TC-16 | สร้างประกาศโดยกรอกข้อมูลไม่ครบ | ครอบคลุมบางส่วน | `announcement.test.ts` — `POST /announcement` "answers 400 when the request leaves out all_section", "answers 400 for content that is not JSON, and uploads nothing" | ตามกติกาข้อ 2 และยังขาดอีกครึ่ง — `createAnnouncementBody` บังคับ `title` ด้วย แต่ case ที่มีอยู่ยิงเข้าคนละฟิลด์กับที่ TC บรรยาย → [#35](https://github.com/khthana/Deep-Portfolio/issues/35) |
+| TC-17 | ดูประกาศและดาวน์โหลดไฟล์แนบ | ครอบคลุมแล้ว | `announcement.test.ts` — `GET /announcement` "returns the section's announcements, newest first", "splits each announcement's attachments into files and links"; `GET /announcement/:id/attachments` "returns the announcement's files and links"; `app.test.ts` — `GET /files` "returns the object when it exists in the bucket" | การอ่านไฟล์ออกจาก MinIO จริงยืนยันที่ `GET /files` ซึ่งเป็น endpoint กลางไม่ผูกกับประกาศ — case ของมันอัปโหลดไฟล์ของตัวเองไปทดสอบ ไม่ใช่ไฟล์แนบของประกาศ ส่วนที่ผูกไฟล์เข้ากับประกาศยืนยันที่ `GET /announcement/:id/attachments` |
 
-### แผนการสอน
+### การจัดการแผนการสอน
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
@@ -100,7 +101,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC-20 | แก้ไขแผนการสอน | ครอบคลุมแล้ว | `lesson-plan.test.ts` — `PUT /lesson-plan` "changes the title, description and remark" | ช่อง "ผลที่คาดหวัง" ของ TC ข้อนี้ในเอกสารต้นฉบับเขียนว่า "ไม่สามารถบันทึกได้" ซึ่งขัดกับชื่อและขั้นตอนของมันเอง — เป็นการคัดลอกมาจาก TC-19 เทียบกับพฤติกรรมที่ขั้นตอนบรรยายไว้ |
 | TC-21 | ลบแผนการสอน | ครอบคลุมแล้ว | `lesson-plan.test.ts` — `DELETE /lesson-plan` "removes the week and closes the gap in the numbering", "keeps the work that was planned in it, now in no week", "takes the week's material with it" | ช่อง "ผลที่คาดหวัง" ในเอกสารต้นฉบับคัดลอกผิดแบบเดียวกับ TC-20 |
 
-### สื่อการสอน
+### การจัดการสื่อการสอน
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
@@ -138,25 +139,35 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC-38 | ลบกิจกรรมการเรียนรู้ | ครอบคลุมแล้ว | `learning-activity.test.ts` — `DELETE /learning-activity` "deletes the activity and the students' rows with it" | |
 | TC-39 | ตรวจกิจกรรมการเรียนรู้ | ครอบคลุมแล้ว | `student-learning-activity.test.ts` — `POST /student-learning-activity/grade` "marks an individual submission graded with the feedback given", "marks every member of a group graded at once", "marks a PENDING member graded along with the rest" | |
 
-### สมุดคะแนนและข้อมูลนักศึกษา
+### สมุดคะแนน
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
 | TC-40 | ดูสมุดคะแนน | ครอบคลุมแล้ว | `gradebook.test.ts` — `GET /gradebook/per-student` "reports each student's marks, counts and total", "counts a submission handed in after the deadline as late", "adds marks of 10 and 10.01 up to exactly 20.01"; `GET /gradebook/per-activity` "reports the spread of the class across each piece of work", "rounds the mean to the two decimal places a score is stored with" | ครอบทั้งสองมุมมองของสมุดคะแนน รวมถึงการปัดเศษที่ pin ไว้ใน [#28](https://github.com/khthana/Deep-Portfolio/issues/28) และ [#30](https://github.com/khthana/Deep-Portfolio/issues/30) |
+
+### ข้อมูลนักศึกษา
+
+| TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
+| --- | --- | --- | --- | --- |
 | TC-41 | ดูข้อมูลนักศึกษาในรายวิชา | ครอบคลุมแล้ว | `student.test.ts` — `GET /student/list` "returns the students enrolled in a section, by id", "leaves out students enrolled in a different section" | |
 
 ## ฝั่งผู้เรียน (TC-42..TC-75)
 
-### การส่งงานและปฏิทิน
+### การส่งงาน
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
 | TC-42 | สร้างกลุ่มสำหรับงานกลุ่ม | ครอบคลุมแล้ว | `activity-group.test.ts` — `POST /student-activity-group` "creates the group, its members and a submission row for each", "reuses a submission row the student already had"; `PATCH /student-activity-group` "adds a member and keeps the answers the existing ones already gave", "removes a member left out of the new list" | |
 | TC-43 | ส่งงานพร้อมไฟล์แนบและลิงก์ | ครอบคลุมแล้ว | `student-submit.test.ts` — `POST /student/submit/activity` "marks the submission SUBMITTED and stores the uploaded file", "records a link without uploading anything", "drops an attachment the resubmission does not name again", "submits for every accepted member of a group at once"; `submission.test.ts` — "uploads the files, records them and marks the work submitted" | |
 | TC-44 | ดูผลการประเมิน | ครอบคลุมแล้ว | `evaluation.test.ts` — `GET /evaluation/list` "lists an announced activity with the student's mark and the class spread", "shows each student their own mark", "hides work whose announcement date has not arrived" | ค่าเฉลี่ยที่ endpoint นี้คืนมี pin ไว้ที่ [#29](https://github.com/khthana/Deep-Portfolio/issues/29) |
+
+### ปฏิทินการเรียน
+
+| TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
+| --- | --- | --- | --- | --- |
 | TC-45 | ดูปฏิทินการเรียน | ครอบคลุมแล้ว | `student-calendar.test.ts` — `GET /student/calendar` "returns the student's classes and announced work for the term", "leaves out another student's work in the same section", "reads the student from the session, not from the query" | |
 
-### e-Portfolio ส่วนข้อมูลส่วนตัว
+### e-Portfolio หน้าข้อมูลส่วนตัว
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
@@ -171,7 +182,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC-49 | แก้ไขประวัติการศึกษา | ครอบคลุมแล้ว | `portfolio-education.test.ts` — `PUT /portfolio-education/:id` "overwrites the fields the request carries" | |
 | TC-50 | ลบประวัติการศึกษา | ครอบคลุมแล้ว | `portfolio-education.test.ts` — `DELETE /portfolio-education/:id` "removes the entry and leaves the others alone" | รายการนี้ไม่มีไฟล์แนบ จึงไม่ติดปัญหาแบบ TC-56 และ TC-62 |
 
-### e-Portfolio ส่วนประวัติการอบรม
+### e-Portfolio ส่วนการฝึกอบรม
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
@@ -184,7 +195,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
 | TC-54 | เพิ่มคุณวุฒิทางวิชาชีพ | ครอบคลุมแล้ว | `portfolio-certificate.test.ts` — `POST /portfolio-certificate` "creates a certificate and hands it back", "uploads the certificates and attaches them to the entry" | |
-| TC-55 | แก้ไขคุณวุฒิ พร้อมลบไฟล์แนบเดิมและอัปโหลดใหม่ | ครอบคลุมบางส่วน | `portfolio-certificate.test.ts` — `PUT /portfolio-certificate/:id` "overwrites the fields the request carries" | การแก้ฟิลด์ยืนยันแล้ว แต่การสลับไฟล์แนบบน route นี้ยังไม่มี case ของตัวเอง — `portfolio-certificate.test.ts` อ้างไว้ในหัวไฟล์ว่า `ids_to_delete` และเส้นทาง multipart เป็นโค้ดชุดเดียวกับ training และครอบไว้ที่นั่นแล้วตาม T5 ตารางนี้ไม่ชี้ไปที่ test ของ route อื่นเป็นหลักฐานของ route นี้ |
+| TC-55 | แก้ไขคุณวุฒิ พร้อมลบไฟล์แนบเดิมและอัปโหลดใหม่ | ครอบคลุมบางส่วน | `portfolio-certificate.test.ts` — `PUT /portfolio-certificate/:id` "overwrites the fields the request carries" | การแก้ฟิลด์ยืนยันแล้ว แต่การสลับไฟล์แนบบน route นี้ยังไม่มี case ของตัวเอง — หัวไฟล์อ้างไว้ว่า `ids_to_delete` และเส้นทาง multipart เป็นโค้ดชุดเดียวกับ training และครอบไว้ที่นั่นแล้วตาม T5 ซึ่งจริง แต่ตารางนี้ไม่ชี้ test ของ route อื่นมาเป็นหลักฐานของ route นี้ → [#35](https://github.com/khthana/Deep-Portfolio/issues/35) |
 | TC-56 | ลบคุณวุฒิ โดยไฟล์แนบต้องหายจากฐานข้อมูลด้วย | ครอบคลุมบางส่วน | `portfolio-certificate.test.ts` — `DELETE /portfolio-certificate/:id` "removes the certificate and the links to what was attached" | ตัวรายการหายตามที่ TC คาด แต่ test ยืนยันตรงกันข้ามกับอีกครึ่งของ TC — แถวใน `attachments` **ยังอยู่** หลังลบ ดูหัวข้อ "ช่องว่างที่พบ" ด้านล่าง |
 
 ### e-Portfolio ส่วนทักษะและผลงาน
@@ -195,7 +206,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC-58 | แก้ไขข้อมูลผลงาน | ครอบคลุมแล้ว | `portfolio-skill.test.ts` — `PUT /portfolio-skill/:id` "renames the skill", "replaces the mappings rather than adding to them", "leaves the mappings alone when the request says nothing about them" | |
 | TC-59 | ลบข้อมูลผลงาน | ครอบคลุมแล้ว | `portfolio-skill.test.ts` — `DELETE /portfolio-skill/:id` "removes the skill and the mappings hanging off it"; `DELETE /portfolio-skill/mapping/:id` "removes the mapping and leaves the skill standing" | |
 
-### e-Portfolio ส่วนฝึกงาน/สหกิจศึกษา
+### e-Portfolio ส่วนการฝึกงาน/สหกิจศึกษา
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
@@ -211,7 +222,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC-64 | แก้ไขโครงงานปริญญาตรี | ครอบคลุมแล้ว | `portfolio-thesis.test.ts` — `PUT /portfolio-thesis/:id` "overwrites the fields the request carries", "adds the uploaded files to the ones already there", "drops the join row ids_to_delete names and leaves the attachment" | |
 | TC-65 | ลบโครงงานปริญญาตรี | ครอบคลุมแล้ว | `portfolio-thesis.test.ts` — `DELETE /portfolio-thesis/:id` "removes the project and its join rows" | TC ข้อนี้คาดแค่ว่าการ์ดหายและข้อมูลถูกลบ ไม่ได้ระบุถึงไฟล์แนบ |
 
-### e-Portfolio ส่วนรางวัลและเกียรติบัตร
+### e-Portfolio ส่วนรางวัลและการแข่งขัน
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
@@ -227,7 +238,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC-70 | แก้ไขกิจกรรม | ครอบคลุมแล้ว | `portfolio-activity.test.ts` — `PUT /portfolio-activity/:id` "overwrites the fields the request carries", "drops the join row ids_to_delete names and leaves the attachment" | |
 | TC-71 | ลบกิจกรรม | ครอบคลุมแล้ว | `portfolio-activity.test.ts` — `DELETE /portfolio-activity/:id` "removes the activity and its join rows" | |
 
-### ตัว e-Portfolio
+### e-Portfolio ส่วน e-Portfolio
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
@@ -238,10 +249,17 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 
 ## ช่องว่างที่พบระหว่างไล่ตาราง
 
-ไล่ทั้ง 75 ข้อแล้วเจอช่องว่างหนึ่งเรื่องที่ควรครอบได้แต่ยังไม่ครอบ และไม่ใช่
-ข้อจำกัดของรอยต่อ — เปิดเป็น issue แยกไว้แล้วตามที่ #22 กำหนด ไม่กลบไว้ในตาราง
+"ครอบคลุมบางส่วน" 11 ข้อไม่ได้เป็นแบบเดียวกันทั้งหมด แยกเป็นสองกอง
 
-**ไฟล์แนบค้างอยู่หลังลบเจ้าของรายการ** — [#34](https://github.com/khthana/Deep-Portfolio/issues/34)
+- **7 ข้อติดที่รอยต่อจริง ๆ** — TC-19, TC-24, TC-27, TC-30, TC-56, TC-62, TC-75
+- **4 ข้อมีครึ่งที่เขียน test ได้ที่รอยต่อเดิมแต่ยังไม่มีคนเขียน** — TC-08,
+  TC-12, TC-16, TC-55
+
+กองหลังคือช่องว่างจริง ไม่ใช่ข้อจำกัด และ TC-24, TC-56, TC-62 ในกองแรกก็ติดที่
+พฤติกรรมของระบบไม่ใช่ที่รอยต่อ ทั้งสองเรื่องเปิดเป็น issue แยกไว้แล้วตามที่ #22
+กำหนด ไม่กลบไว้ในช่องหมายเหตุ
+
+### ไฟล์แนบค้างอยู่หลังลบเจ้าของรายการ — [#34](https://github.com/khthana/Deep-Portfolio/issues/34)
 
 TC-24, TC-56 และ TC-62 คาดว่าไฟล์แนบจะหายไปพร้อมกับรายการที่มันแขวนอยู่
 พฤติกรรมจริงคือ endpoint ลบเฉพาะ join row แล้วปล่อยแถวใน `attachments` และ
@@ -253,7 +271,24 @@ object ใน MinIO ทิ้งไว้ ซึ่ง test ยืนยัน�
 ส่วนและอาจถูกอ้างจากหลายที่ จึงเป็นการตัดสินใจเรื่อง ownership ไม่ใช่แค่การ
 แก้ endpoint ทีละตัว รายละเอียดอยู่ใน issue
 
-นอกจากนี้ยังมี 8 ข้อที่เป็น "ครอบคลุมบางส่วน" ด้วยเหตุผลของรอยต่อล้วน ๆ
-(TC-08, TC-12, TC-16, TC-19, TC-27, TC-30, TC-55, TC-75) ซึ่งไม่เปิด issue ให้
-เพราะการจะครอบมันได้ต้องเพิ่มรอยต่อที่สาม — component test หรือ E2E — ซึ่ง T2
-ตัดออกไปตั้งแต่ต้น
+### test ที่เขียนได้แต่ยังไม่มีคนเขียน — [#35](https://github.com/khthana/Deep-Portfolio/issues/35)
+
+TC-08, TC-12, TC-16 และ TC-55 ถูกให้สถานะ "ครอบคลุมบางส่วน" โดยที่ครึ่งซึ่งขาด
+ไปไม่ได้ติดอะไรเลยนอกจากยังไม่มีคนเขียน
+
+- `POST /score-weight` และ `POST /course/clo` บังคับฟิลด์ผ่าน validator ตั้งแต่
+  #20 แต่ไม่มี case ไหนยิง request ที่ขาดฟิลด์เข้าไปตรง ๆ — case ที่มีเป็นการส่ง
+  ผิดชนิดและการชนกันของข้อมูลที่มีอยู่ ซึ่งคนละอย่างกับที่ TC บรรยาย
+- `POST /announcement` เหมือนกัน — case ที่มียิงเข้า `all_section` และ `content`
+  ไม่ใช่ `title`
+- `PUT /portfolio-certificate/:id` ไม่มี case ของ `ids_to_delete` ของตัวเอง
+
+ทั้งสี่ข้อเขียนได้ด้วย supertest ที่รอยต่อเดิม จึงไม่ควรถูกนับรวมกับข้อที่ติด
+ที่รอยต่อ
+
+### ส่วนที่ไม่เปิด issue ให้
+
+TC-19, TC-27, TC-30 และ TC-75 เป็น "ครอบคลุมบางส่วน" ด้วยเหตุผลของรอยต่อล้วน ๆ
+— ครึ่งที่ขาดคือ inline error ในฟอร์ม การ์ดฝั่ง frontend และการวาดหน้าเว็บ
+ซึ่งการจะครอบมันได้ต้องเพิ่มรอยต่อที่สาม (component test หรือ E2E) ที่ T2 ตัดออก
+ไปตั้งแต่ต้น ไม่ใช่ช่องว่างที่ตั้งตั๋วแล้วจะมีคนปิดได้

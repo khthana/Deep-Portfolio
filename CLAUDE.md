@@ -30,10 +30,15 @@ mostly correctness work on top of it.
   38 files, 390 web cases over 22 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
-Open work is in the issue tracker: request validation (#20), frontend hygiene
-(#21), the TC-01..TC-75 traceability table (#22), the master-data importer
-(#23, waiting on a file format), the README rewrite (#24), and the defects
-filed while testing (#25–#31, #33).
+Open work is in the issue tracker: the master-data importer (#23, waiting on a
+file format), the README rewrite (#24), and the defects filed while testing
+(#25–#31, #33–#35). Request validation (#20), frontend hygiene (#21) and the
+TC-01..TC-75 traceability table (#22) have landed on `main`; their issues are
+still open awaiting a manual close.
+
+[`docs/tc-traceability.md`](docs/tc-traceability.md) maps all 75 manual test
+cases from the thesis onto the automated tests that cover them — read it before
+claiming a behaviour is or is not under test.
 
 ## Language convention
 
