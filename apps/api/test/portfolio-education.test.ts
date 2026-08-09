@@ -15,8 +15,9 @@ import { createPortfolioEducation, createStudent } from "./factories";
  * certificate files lean on that rather than repeating all of it (T5).
  *
  * education_level is the one NOT NULL column in the portfolio group apart from
- * the ids, which is why a POST that omits it is a 500 and not a 201 with a
- * blank field.
+ * the ids, which is why a POST that omits it is refused rather than answered
+ * with a blank field — a 400 from the schema since #20, a 500 from Postgres
+ * before it.
  *
  * Nothing on this route group is behind any middleware; the user being acted
  * for is whoever the query string says. That is #31.
@@ -91,7 +92,10 @@ describe("GET /portfolio-education", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [
+        { field: "user_id", location: "query", message: "ต้องระบุ" },
+      ],
     });
   });
 });
@@ -139,7 +143,11 @@ describe("GET /portfolio-education/:id", () => {
     const response = await request(app).get("/portfolio-education/abc");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("answers 404 for an id that belongs to no entry", async () => {
@@ -148,7 +156,7 @@ describe("GET /portfolio-education/:id", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      message: "Portfolio education not found",
+      message: "ไม่พบประวัติการศึกษาที่ต้องการ",
     });
   });
 });
@@ -191,7 +199,10 @@ describe("POST /portfolio-education", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [
+        { field: "user_id", location: "body", message: "ต้องระบุ" },
+      ],
     });
     expect(
       await prisma.portfolio_education.count({
@@ -207,7 +218,14 @@ describe("POST /portfolio-education", () => {
       .post("/portfolio-education")
       .send({ user_id: student.student_id, institution: "สถาบันตัวอย่าง" });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: education_level ต้องระบุ",
+      errors: [
+        { field: "education_level", location: "body", message: "ต้องระบุ" },
+      ],
+    });
     expect(
       await prisma.portfolio_education.count({
         where: { user_id: student.student_id },
@@ -242,12 +260,12 @@ describe("PUT /portfolio-education/:id", () => {
     ).toBe("สถาบันใหม่");
   });
 
-  it("hands an entry to whichever user the request names", async () => {
-    // Recorded, not endorsed. The body goes to Prisma as it arrives, so a
-    // request may rewrite user_id and move somebody else's entry onto itself.
-    // Nothing checks who is asking in the first place, so this adds no reach
-    // that #31 does not already describe — but it is the mechanism, and it is
-    // worth having pinned before that issue is worked.
+  it("keeps the entry with its owner however the request names one", async () => {
+    // See BEHAVIOR-CHANGES.md. The body used to go to Prisma as it arrived, so
+    // a request could rewrite user_id and move somebody else's entry onto
+    // itself. The update schema has no user_id and unknown keys are stripped,
+    // so the field is now dropped before the service sees it. Nothing yet
+    // checks who is asking — that is still #31 — but this mechanism is closed.
     const owner = await createStudent();
     const stranger = await createStudent();
     const entry = await createPortfolioEducation({ user_id: owner.student_id });
@@ -263,7 +281,7 @@ describe("PUT /portfolio-education/:id", () => {
           where: { id: entry.id },
         })
       ).user_id,
-    ).toBe(stranger.student_id);
+    ).toBe(owner.student_id);
   });
 
   it("answers 400 for an id that is not a number", async () => {
@@ -272,7 +290,11 @@ describe("PUT /portfolio-education/:id", () => {
       .send({ institution: "สถาบันใหม่" });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("fails for an entry that does not exist", async () => {
@@ -315,7 +337,11 @@ describe("DELETE /portfolio-education/:id", () => {
     const response = await request(app).delete("/portfolio-education/abc");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("fails for an entry that does not exist", async () => {

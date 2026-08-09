@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -26,8 +26,9 @@ export function setupAssignTasksCron() {
 
       console.log(`🔍 พบผู้เรียนใหม่จำนวน ${newStudentCourses.length} รายการ`);
 
-      const newStudentActivities: any[] = [];
-      const newStudentLearningActivities: any[] = [];
+      const newStudentActivities: Prisma.student_activityCreateManyInput[] = [];
+      const newStudentLearningActivities: Prisma.student_learning_activityCreateManyInput[] =
+        [];
 
       for (const sc of newStudentCourses) {
         const activities = await prisma.activities.findMany({

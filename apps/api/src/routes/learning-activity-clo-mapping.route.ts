@@ -1,6 +1,11 @@
 import { Router } from "express";
 import LearningActivityCLOMappingController from "../controllers/learning-activity-clo-mapping.controller";
 import { requireRole } from "../middlewares/auth.middleware";
+import { validate } from "../validation/validate";
+import {
+  cloMappingQuery,
+  createLearningActivityCLOMappingBody,
+} from "../validation/clo-mapping.schema";
 
 const learningActivityCLOMappingRouter = Router();
 const learningActivityCLOMappingController =
@@ -11,17 +16,18 @@ const learningActivityCLOMappingController =
 learningActivityCLOMappingRouter.post(
   "/",
   requireRole("TEACHER"),
-
+  validate({ body: createLearningActivityCLOMappingBody }),
   learningActivityCLOMappingController.createLearningActivityCLOMapping.bind(
-    learningActivityCLOMappingController
-  )
+    learningActivityCLOMappingController,
+  ),
 );
 
 learningActivityCLOMappingRouter.get(
   "/",
+  validate({ query: cloMappingQuery }),
   learningActivityCLOMappingController.getLearningActivity.bind(
-    learningActivityCLOMappingController
-  )
+    learningActivityCLOMappingController,
+  ),
 );
 
 export default learningActivityCLOMappingRouter;

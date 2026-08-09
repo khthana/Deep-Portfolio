@@ -1,11 +1,20 @@
-import express, { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
+import { uploadedFiles } from "../utils/uploaded-files";
 import StudentService from "../services/student.service";
-import {
-  ClassworkType,
-  SubmitActivityBody,
-  SubmitLearningActivityBody,
-} from "../models/student.model";
 import { sessionUserId } from "../middlewares/auth.middleware";
+import { successResponse } from "../utils/response";
+import { HttpError } from "../utils/http-error";
+import { validated } from "../validation/validate";
+import {
+  activityDetailsParams,
+  enrolledSubjectsQuery,
+  sectionActivitiesQuery,
+  studentClassworkListQuery,
+  studentListQuery,
+  studentTermQuery,
+  submitActivityBody,
+  submitLearningActivityBody,
+} from "../validation/student.schema";
 
 export default class StudentController {
   private readonly studentService: StudentService;
@@ -16,16 +25,10 @@ export default class StudentController {
 
   async getStudentInSec(req: Request, res: Response, next: NextFunction) {
     try {
-      const section_id = req.query?.section_id as string;
-      const courses = await this.studentService.getStudentInSec(
-        parseInt(section_id),
-      );
+      const { section_id } = validated(req, studentListQuery);
+      const courses = await this.studentService.getStudentInSec(section_id);
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched student in section successfully",
-        data: courses,
-      });
+      successResponse(res, courses, "Fetched student in section successfully");
     } catch (err) {
       next(err);
     }
@@ -33,40 +36,16 @@ export default class StudentController {
 
   async submitActivity(req: Request, res: Response, next: NextFunction) {
     try {
-      const files = req.files as Express.Multer.File[];
-      const student_id = sessionUserId(req);
-
-      const urlList: { title: string; url: string; uploaded_by: string }[] = req
-        .body.urls
-        ? JSON.parse(req.body.urls)
-        : [];
-
-      const existing_files_ids: number[] = req.body.existing_files_ids
-        ? JSON.parse(req.body.existing_files_ids)
-        : [];
-
-      const data: SubmitActivityBody = {
-        student_activity_id: parseInt(req.body.student_activity_id),
-        section_id: parseInt(req.body.section_id),
-        activity_id: parseInt(req.body.activity_id),
-        student_id: student_id,
-        files: files,
-        urls: urlList,
-        existing_files_ids: existing_files_ids,
-        type: req.body.type,
-        group_id: req.body.group_id ? parseInt(req.body.group_id) : undefined,
-      };
+      const body = validated(req, submitActivityBody);
+      const files = uploadedFiles(req);
+      const data = { ...body, student_id: sessionUserId(req), files };
 
       const activity =
         data.type === "INDIVIDUAL"
           ? await this.studentService.submitActivity(data)
           : await this.studentService.submitGroupActivity(data);
 
-      res.status(200).json({
-        success: true,
-        message: "submit activity successfully",
-        data: activity,
-      });
+      successResponse(res, activity, "submit activity successfully");
     } catch (err) {
       next(err);
     }
@@ -78,41 +57,16 @@ export default class StudentController {
     next: NextFunction,
   ) {
     try {
-      const files = req.files as Express.Multer.File[];
-      const student_id = sessionUserId(req);
-      const urlList: { title: string; url: string; uploaded_by: string }[] = req
-        .body.urls
-        ? JSON.parse(req.body.urls)
-        : [];
-
-      const existing_files_ids: number[] = req.body.existing_files_ids
-        ? JSON.parse(req.body.existing_files_ids)
-        : [];
-
-      const data: SubmitLearningActivityBody = {
-        student_learning_activity_id: parseInt(
-          req.body.student_learning_activity_id,
-        ),
-        section_id: parseInt(req.body.section_id),
-        learning_activity_id: parseInt(req.body.learning_activity_id),
-        student_id: student_id,
-        files: files,
-        urls: urlList,
-        existing_files_ids: existing_files_ids,
-        type: req.body.type,
-        group_id: req.body.group_id ? parseInt(req.body.group_id) : undefined,
-      };
+      const body = validated(req, submitLearningActivityBody);
+      const files = uploadedFiles(req);
+      const data = { ...body, student_id: sessionUserId(req), files };
 
       const activity =
-        data.type === ClassworkType.INDIVIDUAL
+        data.type === "INDIVIDUAL"
           ? await this.studentService.submitLearningActivity(data)
           : await this.studentService.submitGroupLearningActivity(data);
 
-      res.status(200).json({
-        success: true,
-        message: "submit activity successfully",
-        data: activity,
-      });
+      successResponse(res, activity, "submit activity successfully");
     } catch (err) {
       next(err);
     }
@@ -121,21 +75,15 @@ export default class StudentController {
   async getStudentCourseList(req: Request, res: Response, next: NextFunction) {
     try {
       const student_id = sessionUserId(req);
-
-      const semester = req.query?.semester as string;
-      const academic_year = req.query?.academic_year as string;
+      const { semester, academic_year } = validated(req, studentTermQuery);
 
       const courses = await this.studentService.getStudentCourseList(
         student_id,
-        parseInt(semester),
+        semester,
         academic_year,
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched course list successfully",
-        data: courses,
-      });
+      successResponse(res, courses, "Fetched course list successfully");
     } catch (err) {
       next(err);
     }
@@ -148,21 +96,15 @@ export default class StudentController {
   ) {
     try {
       const student_id = sessionUserId(req);
-
-      const semester = req.query?.semester as string;
-      const academic_year = req.query?.academic_year as string;
+      const { semester, academic_year } = validated(req, studentTermQuery);
 
       const courses = await this.studentService.getStudentCalendarEvent(
         student_id,
-        parseInt(semester),
+        semester,
         academic_year,
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched calendar event successfully",
-        data: courses,
-      });
+      successResponse(res, courses, "Fetched calendar event successfully");
     } catch (err) {
       next(err);
     }
@@ -175,19 +117,14 @@ export default class StudentController {
   ) {
     try {
       const student_id = sessionUserId(req);
-
-      const section_id = req.query?.section_id as string;
+      const { section_id } = validated(req, studentClassworkListQuery);
 
       const courses = await this.studentService.getStudentCourseClassworkList(
         student_id,
-        parseInt(section_id),
+        section_id,
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched classwork list successfully",
-        data: courses,
-      });
+      successResponse(res, courses, "Fetched classwork list successfully");
     } catch (err) {
       next(err);
     }
@@ -200,20 +137,15 @@ export default class StudentController {
   ) {
     try {
       const student_id = sessionUserId(req);
-      const semester = req.query?.semester as string;
-      const academic_year = req.query?.academic_year as string;
+      const { semester, academic_year } = validated(req, studentTermQuery);
 
       const courses = await this.studentService.getStudentAllClassworkList(
         student_id,
-        parseInt(semester),
+        semester,
         academic_year,
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched classwork list successfully",
-        data: courses,
-      });
+      successResponse(res, courses, "Fetched classwork list successfully");
     } catch (err) {
       next(err);
     }
@@ -221,16 +153,12 @@ export default class StudentController {
 
   async getEnrolledSubjects(req: Request, res: Response, next: NextFunction) {
     try {
-      const student_id = req.query?.student_id as string;
+      const { student_id } = validated(req, enrolledSubjectsQuery);
 
       const subjects =
         await this.studentService.getEnrolledSubjects(student_id);
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched enrolled subjects successfully",
-        data: subjects,
-      });
+      successResponse(res, subjects, "Fetched enrolled subjects successfully");
     } catch (err) {
       next(err);
     }
@@ -242,19 +170,18 @@ export default class StudentController {
     next: NextFunction,
   ) {
     try {
-      const section_id = req.query?.section_id as string;
-      const student_id = req.query?.student_id as string;
+      const { section_id, student_id } = validated(req, sectionActivitiesQuery);
 
       const activities = await this.studentService.getActivitiesBySectionId(
-        parseInt(section_id),
+        section_id,
         student_id,
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched activities by section successfully",
-        data: activities,
-      });
+      successResponse(
+        res,
+        activities,
+        "Fetched activities by section successfully",
+      );
     } catch (err) {
       next(err);
     }
@@ -262,24 +189,20 @@ export default class StudentController {
 
   async getActivityDetails(req: Request, res: Response, next: NextFunction) {
     try {
-      const student_activity_id = req.params?.student_activity_id;
+      const { student_activity_id } = validated(req, activityDetailsParams);
       const activity =
         await this.studentService.getActivityDetailsByStudentActivityId(
-          parseInt(student_activity_id),
+          student_activity_id,
         );
 
+      // The only endpoint left that built its own refusal by hand. It answered
+      // in English, and past the middleware, so it was the one 404 in the
+      // system whose shape nobody else could change.
       if (!activity) {
-        return res.status(404).json({
-          success: false,
-          message: "Student activity not found",
-        });
+        throw new HttpError(404, "ไม่พบงานที่ต้องการ");
       }
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched activity details successfully",
-        data: activity,
-      });
+      successResponse(res, activity, "Fetched activity details successfully");
     } catch (err) {
       next(err);
     }

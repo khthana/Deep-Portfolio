@@ -1,7 +1,13 @@
-import express, { NextFunction, Request, Response } from "express";
-import UserService from "../services/user.service";
+import { NextFunction, Request, Response } from "express";
 import StudentActivityService from "../services/student-activity.service";
 import { ClassworkType } from "../models/student.model";
+import { successResponse } from "../utils/response";
+import { validated } from "../validation/validate";
+import {
+  bookmarkStudentActivityBody,
+  gradeStudentActivityBody,
+  studentActivityAttachmentsQuery,
+} from "../validation/student-activity.schema";
 
 export default class StudentActivityController {
   private readonly studentActivityService: StudentActivityService;
@@ -12,18 +18,14 @@ export default class StudentActivityController {
 
   async gradeStudentActivity(req: Request, res: Response, next: NextFunction) {
     try {
-      const courses =
-        req.body.activity_type === "INDIVIDUAL"
-          ? await this.studentActivityService.gradeStudentActivity(req.body)
-          : await this.studentActivityService.gradeStudentGroupActivity(
-              req.body,
-            );
+      const body = validated(req, gradeStudentActivityBody);
 
-      res.status(200).json({
-        success: true,
-        message: "Grade student successfully",
-        data: courses,
-      });
+      const courses =
+        body.activity_type === ClassworkType.INDIVIDUAL
+          ? await this.studentActivityService.gradeStudentActivity(body)
+          : await this.studentActivityService.gradeStudentGroupActivity(body);
+
+      successResponse(res, courses, "Grade student successfully");
     } catch (err) {
       next(err);
     }
@@ -35,20 +37,16 @@ export default class StudentActivityController {
     next: NextFunction,
   ) {
     try {
+      const body = validated(req, bookmarkStudentActivityBody);
+
       const bookmark =
-        req.body.activity_type === ClassworkType.INDIVIDUAL
-          ? await this.studentActivityService.addStudentActivityToBookmark(
-              req.body,
-            )
+        body.activity_type === ClassworkType.INDIVIDUAL
+          ? await this.studentActivityService.addStudentActivityToBookmark(body)
           : await this.studentActivityService.addStudentActivityGroupToBookmark(
-              req.body,
+              body,
             );
 
-      res.status(200).json({
-        success: true,
-        message: "bookmark successfully",
-        data: bookmark,
-      });
+      successResponse(res, bookmark, "bookmark successfully");
     } catch (err) {
       next(err);
     }
@@ -60,17 +58,17 @@ export default class StudentActivityController {
     next: NextFunction,
   ) {
     try {
-      const student_activity_id = req.query?.student_activity_id as string;
+      const { student_activity_id } = validated(
+        req,
+        studentActivityAttachmentsQuery,
+      );
 
       const attachments =
         await this.studentActivityService.getStudentActivityAttachments(
-          parseInt(student_activity_id),
+          student_activity_id,
         );
 
-      res.status(200).json({
-        success: true,
-        data: attachments,
-      });
+      successResponse(res, attachments, "get attachments successfully");
     } catch (err) {
       next(err);
     }

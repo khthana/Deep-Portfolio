@@ -1,14 +1,12 @@
 import { $Enums, Prisma } from "@prisma/client";
-import { UploadURLDetail } from "./attachments.model";
+import type { CreateAnnouncementBody } from "../validation/announcement.schema";
 
-export type CreateAnnouncementReqBody = {
-  title: string;
-  content: Prisma.InputJsonValue;
-  created_by: string;
-  section_id: number;
-  urls: UploadURLDetail[];
+/**
+ * What the service is given: the validated body, plus the files multer put on
+ * the request. Those two arrive by different routes and only meet here.
+ */
+export type CreateAnnouncementReqBody = CreateAnnouncementBody & {
   files: Express.Multer.File[];
-  all_section: boolean;
 };
 
 export type UploadFileDetail = {

@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import prisma from "../config/prisma";
+import { HttpError } from "../utils/http-error";
 import {
   CreatePortfolioReqBody,
   UpdatePortfolioReqBody,
@@ -8,7 +9,6 @@ import {
 } from "../models/portfolio.model";
 
 import {
-  Prisma,
   portfolio,
   portfolio_template,
   portfolio_skill_mapping,
@@ -30,6 +30,36 @@ import StudentActivityService from "./student-activity.service";
 type PortfolioWithRelations = portfolio & {
   portfolio_template?: portfolio_template | null;
   portfolio_skill_mapping?: portfolio_skill_mapping[];
+};
+
+/**
+ * One submission on the public page, with every skill that pointed at it.
+ *
+ * The names are the frontend's, not the database's: this shape is assembled
+ * for the shared link and read straight by the template components, so it is
+ * declared here rather than left to inference over a `Map<string, any>`.
+ */
+type PublicWork = {
+  id: string;
+  title: string;
+  subtitle: string;
+  subjectId: number | null;
+  repositoryUrl: string | null;
+  isShowRepo: boolean | null;
+  roleAndResp: string | null;
+  isShowRole: boolean | null;
+  initialExpectation: string | null;
+  isShowExpectation: boolean | null;
+  reflection: string | null;
+  isShowReflection: boolean | null;
+  feedback: string | null;
+  relatedSkillIds: string[];
+  attachments: {
+    id: string;
+    fileName: string | null;
+    fileType: string;
+    url: string | null;
+  }[];
 };
 
 const mapToPortfolioResp = (p: PortfolioWithRelations): PortfolioResp => ({
@@ -109,7 +139,7 @@ export default class PortfolioService {
     return mapToPortfolioResp(portfolio);
   }
 
-  async getPublicPortfolioById(token: string): Promise<any> {
+  async getPublicPortfolioById(token: string) {
     const portfolioRecord = await prisma.portfolio.findFirst({
       where: { public_share_token: token },
       include: {
@@ -125,9 +155,7 @@ export default class PortfolioService {
       portfolioRecord.share_expires_at &&
       new Date() > new Date(portfolioRecord.share_expires_at)
     ) {
-      const error = new Error("Link Expired");
-      (error as any).status = 410;
-      throw error;
+      throw new HttpError(410, "ลิงก์นี้หมดอายุแล้ว");
     }
 
     const portfolioConfig = mapToPortfolioResp(portfolioRecord);
@@ -161,76 +189,77 @@ export default class PortfolioService {
     const userData = userResponse;
     const skillsData = skillsDataResp;
 
-    // Fetch details for each skill mapping to build the "works" list
-    const workDetailsPromises: any[] = [];
-    const skillMap: Record<number, any> = {};
+    // Fetch details for each skill mapping to build the "works" list. The
+    // mapping is carried alongside what was looked up for it, so the skill it
+    // came from is still in hand below — it used to be parked in a lookup
+    // keyed by mapping id and read back out.
+    const workDetails = await Promise.all(
+      skillsData.flatMap((skill) =>
+        (skill.mappings ?? []).map(async (mapping) => {
+          const [activity, attachments] = await Promise.all([
+            this.studentService.getActivityDetailsByStudentActivityId(
+              mapping.student_activity_id,
+            ),
+            this.studentActivityService.getStudentActivityAttachments(
+              mapping.student_activity_id,
+            ),
+          ]);
 
-    for (const skill of skillsData) {
-      if ((skill as any).mappings && (skill as any).mappings.length > 0) {
-        for (const mapping of (skill as any).mappings) {
-          skillMap[mapping.id] = skill;
-          workDetailsPromises.push(
-            Promise.all([
-              this.studentService.getActivityDetailsByStudentActivityId(
-                mapping.student_activity_id,
-              ),
-              this.studentActivityService.getStudentActivityAttachments(
-                mapping.student_activity_id,
-              ),
-              Promise.resolve(mapping),
-            ]),
-          );
+          return { skill, mapping, activity, attachments };
+        }),
+      ),
+    );
+
+    const realWorksMap = new Map<string, PublicWork>();
+
+    for (const { skill, mapping, activity, attachments } of workDetails) {
+      if (!activity) continue;
+
+      const workId = String(mapping.student_activity_id);
+      const existingWork = realWorksMap.get(workId);
+
+      if (existingWork) {
+        if (!existingWork.relatedSkillIds.includes(String(skill.id))) {
+          existingWork.relatedSkillIds.push(String(skill.id));
         }
+        continue;
       }
-    }
 
-    const workDetailsResults = await Promise.all(workDetailsPromises);
-    const realWorksMap = new Map<string, any>();
+      // The subject is only looked up for an activity that sits in a section;
+      // for one that does not, the lookup answers with the submission row on
+      // its own and there is no course to name.
+      const course = "course" in activity ? activity.course : null;
 
-    for (const [
-      detailsRes,
-      attachmentsRes,
-      mappingItem,
-    ] of workDetailsResults) {
-      const mapping = mappingItem;
-      if (detailsRes) {
-        const activity = detailsRes;
-        const skill = skillMap[mapping.id];
-        const workId = String(mapping.student_activity_id);
-
-        if (realWorksMap.has(workId)) {
-          const existingWork = realWorksMap.get(workId);
-          if (!existingWork.relatedSkillIds.includes(String(skill.id))) {
-            existingWork.relatedSkillIds.push(String(skill.id));
-          }
-        } else {
-          realWorksMap.set(workId, {
-            id: workId,
-            title: activity.activities?.activity_name || "ไม่มีชื่อชิ้นงาน",
-            subtitle:
-              activity.course?.course_name_en ||
-              activity.course?.course_name_th ||
-              "",
-            subjectId: activity.activities?.section_id,
-            repositoryUrl: mapping.repository,
-            isShowRepo: mapping.isShowRepo,
-            roleAndResp: mapping.role_and_resp,
-            isShowRole: mapping.isShowRole,
-            initialExpectation: mapping.init_expect,
-            isShowExpectation: mapping.isShowInit,
-            reflection: mapping.reflection,
-            isShowReflection: mapping.isShowReflec,
-            feedback: activity.feedback,
-            relatedSkillIds: [String(skill.id)],
-            attachments: (attachmentsRes || []).map((a: any) => ({
-              id: a.attachment_id.toString(),
-              fileName: a.original_filename,
-              fileType: a.file_type || "file",
-              url: a.url,
-            })),
-          });
-        }
-      }
+      realWorksMap.set(workId, {
+        id: workId,
+        title: activity.activities?.activity_name || "ไม่มีชื่อชิ้นงาน",
+        subtitle: course?.course_name_en || course?.course_name_th || "",
+        subjectId: activity.activities?.section_id ?? null,
+        repositoryUrl: mapping.repository,
+        isShowRepo: mapping.isShowRepo,
+        roleAndResp: mapping.role_and_resp,
+        isShowRole: mapping.isShowRole,
+        initialExpectation: mapping.init_expect,
+        isShowExpectation: mapping.isShowInit,
+        reflection: mapping.reflection,
+        isShowReflection: mapping.isShowReflec,
+        feedback: activity.feedback,
+        relatedSkillIds: [String(skill.id)],
+        attachments: attachments.map((a) => ({
+          id: a.attachment_id.toString(),
+          fileName: a.original_filename,
+          // Always "file". The attachments carry a file_type column, but the
+          // query behind them does not select it, so this has read undefined
+          // since it was written. Left alone rather than widened: the column
+          // holds the extension in capitals ("PDF"), not one of the five words
+          // the template matches on, and the same query answers
+          // /student-activity/attachments. Pinned in BEHAVIOR-CHANGES.md — the
+          // page is unaffected because it works the type out from the filename
+          // itself.
+          fileType: "file",
+          url: a.url,
+        })),
+      });
     }
 
     const realWorks = Array.from(realWorksMap.values());
@@ -260,7 +289,7 @@ export default class PortfolioService {
       about_me,
       selectedSkillIds = [],
       ...visibilityFlags
-    } = data as CreatePortfolioReqBody & { template_name?: string };
+    } = data;
 
     const result = await prisma.$transaction(async (tx) => {
       const portfolio = await tx.portfolio.create({
@@ -276,7 +305,7 @@ export default class PortfolioService {
 
       if (selectedSkillIds.length > 0) {
         await tx.portfolio_skill_mapping.createMany({
-          data: (selectedSkillIds as number[]).map((skill_id: number) => ({
+          data: selectedSkillIds.map((skill_id) => ({
             portfolio_id: portfolio.id,
             skill_id,
           })),
@@ -299,14 +328,13 @@ export default class PortfolioService {
     id: string,
     data: UpdatePortfolioReqBody,
   ): Promise<PortfolioResp> {
-    const { selectedSkillIds, template_name, ...portfolioData } =
-      data as UpdatePortfolioReqBody & { template_name?: string };
+    const { selectedSkillIds, ...portfolioData } = data;
 
     const result = await prisma.$transaction(async (tx) => {
       // Update portfolio data
       await tx.portfolio.update({
         where: { id },
-        data: portfolioData as Prisma.portfolioUpdateInput,
+        data: portfolioData,
       });
 
       // Sync skills: Wipe and Rebuild
@@ -317,7 +345,7 @@ export default class PortfolioService {
 
         if (selectedSkillIds.length > 0) {
           await tx.portfolio_skill_mapping.createMany({
-            data: (selectedSkillIds as number[]).map((skill_id: number) => ({
+            data: selectedSkillIds.map((skill_id) => ({
               portfolio_id: id,
               skill_id,
             })),
@@ -354,15 +382,13 @@ export default class PortfolioService {
 
   async generateShareLink(
     id: string,
-    expiresAt: string | null,
+    expiresAt: Date | null,
   ): Promise<PortfolioResp> {
-    const shareExpiresAt = expiresAt ? new Date(expiresAt) : null;
-
     const result = await prisma.portfolio.update({
       where: { id },
       data: {
         public_share_token: crypto.randomUUID(),
-        share_expires_at: shareExpiresAt,
+        share_expires_at: expiresAt,
       },
       include: {
         portfolio_template: true,

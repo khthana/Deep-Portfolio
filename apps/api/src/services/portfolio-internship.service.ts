@@ -1,8 +1,9 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import {
-  PortfolioInternshipReqBody,
+  CreatePortfolioInternshipReqBody,
   PortfolioInternshipResp,
+  UpdatePortfolioInternshipReqBody,
 } from "../models/portfolio-internship.model";
 import AttachmentsService from "./attachments.service";
 
@@ -21,6 +22,10 @@ const inferInternship = () =>
 type PortfolioInternshipWithAttachments = NonNullable<
   Prisma.PromiseReturnType<typeof inferInternship>
 >;
+
+type PortfolioInternshipAttachment = NonNullable<
+  PortfolioInternshipResp["attachments"]
+>[number];
 
 export default class PortfolioInternshipService {
   private readonly attachmentsService: AttachmentsService;
@@ -47,7 +52,7 @@ export default class PortfolioInternshipService {
     return await Promise.all(
       internships.map(
         async (internship: PortfolioInternshipWithAttachments) => {
-          let attachments: any[] = [];
+          let attachments: PortfolioInternshipAttachment[] = [];
           if (internship.portfolio_internship_attachments.length > 0) {
             const attachmentIds =
               internship.portfolio_internship_attachments.map((pia) => ({
@@ -117,7 +122,7 @@ export default class PortfolioInternshipService {
 
     if (!internship) return null;
 
-    let attachments: any[] = [];
+    let attachments: PortfolioInternshipAttachment[] = [];
     if (internship.portfolio_internship_attachments.length > 0) {
       const attachmentIds = internship.portfolio_internship_attachments.map(
         (pia) => ({ attachment_id: pia.attachments.attachment_id }),
@@ -166,42 +171,15 @@ export default class PortfolioInternshipService {
     };
   }
 
-  private convertDateFields(data: PortfolioInternshipReqBody) {
-    const converted = { ...data };
-    if (converted.start_date && typeof converted.start_date === "string") {
-      converted.start_date = new Date(converted.start_date);
-    }
-    if (converted.end_date && typeof converted.end_date === "string") {
-      converted.end_date = new Date(converted.end_date);
-    }
-    return converted;
-  }
-
   async createPortfolioInternship(
     userId: string,
-    data: PortfolioInternshipReqBody,
+    data: CreatePortfolioInternshipReqBody,
     files: Express.Multer.File[] = [],
   ): Promise<PortfolioInternshipResp> {
-    const { ids_to_delete, ...internshipData } = data;
-    const convertedData = this.convertDateFields(internshipData as any);
-
     const internship = await prisma.portfolio_internship.create({
       data: {
         user_id: userId,
-        type: convertedData.type,
-        title: convertedData.title,
-        company: convertedData.company,
-        country: convertedData.country,
-        province: convertedData.province,
-        start_date: convertedData.start_date,
-        end_date: convertedData.end_date,
-        position: convertedData.position,
-        resp: convertedData.resp,
-        is_show_resp: convertedData.is_show_resp,
-        learning_out: convertedData.learning_out,
-        is_show_learning: convertedData.is_show_learning,
-        reflection: convertedData.reflection,
-        is_show_reflec: convertedData.is_show_reflec,
+        ...data,
       },
     });
 
@@ -229,30 +207,23 @@ export default class PortfolioInternshipService {
 
   async updatePortfolioInternship(
     id: number,
-    data: PortfolioInternshipReqBody,
+    data: UpdatePortfolioInternshipReqBody,
     files: Express.Multer.File[] = [],
   ): Promise<PortfolioInternshipResp> {
     const { ids_to_delete, ...updateData } = data;
-    const convertedData = this.convertDateFields(updateData as any);
 
     const updatedInternship = await prisma.portfolio_internship.update({
       where: { id },
-      data: convertedData,
+      data: updateData,
     });
 
-    if (ids_to_delete) {
-      const idsToDelete = Array.isArray(ids_to_delete)
-        ? ids_to_delete.map(Number)
-        : [Number(ids_to_delete)];
-
-      if (idsToDelete.length > 0) {
-        await prisma.portfolio_internship_attachments.deleteMany({
-          where: {
-            internship_id: id,
-            attachment_id: { in: idsToDelete },
-          },
-        });
-      }
+    if (ids_to_delete && ids_to_delete.length > 0) {
+      await prisma.portfolio_internship_attachments.deleteMany({
+        where: {
+          internship_id: id,
+          attachment_id: { in: ids_to_delete },
+        },
+      });
     }
 
     if (files && files.length > 0) {

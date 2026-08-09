@@ -1,6 +1,8 @@
-import express, { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import UserService from "../services/user.service";
 import { sessionUserId } from "../middlewares/auth.middleware";
+import { validated } from "../validation/validate";
+import { userQuery } from "../validation/identity.schema";
 
 export default class UserController {
   private readonly userService: UserService;
@@ -11,8 +13,8 @@ export default class UserController {
 
   async getUser(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.query?.id as string;
-      const courses = await this.userService.getUserDetail(userId);
+      const { id } = validated(req, userQuery);
+      const courses = await this.userService.getUserDetail(id);
 
       res.status(200).json({
         success: true,

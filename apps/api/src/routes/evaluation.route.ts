@@ -1,8 +1,8 @@
 import { Router } from "express";
-import CourseController from "../controllers/course.controller";
-import UserController from "../controllers/user.controller";
 import EvaluationController from "../controllers/evalution.controller";
 import { requireRole } from "../middlewares/auth.middleware";
+import { validate } from "../validation/validate";
+import { evaluationListQuery } from "../validation/evaluation.schema";
 
 const evaluationRouter = Router();
 const evaluationController = new EvaluationController();
@@ -10,6 +10,7 @@ const evaluationController = new EvaluationController();
 evaluationRouter.get(
   "/list",
   requireRole("STUDENT"),
+  validate({ query: evaluationListQuery }),
   evaluationController.getStudentEvaluationList.bind(evaluationController),
 );
 

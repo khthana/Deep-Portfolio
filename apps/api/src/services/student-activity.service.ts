@@ -575,7 +575,8 @@ export default class StudentActivityService {
     );
 
     let totalScore = 0;
-    const rubricScoreData: any[] = [];
+    const rubricScoreData: Prisma.student_activity_rubric_scoreCreateManyInput[] =
+      [];
 
     // 3. คำนวณคะแนน
     for (const rubric of rubric_detail) {

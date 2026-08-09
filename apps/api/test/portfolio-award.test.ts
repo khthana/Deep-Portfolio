@@ -124,7 +124,8 @@ describe("GET /portfolio-award", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [{ field: "user_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });
@@ -150,7 +151,11 @@ describe("GET /portfolio-award/:id", () => {
     const response = await request(app).get("/portfolio-award/abc");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("answers 404 for an id that belongs to no prize", async () => {
@@ -159,7 +164,7 @@ describe("GET /portfolio-award/:id", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      message: "Portfolio award not found",
+      message: "ไม่พบรางวัลที่ต้องการ",
     });
   });
 });
@@ -254,11 +259,42 @@ describe("POST /portfolio-award", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [{ field: "user_id", location: "body", message: "ต้องระบุ" }],
     });
     expect(
       await prisma.portfolio_award.count({
         where: { name: "การแข่งขันไร้เจ้าของ" },
+      }),
+    ).toBe(0);
+  });
+
+  it("refuses a date and a flag it cannot read", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .post("/portfolio-award")
+      .field("user_id", student.student_id)
+      .field("name", "การแข่งขันตัวอย่าง")
+      .field("date", "เมื่อวาน")
+      .field("is_show", "maybe");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "date",
+        location: "body",
+        message: "ต้องเป็นวันที่ที่ถูกต้อง",
+      },
+      {
+        field: "is_show",
+        location: "body",
+        message: "ต้องเป็นค่า true หรือ false",
+      },
+    ]);
+    expect(
+      await prisma.portfolio_award.count({
+        where: { user_id: student.student_id },
       }),
     ).toBe(0);
   });
@@ -307,15 +343,23 @@ describe("PUT /portfolio-award/:id", () => {
     expect(response.body.data.is_show).toBe(true);
   });
 
-  it("keeps the date when the request sends an empty one", async () => {
-    // Recorded, not endorsed: an empty date is read as "no instruction", so a
-    // student cannot clear a date they entered by mistake. Certificate behaves
-    // the same way; see the closing notes in BEHAVIOR-CHANGES.md.
+  it("clears the date when the request sends an empty one", async () => {
     const entry = await createPortfolioAward({ date: new Date("2024-03-01") });
 
     const response = await request(app)
       .put(`/portfolio-award/${entry.id}`)
       .send({ date: "" });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.date).toBeNull();
+  });
+
+  it("leaves the date alone when the request says nothing about it", async () => {
+    const entry = await createPortfolioAward({ date: new Date("2024-03-01") });
+
+    const response = await request(app)
+      .put(`/portfolio-award/${entry.id}`)
+      .send({ name: "การแข่งขันใหม่" });
 
     expect(response.status).toBe(200);
     expect(response.body.data.date).toBe("2024-03-01T00:00:00.000Z");
@@ -351,7 +395,11 @@ describe("PUT /portfolio-award/:id", () => {
       .send({ name: "การแข่งขันใหม่" });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("fails for a prize that does not exist", async () => {
@@ -397,7 +445,11 @@ describe("DELETE /portfolio-award/:id", () => {
     const response = await request(app).delete("/portfolio-award/abc");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("fails for a prize that does not exist", async () => {

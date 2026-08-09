@@ -1,6 +1,18 @@
 import { NextFunction, Request, Response } from "express";
 import { successResponse } from "../utils/response";
+import { HttpError } from "../utils/http-error";
 import PortfolioEducationService from "../services/portfolio-education.service";
+import {
+  createPortfolioEducationBody,
+  updatePortfolioEducationBody,
+} from "../validation/portfolio-sections.schema";
+import {
+  portfolioEntryParams,
+  portfolioOwnerQuery,
+} from "../validation/portfolio.schema";
+import { validated } from "../validation/validate";
+
+const NOT_FOUND = () => new HttpError(404, "ไม่พบประวัติการศึกษาที่ต้องการ");
 
 export default class PortfolioEducationController {
   private readonly portfolioEducationService: PortfolioEducationService;
@@ -15,16 +27,10 @@ export default class PortfolioEducationController {
     next: NextFunction,
   ) {
     try {
-      const userId = req.query.user_id as string;
-      if (!userId) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
+      const { user_id } = validated(req, portfolioOwnerQuery);
 
       const result =
-        await this.portfolioEducationService.getAllPortfolioEducation(userId);
+        await this.portfolioEducationService.getAllPortfolioEducation(user_id);
 
       successResponse(res, result, "Fetched portfolio education successfully");
     } catch (err) {
@@ -38,22 +44,13 @@ export default class PortfolioEducationController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       const result =
         await this.portfolioEducationService.getPortfolioEducationById(id);
 
       if (!result) {
-        return res.status(404).json({
-          success: false,
-          message: "Portfolio education not found",
-        });
+        throw NOT_FOUND();
       }
 
       successResponse(res, result, "Fetched portfolio education successfully");
@@ -68,14 +65,7 @@ export default class PortfolioEducationController {
     next: NextFunction,
   ) {
     try {
-      const { user_id, ...data } = req.body;
-
-      if (!user_id) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
+      const { user_id, ...data } = validated(req, createPortfolioEducationBody);
 
       const result =
         await this.portfolioEducationService.createPortfolioEducation(
@@ -100,15 +90,9 @@ export default class PortfolioEducationController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
+      const data = validated(req, updatePortfolioEducationBody);
 
-      const data = req.body;
       const result =
         await this.portfolioEducationService.updatePortfolioEducation(id, data);
 
@@ -124,13 +108,7 @@ export default class PortfolioEducationController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       await this.portfolioEducationService.deletePortfolioEducation(id);
 

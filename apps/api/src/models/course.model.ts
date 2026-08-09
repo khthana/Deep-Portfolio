@@ -53,10 +53,4 @@ export type Weekday = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
 
 //-------------------------------------
 
-export type CreateCourseSectionScheduleReq = {
-  section_id: number;
-  day_of_week: Weekday;
-  start_time: string;
-  end_time: string;
-  classroom: string;
-};
+export type { CreateCourseSectionScheduleReq } from "../validation/course.schema";

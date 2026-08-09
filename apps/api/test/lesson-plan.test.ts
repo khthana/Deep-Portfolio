@@ -119,16 +119,19 @@ describe("GET /lesson-plan", () => {
     ]);
   });
 
-  it("answers an empty list when section_id is missing", async () => {
-    // parseInt(undefined) is NaN, which Prisma sends as null, so the query
-    // becomes "section_id IS NULL" and matches nothing. Recorded, not
-    // endorsed: request validation is issue #20.
+  it("answers 400 when section_id is missing", async () => {
     await createLessonPlan({ section_id: (await createCourse()).section_id });
 
     const response = await request(app).get("/lesson-plan");
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: section_id ต้องระบุ",
+      errors: [
+        { field: "section_id", location: "query", message: "ต้องระบุ" },
+      ],
+    });
   });
 });
 
@@ -138,6 +141,7 @@ describe("POST /lesson-plan", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -157,6 +161,7 @@ describe("POST /lesson-plan", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
 
@@ -224,8 +229,9 @@ describe("POST /lesson-plan", () => {
     expect(stored.map((week) => week.week_no)).toEqual([1, 1]);
   });
 
-  it("fails when week_no is missing", async () => {
-    // course_syllabus.week_no is NOT NULL and has no default.
+  it("answers 400 when week_no is missing", async () => {
+    // course_syllabus.week_no is NOT NULL and has no default, so this used to
+    // reach Postgres and come back a 500.
     const teacher = await createTeacher();
     const course = await createCourse({ teacher_id: teacher.user_id });
 
@@ -234,12 +240,57 @@ describe("POST /lesson-plan", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .send({ title: "แนะนำรายวิชา", section_id: course.section_id });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: week_no ต้องระบุ",
+      errors: [{ field: "week_no", location: "body", message: "ต้องระบุ" }],
+    });
 
     const stored = await prisma.course_syllabus.findMany({
       where: { section_id: course.section_id },
     });
     expect(stored).toEqual([]);
+  });
+
+  it("answers 400 for a week number that is not a positive number", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .post("/lesson-plan")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        week_no: "สัปดาห์แรก",
+        title: "แนะนำรายวิชา",
+        section_id: course.section_id,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "week_no", location: "body", message: "ต้องเป็นตัวเลข" },
+    ]);
+
+    const stored = await prisma.course_syllabus.findMany({
+      where: { section_id: course.section_id },
+    });
+    expect(stored).toEqual([]);
+  });
+
+  it("answers 400 when the week belongs to no section", async () => {
+    // Every read filters by section, so a week written without one could
+    // never be read back. See BEHAVIOR-CHANGES.md.
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .post("/lesson-plan")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ week_no: 1, title: "แนะนำรายวิชา" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "body", message: "ต้องระบุ" },
+    ]);
   });
 });
 
@@ -317,6 +368,20 @@ describe("PUT /lesson-plan", () => {
       .send({ lesson_plan_id: 999_999, title: "หัวข้อใหม่" });
 
     expect(response.status).toBe(500);
+  });
+
+  it("answers 400 when no week is named", async () => {
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .put("/lesson-plan")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ title: "หัวข้อใหม่" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "lesson_plan_id", location: "body", message: "ต้องระบุ" },
+    ]);
   });
 });
 
@@ -505,6 +570,26 @@ describe("DELETE /lesson-plan", () => {
 
     expect(response.status).toBe(500);
   });
+
+  it("answers 400 when no week is named, and deletes nothing", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const week = await createLessonPlan({ section_id: course.section_id });
+
+    const response = await request(app)
+      .delete("/lesson-plan")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "lesson_plan_id", location: "query", message: "ต้องระบุ" },
+    ]);
+
+    const stored = await prisma.course_syllabus.findUnique({
+      where: { id: week.id },
+    });
+    expect(stored).not.toBeNull();
+  });
 });
 
 describe("GET /lesson-plan/options", () => {
@@ -541,6 +626,17 @@ describe("GET /lesson-plan/options", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual([]);
+  });
+
+  it("answers 400 for a section id that is not a positive number", async () => {
+    const response = await request(app)
+      .get("/lesson-plan/options")
+      .query({ section_id: 0 });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องมากกว่า 0" },
+    ]);
   });
 });
 
@@ -631,12 +727,14 @@ describe("GET /lesson-plan/student", () => {
     });
   });
 
-  it("answers an empty list when section_id is missing", async () => {
+  it("answers 400 when section_id is missing", async () => {
     await createLessonPlan({ section_id: (await createCourse()).section_id });
 
     const response = await request(app).get("/lesson-plan/student");
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });

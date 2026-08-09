@@ -1,9 +1,14 @@
-import express, { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import StudentActivityGroupService from "../services/student-activity-group.service";
+import { successResponse } from "../utils/response";
+import { validated } from "../validation/validate";
 import {
-  CreateStudentActivityGroupBody,
-  UpdateStudentActivityGroupBody,
-} from "../models/student-activity-group.model";
+  createStudentActivityGroupBody,
+  studentActivityGroupInSecQuery,
+  studentActivityGroupQuery,
+  studentsWithoutGroupQuery,
+  updateStudentActivityGroupBody,
+} from "../validation/student-activity-group.schema";
 
 export default class StudentActivityGroupController {
   private readonly studentActivityGroupService: StudentActivityGroupService;
@@ -18,18 +23,11 @@ export default class StudentActivityGroupController {
     next: NextFunction,
   ) {
     try {
-      const data: CreateStudentActivityGroupBody = {
-        activity_id: req.body.activity_id,
-        members: req.body.members,
-      };
+      const body = validated(req, createStudentActivityGroupBody);
       const group =
-        await this.studentActivityGroupService.createStudentActivityGroup(data);
+        await this.studentActivityGroupService.createStudentActivityGroup(body);
 
-      res.status(200).json({
-        success: true,
-        message: "Create group successfully",
-        data: group,
-      });
+      successResponse(res, group, "Create group successfully");
     } catch (err) {
       next(err);
     }
@@ -41,18 +39,11 @@ export default class StudentActivityGroupController {
     next: NextFunction,
   ) {
     try {
-      const data: UpdateStudentActivityGroupBody = {
-        group_id: req.body.group_id,
-        members: req.body.members,
-      };
+      const body = validated(req, updateStudentActivityGroupBody);
       const group =
-        await this.studentActivityGroupService.updateStudentActivityGroup(data);
+        await this.studentActivityGroupService.updateStudentActivityGroup(body);
 
-      res.status(200).json({
-        success: true,
-        message: "Create group successfully",
-        data: group,
-      });
+      successResponse(res, group, "Create group successfully");
     } catch (err) {
       next(err);
     }
@@ -65,19 +56,17 @@ export default class StudentActivityGroupController {
     next: NextFunction,
   ) {
     try {
-      const student_id = req.query?.student_id as string;
-      const activity_id = req.query?.activity_id as string;
+      const { student_id, activity_id } = validated(
+        req,
+        studentActivityGroupQuery,
+      );
       const group =
         await this.studentActivityGroupService.getStudentActivityGroup(
           student_id,
-          parseInt(activity_id),
+          activity_id,
         );
 
-      res.status(200).json({
-        success: true,
-        message: "fetch group successfully",
-        data: group,
-      });
+      successResponse(res, group, "fetch group successfully");
     } catch (err) {
       next(err);
     }
@@ -89,19 +78,17 @@ export default class StudentActivityGroupController {
     next: NextFunction,
   ) {
     try {
-      const section_id = req.query?.section_id as string;
-      const activity_id = req.query?.activity_id as string;
+      const { section_id, activity_id } = validated(
+        req,
+        studentsWithoutGroupQuery,
+      );
       const group =
         await this.studentActivityGroupService.getStudentsWithoutGroup(
-          parseInt(section_id),
-          parseInt(activity_id),
+          section_id,
+          activity_id,
         );
 
-      res.status(200).json({
-        success: true,
-        message: "fetch group successfully",
-        data: group,
-      });
+      successResponse(res, group, "fetch group successfully");
     } catch (err) {
       next(err);
     }
@@ -114,19 +101,17 @@ export default class StudentActivityGroupController {
     next: NextFunction,
   ) {
     try {
-      const student_id = req.query?.student_id as string;
-      const section_id = req.query?.section_id as string;
+      const { student_id, section_id } = validated(
+        req,
+        studentActivityGroupInSecQuery,
+      );
       const group =
         await this.studentActivityGroupService.getStudentActivityGroupInSec(
-          parseInt(section_id),
+          section_id,
           student_id,
         );
 
-      res.status(200).json({
-        success: true,
-        message: "fetch group successfully",
-        data: group,
-      });
+      successResponse(res, group, "fetch group successfully");
     } catch (err) {
       next(err);
     }

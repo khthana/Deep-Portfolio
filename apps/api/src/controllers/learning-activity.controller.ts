@@ -1,12 +1,16 @@
 import { NextFunction, Request, Response } from "express";
+import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
 import LearningActivityService from "../services/learning-activity.service";
-import { UploadURLDetail } from "../models/attachments.model";
-import {
-  CreateLearningActivityReqBody,
-  UpdateLearningActivityReqBody,
-} from "../models/learning-activity.model";
 import StudentLearningActivityService from "../services/student-learning-activity.service";
+import { validated } from "../validation/validate";
+import {
+  createLearningActivityBody,
+  learningActivityListQuery,
+  learningActivityQuery,
+  studentLearningActivityDetailQuery,
+  updateLearningActivityBody,
+} from "../validation/learning-activity.schema";
 
 export default class LearningActivityController {
   private readonly learningActivityService: LearningActivityService;
@@ -23,27 +27,14 @@ export default class LearningActivityController {
     next: NextFunction,
   ) {
     try {
-      const urlList: UploadURLDetail[] = req.body.urls
-        ? JSON.parse(req.body.urls)
-        : [];
-
-      const files = req.files as Express.Multer.File[];
-
-      const data: CreateLearningActivityReqBody = {
-        announcement_date: req.body.announcement_date,
-        deadline_date: req.body.deadline_date,
-        course_syllabus_id: parseInt(req.body.course_syllabus_id),
-        learning_activity_name: req.body.learning_activity_name,
-        learning_activity_type: req.body.learning_activity_type.toLowerCase(),
-        detail: req.body.detail ? JSON.parse(req.body.detail) : undefined,
-        section_id: parseInt(req.body.section_id),
-
-        urls: urlList,
-        files: files,
-      };
+      const body = validated(req, createLearningActivityBody);
+      const files = uploadedFiles(req);
 
       const activity =
-        await this.learningActivityService.createLearningActivity(data);
+        await this.learningActivityService.createLearningActivity({
+          ...body,
+          files,
+        });
 
       successResponse(res, activity, "Created learning activity");
     } catch (err) {
@@ -57,32 +48,14 @@ export default class LearningActivityController {
     next: NextFunction,
   ) {
     try {
-      const urlList: UploadURLDetail[] = req.body.urls
-        ? JSON.parse(req.body.urls)
-        : [];
-
-      const files = req.files as Express.Multer.File[];
-
-      const data: UpdateLearningActivityReqBody = {
-        learning_activity_id: parseInt(req.body.learning_activity_id),
-        remove_attachment_ids: req.body.remove_attachment_ids
-          ? JSON.parse(req.body.remove_attachment_ids)
-          : [],
-
-        announcement_date: req.body.announcement_date,
-        deadline_date: req.body.deadline_date,
-        course_syllabus_id: parseInt(req.body.course_syllabus_id),
-        learning_activity_name: req.body.learning_activity_name,
-        learning_activity_type: req.body.learning_activity_type.toLowerCase(),
-        detail: req.body.detail ? JSON.parse(req.body.detail) : undefined,
-        section_id: parseInt(req.body.section_id),
-
-        urls: urlList,
-        files: files,
-      };
+      const body = validated(req, updateLearningActivityBody);
+      const files = uploadedFiles(req);
 
       const activity =
-        await this.learningActivityService.updateLearningActivity(data);
+        await this.learningActivityService.updateLearningActivity({
+          ...body,
+          files,
+        });
 
       successResponse(res, activity, "Updated learning activity");
     } catch (err) {
@@ -96,12 +69,10 @@ export default class LearningActivityController {
     next: NextFunction,
   ) {
     try {
-      const section_id = req.query?.section_id as string;
+      const { section_id } = validated(req, learningActivityListQuery);
 
       const activity =
-        await this.learningActivityService.getAllLearningActivity(
-          parseInt(section_id),
-        );
+        await this.learningActivityService.getAllLearningActivity(section_id);
 
       successResponse(res, activity, "get learning activity successfully");
     } catch (err) {
@@ -115,11 +86,11 @@ export default class LearningActivityController {
     next: NextFunction,
   ) {
     try {
-      const learning_activity_id = req.query?.learning_activity_id as string;
+      const { learning_activity_id } = validated(req, learningActivityQuery);
 
       const activity =
         await this.learningActivityService.getLearningActivityDetail(
-          parseInt(learning_activity_id),
+          learning_activity_id,
         );
 
       successResponse(res, activity, "get learning activity successfully");
@@ -134,12 +105,14 @@ export default class LearningActivityController {
     next: NextFunction,
   ) {
     try {
-      const student_learning_activity_id = req.query
-        ?.student_learning_activity_id as string;
+      const { student_learning_activity_id } = validated(
+        req,
+        studentLearningActivityDetailQuery,
+      );
 
       const activity =
         await this.studentLearningActivityService.getStudentLearningActivityDetail(
-          parseInt(student_learning_activity_id),
+          student_learning_activity_id,
         );
 
       successResponse(res, activity, "get learning activity successfully");
@@ -154,11 +127,11 @@ export default class LearningActivityController {
     next: NextFunction,
   ) {
     try {
-      const section_id = req.query?.section_id as string;
+      const { section_id } = validated(req, learningActivityListQuery);
 
       const activity =
         await this.learningActivityService.getLearningActivityOptions(
-          parseInt(section_id),
+          section_id,
         );
 
       successResponse(res, activity, "get learning activity successfully");
@@ -173,11 +146,11 @@ export default class LearningActivityController {
     next: NextFunction,
   ) {
     try {
-      const learning_activity_id = req.query?.learning_activity_id as string;
+      const { learning_activity_id } = validated(req, learningActivityQuery);
 
       const activity =
         await this.studentLearningActivityService.getAllSubmittedLearningActivityByLearningActivityId(
-          parseInt(learning_activity_id),
+          learning_activity_id,
         );
 
       successResponse(res, activity, "get activity successfully");
@@ -192,11 +165,11 @@ export default class LearningActivityController {
     next: NextFunction,
   ) {
     try {
-      const learning_activity_id = req.query?.learning_activity_id as string;
+      const { learning_activity_id } = validated(req, learningActivityQuery);
 
       const activity =
         await this.learningActivityService.deleteLearningActivity(
-          parseInt(learning_activity_id),
+          learning_activity_id,
         );
 
       successResponse(res, activity, "delete learning activity successfully");

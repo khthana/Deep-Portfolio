@@ -275,6 +275,7 @@ describe("GET /gradebook/per-student", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -291,21 +292,25 @@ describe("GET /gradebook/per-student", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
   });
 
-  it("answers 500 when the section_id is missing", async () => {
-    // Number(undefined) is NaN, which Prisma sends as null, and
-    // student_course.section_id is NOT NULL — so the query is rejected rather
-    // than matching nothing. #20 turns this into a 400.
+  it("answers 400 when the section_id is missing", async () => {
+    // Number(undefined) was NaN, which Prisma sends as null, and
+    // student_course.section_id is NOT NULL — so the query was rejected rather
+    // than matching nothing.
     const teacher = await createTeacher();
 
     const response = await request(app)
       .get("/gradebook/per-student")
       .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });
 
@@ -499,6 +504,7 @@ describe("GET /gradebook/per-activity", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -515,15 +521,16 @@ describe("GET /gradebook/per-activity", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
   });
 
-  it("answers 500 when the section_id is too large to be a section", async () => {
-    // activities.section_id is an Int, so a number past what an Int holds is
-    // rejected before it reaches the table. #20 turns this into a 400 like the
-    // rest. (A fractional section_id is not rejected — Prisma takes 1.5 and
-    // answers as though 1 had been asked for.)
+  it("answers 400 when the section_id is too large to be a section", async () => {
+    // activities.section_id is an Int, so a number past what an Int holds was
+    // rejected by Postgres before it reached the table. A fractional section_id
+    // is a 400 for the same reason, where Prisma used to take 1.5 and answer as
+    // though 1 had been asked for.
     const teacher = await createTeacher();
 
     const response = await request(app)
@@ -531,23 +538,30 @@ describe("GET /gradebook/per-activity", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .query({ section_id: "99999999999" });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "section_id",
+        location: "query",
+        message: "ต้องไม่เกิน 2147483647",
+      },
+    ]);
   });
 
-  it("answers 200 with a null section for a request that names no section", async () => {
-    // Recorded, not endorsed. activities.section_id is nullable, so the NaN
-    // that Number(undefined) produces is sent as null and matches the
-    // activities that belong to no section instead of being rejected. The
-    // caller gets a 200 whose section_id is null — a malformed request answered
-    // as though it were a real one, where the same omission on `/per-student`
-    // is refused. #20 turns this into a 400.
+  it("answers 400 for a request that names no section", async () => {
+    // activities.section_id is nullable, so the NaN that Number(undefined)
+    // produced was sent as null and matched the activities that belong to no
+    // section instead of being rejected: a 200 whose section_id is null, where
+    // the same omission on /per-student was a 500.
     const { teacher } = await classWithStudents(1, 20);
 
     const response = await request(app)
       .get("/gradebook/per-activity")
       .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual({ section_id: null, activities: [] });
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });

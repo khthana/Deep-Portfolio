@@ -363,6 +363,7 @@ describe("POST /student-activity/grade", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
     expect(
@@ -370,6 +371,113 @@ describe("POST /student-activity/grade", () => {
         where: { id: submission.id },
       }),
     ).toMatchObject({ status: "SUBMITTED" });
+  });
+
+  it("answers 400 when the marking says nothing about the rubric", async () => {
+    // rubric_detail was read straight off the body and mapped over, so a
+    // request without one was a 500 quoting a property of undefined.
+    const teacher = await createTeacher();
+    const { activity } = await gradableActivity();
+    const student = await createStudent();
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      student_id: student.student_id,
+    });
+
+    const response = await request(app)
+      .post("/student-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        activity_id: activity.id,
+        student_id: student.student_id,
+        student_activity_id: submission.id,
+        activity_type: "INDIVIDUAL",
+        full_score: 100,
+        total_level: 4,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "rubric_detail", location: "body", message: "ต้องระบุ" },
+    ]);
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ status: "SUBMITTED", score: null });
+  });
+
+  it("answers 400 for a scale with no levels on it", async () => {
+    // total_level is what the level chosen is divided by, so a zero used to
+    // score the submission Infinity and fail on the way into the column.
+    const teacher = await createTeacher();
+    const { activity, rubric, levels } = await gradableActivity();
+    const student = await createStudent();
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      student_id: student.student_id,
+    });
+
+    const response = await request(app)
+      .post("/student-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        ...gradeBody({
+          activity_id: activity.id,
+          student_id: student.student_id,
+          student_activity_id: submission.id,
+          rubric_id: rubric.id,
+          rubric_level_id: levels[0].id,
+          rubric_level_no: 1,
+        }),
+        total_level: 0,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "total_level", location: "body", message: "ต้องมากกว่า 0" },
+    ]);
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ status: "SUBMITTED", score: null });
+  });
+
+  it("names the criterion that is wrong inside rubric_detail", async () => {
+    const teacher = await createTeacher();
+    const { activity, rubric, levels } = await gradableActivity();
+    const student = await createStudent();
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      student_id: student.student_id,
+    });
+
+    const response = await request(app)
+      .post("/student-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        ...gradeBody({
+          activity_id: activity.id,
+          student_id: student.student_id,
+          student_activity_id: submission.id,
+          rubric_id: rubric.id,
+          rubric_level_id: levels[0].id,
+          rubric_level_no: 1,
+        }),
+        rubric_detail: [
+          { rubric_id: rubric.id, rubric_level_id: levels[0].id },
+        ],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "rubric_detail[0].rubric_level_no",
+        location: "body",
+        message: "ต้องระบุ",
+      },
+    ]);
   });
 
   it("refuses a student marking their own work", async () => {
@@ -396,6 +504,7 @@ describe("POST /student-activity/grade", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
     expect(
@@ -490,6 +599,31 @@ describe("PATCH /student-activity/bookmark", () => {
     expect(response.status).toBe(500);
   });
 
+  it("answers 400 when the request does not say which way to set it", async () => {
+    // is_bookmark went into the update as it arrived, so a missing one used to
+    // be written as null over a NOT NULL column.
+    const teacher = await createTeacher();
+    const submission = await createSubmission({ is_bookmark: true });
+
+    const response = await request(app)
+      .patch("/student-activity/bookmark")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        activity_type: "INDIVIDUAL",
+        student_activity_id: submission.id,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "is_bookmark", location: "body", message: "ต้องระบุ" },
+    ]);
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ is_bookmark: true });
+  });
+
   it("refuses a request with no session", async () => {
     const submission = await createSubmission();
 
@@ -526,6 +660,7 @@ describe("PATCH /student-activity/bookmark", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
     expect(
@@ -596,12 +731,22 @@ describe("GET /student-activity/attachments", () => {
     expect(response.body.data).toEqual([]);
   });
 
-  it("answers 500 when the student_activity_id is missing", async () => {
-    // parseInt(undefined) is NaN, which Prisma sends as null, and the column is
-    // NOT NULL — so the query is rejected rather than matching nothing. #20
-    // turns this into a 400, here and everywhere else it happens.
+  it("answers 400 when the student_activity_id is missing", async () => {
+    // parseInt(undefined) was NaN, which Prisma sent as null against a NOT NULL
+    // column — so the query was rejected rather than matching nothing.
     const response = await request(app).get("/student-activity/attachments");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: student_activity_id ต้องระบุ",
+      errors: [
+        {
+          field: "student_activity_id",
+          location: "query",
+          message: "ต้องระบุ",
+        },
+      ],
+    });
   });
 });

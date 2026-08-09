@@ -1,26 +1,18 @@
 import { Prisma } from "@prisma/client";
-import { UploadURLDetail } from "./attachments.model";
 import { AttachmentDetailResp } from "./announcement.model";
-import { ScoreWeightDetail } from "./activity.model";
-import { ClassworkType } from "./student.model";
+import type {
+  CreateLearningActivityBody,
+  UpdateLearningActivityBody,
+} from "../validation/learning-activity.schema";
 
-export type CreateLearningActivityReqBody = {
-  announcement_date: Date;
-  deadline_date: Date;
-  course_syllabus_id: number;
-  learning_activity_name: string;
-  learning_activity_type: string;
-  detail?: Prisma.InputJsonValue;
-  section_id: number;
-
-  urls: UploadURLDetail[];
+/** What the schema checked, plus the files multer took off the same request. */
+export type CreateLearningActivityReqBody = CreateLearningActivityBody & {
   files: Express.Multer.File[];
 };
 
-export type UpdateLearningActivityReqBody = {
-  learning_activity_id: number;
-  remove_attachment_ids: number[];
-} & CreateLearningActivityReqBody;
+export type UpdateLearningActivityReqBody = UpdateLearningActivityBody & {
+  files: Express.Multer.File[];
+};
 
 //-------------------------------------
 

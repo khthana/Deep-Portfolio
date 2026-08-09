@@ -1,6 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import GroupService from "../services/group.service";
 import { successResponse } from "../utils/response";
+import { validated } from "../validation/validate";
+import {
+  acceptInviteBody,
+  validateInviteBody,
+} from "../validation/group.schema";
 
 export default class GroupController {
   private readonly groupService: GroupService;
@@ -11,10 +16,7 @@ export default class GroupController {
 
   async acceptInvite(req: Request, res: Response, next: NextFunction) {
     try {
-      const { token, action, type } = req.body;
-      if (!token) {
-        return res.status(400).json({ message: "ต้องระบุ Token" });
-      }
+      const { token, action, type } = validated(req, acceptInviteBody);
 
       await this.groupService.acceptInvite(token, action, type);
 
@@ -26,10 +28,7 @@ export default class GroupController {
 
   async validateInvite(req: Request, res: Response, next: NextFunction) {
     try {
-      const { token, type } = req.body;
-      if (!token) {
-        return res.status(400).json({ message: "ต้องระบุ Token" });
-      }
+      const { token, type } = validated(req, validateInviteBody);
 
       const status = await this.groupService.validateInvite(token, type);
 

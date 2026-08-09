@@ -2,6 +2,10 @@ import { Prisma } from "@prisma/client";
 import { AttachmentDetailResp } from "./announcement.model";
 import { ClassworkType } from "./student.model";
 import { GetActivityDetailResp } from "./activity.model";
+import type {
+  BookmarkStudentActivityBody,
+  GradeStudentActivityBody,
+} from "../validation/student-activity.schema";
 
 export type AddStudentActivity = {
   student_id: string;
@@ -112,27 +116,8 @@ export type Submission = {
 
 //----------------------------------
 
-export type GradeStudentActivityData = {
-  activity_id: number;
-  student_id: string;
-  activity_type: ClassworkType;
-  student_activity_id: number;
-  feedback: string;
-  remark: string;
-  full_score: number;
-  total_level: number;
-  rubric_detail: {
-    rubric_id: number;
-    rubric_level_id: number;
-    rubric_level_no: number;
-  }[];
-};
-
-export type AddStudentActivityToBookmark = {
-  activity_type: ClassworkType;
-  student_activity_id: number;
-  is_bookmark: boolean;
-};
+export type GradeStudentActivityData = GradeStudentActivityBody;
+export type AddStudentActivityToBookmark = BookmarkStudentActivityBody;
 
 //-------------------------------
 

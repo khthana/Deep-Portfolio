@@ -1,5 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import RubricService from "../services/rubric.service";
+import { successResponse } from "../utils/response";
+import { validated } from "../validation/validate";
+import {
+  sharedRubricDetailQuery,
+  sharedRubricQuery,
+} from "../validation/rubric.schema";
 
 export default class RubricController {
   private readonly rubricService: RubricService;
@@ -10,14 +16,11 @@ export default class RubricController {
 
   async getSharedRubric(req: Request, res: Response, next: NextFunction) {
     try {
-      const program_id = req.query?.program_id as string;
+      const { program_id } = validated(req, sharedRubricQuery);
+
       const courses = await this.rubricService.getSharedRubric(program_id);
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched rubric successfully",
-        data: courses,
-      });
+      successResponse(res, courses, "Fetched rubric successfully");
     } catch (err) {
       next(err);
     }
@@ -25,16 +28,11 @@ export default class RubricController {
 
   async getSharedRubricDetail(req: Request, res: Response, next: NextFunction) {
     try {
-      const rubric_id = req.query?.rubric_id as string;
-      const courses = await this.rubricService.getSharedRubricDetail(
-        parseInt(rubric_id)
-      );
+      const { rubric_id } = validated(req, sharedRubricDetailQuery);
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched rubric successfully",
-        data: courses,
-      });
+      const courses = await this.rubricService.getSharedRubricDetail(rubric_id);
+
+      successResponse(res, courses, "Fetched rubric successfully");
     } catch (err) {
       next(err);
     }

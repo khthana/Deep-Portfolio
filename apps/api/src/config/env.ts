@@ -56,17 +56,19 @@ function optionalNumber(name: string, fallback: number): number {
 /**
  * Deliberately no default. Every previous call site compared process.env.NODE_ENV
  * against a literal, so an unset NODE_ENV was neither production nor development
- * — and that is the safe reading: the error handler does not leak stack traces,
- * and cookies are not marked secure on a plain-http localhost. Defaulting this
- * to "development" would start leaking stack traces from any deployment that
- * forgot to set it.
+ * — and that is the safe reading: cookies are not marked secure on a plain-http
+ * localhost.
+ *
+ * There is no `isDevelopment` any more. Its one reader was the error handler,
+ * which used it to attach a stack trace, and that branch is gone: what leaves
+ * with a failure no longer depends on which deployment it came from, so no
+ * deployment can leak by forgetting to set this.
  */
 const NODE_ENV = optional("NODE_ENV", "");
 
 export const env = {
   NODE_ENV,
   isProduction: NODE_ENV === "production",
-  isDevelopment: NODE_ENV === "development",
 
   PORT: optionalNumber("PORT", 4001),
 

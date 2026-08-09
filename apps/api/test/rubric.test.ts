@@ -81,22 +81,26 @@ describe("GET /rubric/shared-rubric", () => {
     expect(response.body.data).toEqual([]);
   });
 
-  it("returns every programme's rubrics when program_id is missing", async () => {
-    // Recorded, not endorsed. A missing parameter is `undefined`, and Prisma
-    // reads `where: { program_id: undefined }` as "do not filter on this
-    // column" rather than "match null" — so leaving the parameter out widens
-    // the query instead of narrowing it. Nothing here is private, which is the
-    // only reason this is a curiosity rather than a leak. Request validation is
-    // issue #20.
-    const mine = await createSharedRubric();
-    const theirs = await createSharedRubric({
+  it("answers 400 when no programme is named", async () => {
+    // A missing parameter is `undefined`, and Prisma reads
+    // `where: { program_id: undefined }` as "do not filter on this column"
+    // rather than "match null" — so leaving the parameter out used to widen the
+    // query to every programme instead of narrowing it to one.
+    await createSharedRubric();
+    await createSharedRubric({
       program_id: BASELINE.otherProgram.program_id,
     });
 
     const response = await request(app).get("/rubric/shared-rubric");
 
-    expect(response.status).toBe(200);
-    expect(ids(response)).toEqual(expect.arrayContaining([mine.id, theirs.id]));
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: program_id ต้องระบุ",
+      errors: [
+        { field: "program_id", location: "query", message: "ต้องระบุ" },
+      ],
+    });
   });
 });
 
@@ -158,5 +162,16 @@ describe("GET /rubric/shared-rubric/detail", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual([]);
+  });
+
+  it("answers 400 for a rubric id that is not a number", async () => {
+    const response = await request(app)
+      .get("/rubric/shared-rubric/detail")
+      .query({ rubric_id: "เกณฑ์แรก" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "rubric_id", location: "query", message: "ต้องเป็นตัวเลข" },
+    ]);
   });
 });

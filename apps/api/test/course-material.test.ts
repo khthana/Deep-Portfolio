@@ -149,15 +149,19 @@ describe("GET /course-material", () => {
     ).toEqual([mine.id]);
   });
 
-  it("answers an empty list when section_id is missing", async () => {
-    // NaN reaches Prisma as null, so nothing matches. Recorded, not endorsed:
-    // request validation is issue #20.
+  it("answers 400 when section_id is missing", async () => {
     await createLessonPlan({ section_id: (await createCourse()).section_id });
 
     const response = await request(app).get("/course-material");
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: section_id ต้องระบุ",
+      errors: [
+        { field: "section_id", location: "query", message: "ต้องระบุ" },
+      ],
+    });
   });
 });
 
@@ -167,6 +171,7 @@ describe("POST /course-material", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -184,6 +189,7 @@ describe("POST /course-material", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
   });
@@ -361,6 +367,77 @@ describe("POST /course-material", () => {
       }),
     ).not.toBeNull();
   });
+
+  it("answers 400 when no week is named, and uploads nothing", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .post("/course-material")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("section_id", String(course.section_id))
+      .attach("lecture_files", PDF, "week-1.pdf");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "course_syllabus_id",
+        location: "body",
+        message: "ต้องระบุ",
+      },
+    ]);
+    expect(await listStoredObjects(sectionPrefix(course.section_id))).toEqual(
+      [],
+    );
+  });
+
+  it("answers 400 for a list of links that is not JSON", async () => {
+    // The controller handed this string to JSON.parse inside its try block, so
+    // a mistyped list came back a 500 quoting a position in it.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const week = await createLessonPlan({ section_id: course.section_id });
+
+    const response = await request(app)
+      .post("/course-material")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("course_syllabus_id", String(week.id))
+      .field("section_id", String(course.section_id))
+      .field("record_urls", "ไม่ใช่ JSON");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "record_urls", location: "body", message: "ต้องเป็นรายการ" },
+    ]);
+    expect(
+      await prisma.course_material.count({
+        where: { course_syllabus_id: week.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("answers 400 for a link with no address", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const week = await createLessonPlan({ section_id: course.section_id });
+
+    const response = await request(app)
+      .post("/course-material")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("course_syllabus_id", String(week.id))
+      .field("section_id", String(course.section_id))
+      .field("record_urls", JSON.stringify([{ title: "วิดีโอไร้ที่อยู่" }]));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "record_urls[0].url", location: "body", message: "ต้องระบุ" },
+    ]);
+    expect(
+      await prisma.attachments.count({
+        where: { title: "วิดีโอไร้ที่อยู่" },
+      }),
+    ).toBe(0);
+  });
 });
 
 describe("DELETE /course-material", () => {
@@ -479,5 +556,30 @@ describe("DELETE /course-material", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
     expect(response.status).toBe(500);
+  });
+
+  it("answers 400 when no attachment is named, and deletes nothing", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const week = await createLessonPlan({ section_id: course.section_id });
+    const attachment = await createFileAttachment();
+    await createCourseMaterial({
+      course_syllabus_id: week.id,
+      attachment_id: attachment.attachment_id,
+    });
+
+    const response = await request(app)
+      .delete("/course-material")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "attachment_id", location: "query", message: "ต้องระบุ" },
+    ]);
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: attachment.attachment_id },
+      }),
+    ).not.toBeNull();
   });
 });

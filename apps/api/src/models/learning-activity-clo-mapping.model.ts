@@ -1,4 +1,1 @@
-export type CreateLearningActivityCLOMappingBodyReq = {
-  learning_activity_id: number;
-  clo_id: number;
-};
+export type { CreateLearningActivityCLOMappingBody as CreateLearningActivityCLOMappingBodyReq } from "../validation/clo-mapping.schema";

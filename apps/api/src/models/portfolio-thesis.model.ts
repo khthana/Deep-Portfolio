@@ -1,19 +1,14 @@
-export type CreatePortfolioThesisReqBody = {
-  name?: string;
-  repository?: string;
-  role_and_resp?: string;
-  init_expect?: string;
-  reflection?: string;
-  is_show_repo?: boolean;
-  is_show_role?: boolean;
-  is_show_init?: boolean;
-  is_show_reflec?: boolean;
-};
+import type {
+  CreatePortfolioThesisFields,
+  UpdatePortfolioThesisFields,
+} from "../validation/portfolio-sections.schema";
 
-export type UpdatePortfolioThesisReqBody =
-  Partial<CreatePortfolioThesisReqBody> & {
-    ids_to_delete?: number[];
-  };
+export type CreatePortfolioThesisReqBody = Omit<
+  CreatePortfolioThesisFields,
+  "user_id"
+>;
+
+export type UpdatePortfolioThesisReqBody = UpdatePortfolioThesisFields;
 
 export type PortfolioThesisResp = {
   id: number;

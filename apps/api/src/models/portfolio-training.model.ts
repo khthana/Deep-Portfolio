@@ -1,16 +1,14 @@
-export type CreatePortfolioTrainingReqBody = {
-  year?: number;
-  country?: string;
-  organize?: string;
-  name?: string;
-  description?: string;
-  is_show?: boolean;
-};
+import type {
+  CreatePortfolioTrainingFields,
+  UpdatePortfolioTrainingFields,
+} from "../validation/portfolio-sections.schema";
 
-export type UpdatePortfolioTrainingReqBody =
-  Partial<CreatePortfolioTrainingReqBody> & {
-    ids_to_delete?: number[];
-  };
+export type CreatePortfolioTrainingReqBody = Omit<
+  CreatePortfolioTrainingFields,
+  "user_id"
+>;
+
+export type UpdatePortfolioTrainingReqBody = UpdatePortfolioTrainingFields;
 
 export type PortfolioTrainingResp = {
   id: number;

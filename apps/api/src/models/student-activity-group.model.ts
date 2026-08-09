@@ -1,17 +1,8 @@
-export type CreateStudentActivityGroupBody = {
-  activity_id: number;
-  members: MemberDetail[];
-};
-
-export type UpdateStudentActivityGroupBody = {
-  group_id: number;
-  members: MemberDetail[];
-};
-
-export type MemberDetail = {
-  student_id: string;
-  role: GroupRole;
-};
+export type {
+  CreateStudentActivityGroupBody,
+  UpdateStudentActivityGroupBody,
+  MemberDetail,
+} from "../validation/student-activity-group.schema";
 
 export type GroupRole = "LEADER" | "MEMBER";
 export type MemberStatus = "PENDING" | "ACCEPT" | "REJECTED";

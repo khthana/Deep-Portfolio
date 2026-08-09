@@ -1,8 +1,13 @@
-import express, { NextFunction, Request, Response } from "express";
-import UserService from "../services/user.service";
+import { NextFunction, Request, Response } from "express";
+import { uploadedFiles } from "../utils/uploaded-files";
 import AnnouncementService from "../services/announcement.service";
 import { successResponse } from "../utils/response";
-import { formatFileType } from "../utils/format-file-type";
+import { validated } from "../validation/validate";
+import {
+  announcementAttachmentsParams,
+  announcementQuery,
+  createAnnouncementBody,
+} from "../validation/announcement.schema";
 
 export default class AnnouncementController {
   private readonly announcementService: AnnouncementService;
@@ -13,21 +18,12 @@ export default class AnnouncementController {
 
   async createAnnouncement(req: Request, res: Response, next: NextFunction) {
     try {
-      const { title, content, created_by, section_id, urls, all_section } =
-        req.body;
+      const body = validated(req, createAnnouncementBody);
+      const files = uploadedFiles(req);
 
-      const urlList: { title: string; url: string; uploaded_by: string }[] =
-        urls ? JSON.parse(urls) : [];
-
-      const files = req.files as Express.Multer.File[];
       const announcement = await this.announcementService.createAnnouncement({
-        title,
-        content: JSON.parse(content),
-        created_by,
-        section_id: parseInt(section_id),
-        urls: urlList,
-        files: files,
-        all_section: JSON.parse(all_section),
+        ...body,
+        files,
       });
 
       successResponse(
@@ -44,11 +40,10 @@ export default class AnnouncementController {
 
   async getAnnouncements(req: Request, res: Response, next: NextFunction) {
     try {
-      const section_id = req.query?.section_id as string;
+      const { section_id } = validated(req, announcementQuery);
 
-      const attachments = await this.announcementService.getAnnouncements(
-        parseInt(section_id)
-      );
+      const attachments =
+        await this.announcementService.getAnnouncements(section_id);
 
       successResponse(res, attachments, "get announcements successfully");
     } catch (err) {
@@ -58,11 +53,10 @@ export default class AnnouncementController {
 
   async getAllAttachments(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
+      const { id } = validated(req, announcementAttachmentsParams);
 
-      const attachments = await this.announcementService.getAllAttachments(
-        parseInt(id)
-      );
+      const attachments =
+        await this.announcementService.getAllAttachments(id);
 
       successResponse(res, attachments, "get attachments successfully");
     } catch (err) {

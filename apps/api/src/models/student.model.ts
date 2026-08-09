@@ -1,6 +1,9 @@
 import { Prisma, student_activity_status } from "@prisma/client";
 import { Weekday } from "./course.model";
-import { UploadURLDetail } from "./attachments.model";
+import type {
+  SubmitActivityFields,
+  SubmitLearningActivityFields,
+} from "../validation/student.schema";
 
 export type ClassworkDetail = {
   id: number;
@@ -51,30 +54,19 @@ export type ClassworkType = keyof typeof ClassworkType;
 
 //---------------------------------------------------
 
-export type SubmitActivityBody = {
-  student_activity_id: number;
-  section_id: number;
-  activity_id: number;
+/**
+ * What the service is given: the validated form, plus the two things that do
+ * not come out of it — the files multer took off the request, and the student
+ * the session says is asking.
+ */
+export type SubmitActivityBody = SubmitActivityFields & {
   student_id: string;
-  type: ClassworkType;
-
-  group_id?: number;
   files: Express.Multer.File[];
-  urls: UploadURLDetail[];
-  existing_files_ids: number[];
 };
 
-export type SubmitLearningActivityBody = {
-  student_learning_activity_id: number;
-  section_id: number;
-  learning_activity_id: number;
+export type SubmitLearningActivityBody = SubmitLearningActivityFields & {
   student_id: string;
-  type: ClassworkType;
-
-  group_id?: number;
   files: Express.Multer.File[];
-  urls: UploadURLDetail[];
-  existing_files_ids: number[];
 };
 
 //---------------------------------------------------

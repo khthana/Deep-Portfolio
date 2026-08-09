@@ -1,23 +1,14 @@
-export interface PortfolioInternshipReqBody {
-  user_id: string; // From query or body, strictly required for creation
-  type: "INTERN" | "COOP";
-  title?: string | null; // Optional (used for COOP)
-  position: string; // Required (renamed from job_desc)
-  company: string;
-  country: string; // Required (New field)
-  province?: string;
-  start_date?: string | Date; // string from FormData
-  end_date?: string | Date; // string from FormData
-  resp?: string;
-  is_show_resp?: boolean;
-  learning_out?: string;
-  is_show_learning?: boolean;
-  reflection?: string;
-  is_show_reflec?: boolean;
+import type {
+  CreatePortfolioInternshipFields,
+  UpdatePortfolioInternshipFields,
+} from "../validation/portfolio-sections.schema";
 
-  // For updates
-  ids_to_delete?: number[] | number;
-}
+export type CreatePortfolioInternshipReqBody = Omit<
+  CreatePortfolioInternshipFields,
+  "user_id"
+>;
+
+export type UpdatePortfolioInternshipReqBody = UpdatePortfolioInternshipFields;
 
 export interface PortfolioInternshipResp {
   id: number;
@@ -36,5 +27,11 @@ export interface PortfolioInternshipResp {
   is_show_learning: boolean | null;
   reflection: string | null;
   is_show_reflec: boolean | null;
-  attachments: any[];
+  attachments: {
+    attachment_id: number;
+    url: string | null;
+    file_path: string | null;
+    original_filename: string | null;
+    file_size: number | null;
+  }[];
 }

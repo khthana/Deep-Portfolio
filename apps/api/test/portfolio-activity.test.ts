@@ -121,7 +121,10 @@ describe("GET /portfolio-activity", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [
+        { field: "user_id", location: "query", message: "ต้องระบุ" },
+      ],
     });
   });
 });
@@ -147,7 +150,11 @@ describe("GET /portfolio-activity/:id", () => {
     const response = await request(app).get("/portfolio-activity/abc");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("answers 404 for an id that belongs to no activity", async () => {
@@ -156,7 +163,7 @@ describe("GET /portfolio-activity/:id", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      message: "Portfolio activity not found",
+      message: "ไม่พบกิจกรรมที่ต้องการ",
     });
   });
 });
@@ -233,7 +240,10 @@ describe("POST /portfolio-activity", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [
+        { field: "user_id", location: "body", message: "ต้องระบุ" },
+      ],
     });
     expect(
       await prisma.portfolio_activities.count({
@@ -250,7 +260,12 @@ describe("POST /portfolio-activity", () => {
       .field("user_id", student.student_id)
       .field("role", "ประธานค่าย");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: name ต้องระบุ",
+      errors: [{ field: "name", location: "body", message: "ต้องระบุ" }],
+    });
     expect(
       await prisma.portfolio_activities.count({
         where: { user_id: student.student_id },
@@ -285,9 +300,10 @@ describe("PUT /portfolio-activity/:id", () => {
     ).toBe("ค่ายอาสาใหม่");
   });
 
-  it("keeps the date when the request sends an empty one", async () => {
-    // Recorded, not endorsed: the empty date is dropped before it reaches the
-    // service, so a student cannot clear a date they entered by mistake.
+  it("clears the date when the request sends an empty one", async () => {
+    // See BEHAVIOR-CHANGES.md. The empty date used to be dropped before it
+    // reached the service, so a student could not take out a date they had
+    // entered by mistake. The schema now reads "" as the instruction to clear.
     const entry = await createPortfolioActivity({
       date: new Date("2024-10-01"),
     });
@@ -295,6 +311,19 @@ describe("PUT /portfolio-activity/:id", () => {
     const response = await request(app)
       .put(`/portfolio-activity/${entry.id}`)
       .field("date", "");
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.date).toBeNull();
+  });
+
+  it("leaves the date alone when the request says nothing about it", async () => {
+    const entry = await createPortfolioActivity({
+      date: new Date("2024-10-01"),
+    });
+
+    const response = await request(app)
+      .put(`/portfolio-activity/${entry.id}`)
+      .field("name", "ค่ายอาสาใหม่");
 
     expect(response.status).toBe(200);
     expect(response.body.data.date).toBe("2024-10-01T00:00:00.000Z");
@@ -330,7 +359,11 @@ describe("PUT /portfolio-activity/:id", () => {
       .field("name", "ค่ายอาสาใหม่");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("fails for an activity that does not exist", async () => {
@@ -380,7 +413,11 @@ describe("DELETE /portfolio-activity/:id", () => {
     const response = await request(app).delete("/portfolio-activity/abc");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("fails for an activity that does not exist", async () => {

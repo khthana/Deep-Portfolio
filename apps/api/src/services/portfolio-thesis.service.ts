@@ -201,14 +201,10 @@ export default class PortfolioThesisService {
     });
 
     if (ids_to_delete && ids_to_delete.length > 0) {
-      const idsToDelete = Array.isArray(ids_to_delete)
-        ? ids_to_delete.map(Number)
-        : [Number(ids_to_delete)];
-
       await prisma.portfolio_thesis_attachments.deleteMany({
         where: {
           thesis_id: id,
-          attachment_id: { in: idsToDelete },
+          attachment_id: { in: ids_to_delete },
         },
       });
     }

@@ -23,6 +23,10 @@ type PortfolioCertificateWithAttachments = NonNullable<
   Prisma.PromiseReturnType<typeof inferCertificate>
 >;
 
+type PortfolioCertificateAttachment = NonNullable<
+  PortfolioCertificateResp["attachments"]
+>[number];
+
 export default class PortfolioCertificateService {
   private readonly attachmentsService: AttachmentsService;
 
@@ -48,7 +52,7 @@ export default class PortfolioCertificateService {
     return await Promise.all(
       certificates.map(
         async (certificate: PortfolioCertificateWithAttachments) => {
-          let attachments: any[] = [];
+          let attachments: PortfolioCertificateAttachment[] = [];
           if (certificate.portfolio_certificate_attachments.length > 0) {
             const attachmentIds =
               certificate.portfolio_certificate_attachments.map((pca) => ({
@@ -109,7 +113,7 @@ export default class PortfolioCertificateService {
 
     if (!certificate) return null;
 
-    let attachments: any[] = [];
+    let attachments: PortfolioCertificateAttachment[] = [];
     if (certificate.portfolio_certificate_attachments.length > 0) {
       const attachmentIds = certificate.portfolio_certificate_attachments.map(
         (pca) => ({ attachment_id: pca.attachments.attachment_id }),
@@ -159,7 +163,7 @@ export default class PortfolioCertificateService {
     const certificate = await prisma.portfolio_certificate.create({
       data: {
         user_id: userId,
-        date: date ? new Date(date) : null,
+        date: date ?? null,
         ...certificateData,
       },
     });
@@ -191,25 +195,18 @@ export default class PortfolioCertificateService {
     data: UpdatePortfolioCertificateReqBody,
     files: Express.Multer.File[] = [],
   ): Promise<PortfolioCertificateResp> {
-    const { ids_to_delete, date, ...updateData } = data;
+    const { ids_to_delete, ...updateData } = data;
 
     const updatedCertificate = await prisma.portfolio_certificate.update({
       where: { id },
-      data: {
-        date: date ? new Date(date) : undefined,
-        ...updateData,
-      },
+      data: updateData,
     });
 
     if (ids_to_delete && ids_to_delete.length > 0) {
-      const idsToDelete = Array.isArray(ids_to_delete)
-        ? ids_to_delete.map(Number)
-        : [Number(ids_to_delete)];
-
       await prisma.portfolio_certificate_attachments.deleteMany({
         where: {
           certificate_id: id,
-          attachment_id: { in: idsToDelete },
+          attachment_id: { in: ids_to_delete },
         },
       });
     }

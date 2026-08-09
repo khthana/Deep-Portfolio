@@ -76,18 +76,22 @@ describe("GET /score-weight", () => {
     ).toEqual([mine.score_ratio_id]);
   });
 
-  it("answers an empty list when section_id is missing", async () => {
-    // Not a 400, and not an error either: parseInt(undefined) is NaN, Prisma
-    // sends NaN across as null, and the query becomes "section_id IS NULL" —
-    // which matches nothing, because the column is set on every row. So a
-    // caller that forgets the parameter is told the section is empty. Recorded,
-    // not endorsed: request validation is issue #20.
+  it("answers 400 when section_id is missing", async () => {
+    // It used to answer 200 with an empty list: parseInt(undefined) is NaN,
+    // Prisma sends NaN across as null, and "section_id IS NULL" matches nothing
+    // — so a caller that forgot the parameter was told the section was empty.
     await createScoreWeight({ section_id: (await createCourse()).section_id });
 
     const response = await request(app).get("/score-weight");
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: section_id ต้องระบุ",
+      errors: [
+        { field: "section_id", location: "query", message: "ต้องระบุ" },
+      ],
+    });
   });
 });
 
@@ -97,6 +101,7 @@ describe("POST /score-weight", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -116,6 +121,7 @@ describe("POST /score-weight", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
 
@@ -215,6 +221,30 @@ describe("POST /score-weight", () => {
       });
 
     expect(response.status).toBe(500);
+  });
+
+  it("answers 400 for a weight that is not a number", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .post("/score-weight")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        score_category: "สอบกลางภาค",
+        weight: "สามสิบ",
+        section_id: course.section_id,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "weight", location: "body", message: "ต้องเป็นตัวเลข" },
+    ]);
+
+    const stored = await prisma.subject_score_ratio.findMany({
+      where: { section_id: course.section_id },
+    });
+    expect(stored).toEqual([]);
   });
 });
 
@@ -438,10 +468,12 @@ describe("GET /score-weight/options", () => {
     expect(response.body.data).toEqual([]);
   });
 
-  it("answers an empty list when section_id is missing", async () => {
+  it("answers 400 when section_id is missing", async () => {
     const response = await request(app).get("/score-weight/options");
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });

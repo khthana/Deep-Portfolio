@@ -3,6 +3,7 @@ import request from "supertest";
 import app from "../src/app";
 import prisma from "../src/config/prisma";
 import { createStudent, createTeacher, createUser } from "./factories";
+import { BASELINE } from "./seed";
 import { refreshCookie, sessionCookie } from "./helpers/session";
 import { useFakeIdentityProvider } from "./helpers/identity";
 
@@ -52,6 +53,7 @@ describe("requireUser", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -95,6 +97,7 @@ describe("requireUser", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -138,6 +141,7 @@ describe("requireRole", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -172,6 +176,7 @@ describe("requireRole", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
     });
   });
@@ -193,6 +198,7 @@ describe("requireRole", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
   });
@@ -202,9 +208,24 @@ describe("requireRole", () => {
 
     const response = await request(app)
       .get("/course/list")
+      .query(BASELINE.term)
       .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
     expect(response.status).toBe(200);
+  });
+
+  it("refuses before it validates", async () => {
+    // The order the two middlewares are mounted in. This request is wrong in
+    // both ways at once — no role, and no term named — and the answer is about
+    // the role: a caller who may not be here at all is not told which fields
+    // they got wrong.
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/course/list")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
+
+    expect(response.status).toBe(403);
   });
 
   it("names the role it wanted, per role", async () => {
@@ -218,6 +239,7 @@ describe("requireRole", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
   });
@@ -236,7 +258,9 @@ describe("POST /auth/google", () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
-      message: "ไม่พบข้อมูลการเข้าสู่ระบบจาก Google",
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: credential ต้องระบุ",
+      errors: [{ field: "credential", location: "body", message: "ต้องระบุ" }],
     });
   });
 
@@ -249,6 +273,7 @@ describe("POST /auth/google", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ยืนยันตัวตนกับ Google ไม่สำเร็จ",
     });
   });
@@ -266,6 +291,7 @@ describe("POST /auth/google", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบบัญชีผู้ใช้ของอีเมลนี้ในระบบ กรุณาติดต่อผู้ดูแลระบบ",
     });
 
@@ -310,6 +336,7 @@ describe("POST /auth/google", () => {
 
     const courses = await request(app)
       .get("/course/list")
+      .query(BASELINE.term)
       .set("Cookie", `access_token=${access?.value}`);
 
     expect(courses.status).toBe(200);
@@ -421,6 +448,7 @@ describe("POST /auth/refresh", () => {
 
     const courses = await request(app)
       .get("/course/list")
+      .query(BASELINE.term)
       .set("Cookie", `access_token=${access?.value}`);
 
     expect(courses.status).toBe(200);

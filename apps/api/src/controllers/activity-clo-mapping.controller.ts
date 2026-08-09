@@ -1,6 +1,12 @@
-import express, { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import ActivityCLOMappingService from "../services/activity-clo-mapping.service";
 import { successResponse } from "../utils/response";
+import { validated } from "../validation/validate";
+import {
+  cloMappingQuery,
+  createActivityCLOMappingBody,
+  validateActivityCLOMappingQuery,
+} from "../validation/clo-mapping.schema";
 
 export default class ActivityCLOMappingController {
   private readonly activityCLOMappingService: ActivityCLOMappingService;
@@ -15,8 +21,10 @@ export default class ActivityCLOMappingController {
     next: NextFunction,
   ) {
     try {
+      const body = validated(req, createActivityCLOMappingBody);
+
       const activityCLOMapping =
-        await this.activityCLOMappingService.createActivityCLOMapping(req.body);
+        await this.activityCLOMappingService.createActivityCLOMapping(body);
 
       successResponse(
         res,
@@ -30,11 +38,9 @@ export default class ActivityCLOMappingController {
 
   async getActivity(req: Request, res: Response, next: NextFunction) {
     try {
-      const clo_id = req.query?.clo_id as string;
+      const { clo_id } = validated(req, cloMappingQuery);
 
-      const activity = await this.activityCLOMappingService.getActivity(
-        parseInt(clo_id),
-      );
+      const activity = await this.activityCLOMappingService.getActivity(clo_id);
 
       successResponse(res, activity, "get activity successfully");
     } catch (err) {
@@ -48,11 +54,11 @@ export default class ActivityCLOMappingController {
     next: NextFunction,
   ) {
     try {
-      const activity_id = req.query?.activity_id as string;
+      const { activity_id } = validated(req, validateActivityCLOMappingQuery);
 
       const activity =
         await this.activityCLOMappingService.validateActivityCLOMapping(
-          parseInt(activity_id),
+          activity_id,
         );
 
       successResponse(res, activity, "validate activity successfully");

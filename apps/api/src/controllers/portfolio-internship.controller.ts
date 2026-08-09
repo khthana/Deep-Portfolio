@@ -1,6 +1,19 @@
 import { NextFunction, Request, Response } from "express";
+import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
+import { HttpError } from "../utils/http-error";
 import PortfolioInternshipService from "../services/portfolio-internship.service";
+import {
+  createPortfolioInternshipBody,
+  updatePortfolioInternshipBody,
+} from "../validation/portfolio-sections.schema";
+import {
+  portfolioEntryParams,
+  portfolioOwnerQuery,
+} from "../validation/portfolio.schema";
+import { validated } from "../validation/validate";
+
+const NOT_FOUND = () => new HttpError(404, "ไม่พบการฝึกงานที่ต้องการ");
 
 export default class PortfolioInternshipController {
   private readonly portfolioInternshipService: PortfolioInternshipService;
@@ -15,16 +28,10 @@ export default class PortfolioInternshipController {
     next: NextFunction,
   ) {
     try {
-      const userId = req.query.user_id as string;
-      if (!userId) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
+      const { user_id } = validated(req, portfolioOwnerQuery);
 
       const result =
-        await this.portfolioInternshipService.getAllPortfolioInternship(userId);
+        await this.portfolioInternshipService.getAllPortfolioInternship(user_id);
 
       successResponse(res, result, "Fetched portfolio internship successfully");
     } catch (err) {
@@ -38,22 +45,13 @@ export default class PortfolioInternshipController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       const result =
         await this.portfolioInternshipService.getPortfolioInternshipById(id);
 
       if (!result) {
-        return res.status(404).json({
-          success: false,
-          message: "Portfolio internship not found",
-        });
+        throw NOT_FOUND();
       }
 
       successResponse(res, result, "Fetched portfolio internship successfully");
@@ -68,25 +66,8 @@ export default class PortfolioInternshipController {
     next: NextFunction,
   ) {
     try {
-      const { user_id, ...data } = req.body;
-      const files = req.files as Express.Multer.File[];
-
-      if (!user_id) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
-
-      // Handle boolean conversion from FormData
-      if (data.is_show_resp === "true") data.is_show_resp = true;
-      if (data.is_show_resp === "false") data.is_show_resp = false;
-
-      if (data.is_show_learning === "true") data.is_show_learning = true;
-      if (data.is_show_learning === "false") data.is_show_learning = false;
-
-      if (data.is_show_reflec === "true") data.is_show_reflec = true;
-      if (data.is_show_reflec === "false") data.is_show_reflec = false;
+      const { user_id, ...data } = validated(req, createPortfolioInternshipBody);
+      const files = uploadedFiles(req);
 
       const result =
         await this.portfolioInternshipService.createPortfolioInternship(
@@ -112,26 +93,9 @@ export default class PortfolioInternshipController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
-
-      const data = req.body;
-      const files = req.files as Express.Multer.File[];
-
-      // Handle conversions
-      if (data.is_show_resp === "true") data.is_show_resp = true;
-      if (data.is_show_resp === "false") data.is_show_resp = false;
-
-      if (data.is_show_learning === "true") data.is_show_learning = true;
-      if (data.is_show_learning === "false") data.is_show_learning = false;
-
-      if (data.is_show_reflec === "true") data.is_show_reflec = true;
-      if (data.is_show_reflec === "false") data.is_show_reflec = false;
+      const { id } = validated(req, portfolioEntryParams);
+      const data = validated(req, updatePortfolioInternshipBody);
+      const files = uploadedFiles(req);
 
       const result =
         await this.portfolioInternshipService.updatePortfolioInternship(
@@ -152,13 +116,7 @@ export default class PortfolioInternshipController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       await this.portfolioInternshipService.deletePortfolioInternship(id);
 

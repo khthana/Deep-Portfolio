@@ -292,6 +292,7 @@ describe("GET /student/calendar", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -306,7 +307,22 @@ describe("GET /student/calendar", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
     });
+  });
+
+  it("answers 400 for a request that names no term", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/student/calendar")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "semester", location: "query", message: "ต้องระบุ" },
+      { field: "academic_year", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });

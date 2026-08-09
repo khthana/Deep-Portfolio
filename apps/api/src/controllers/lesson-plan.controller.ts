@@ -1,5 +1,13 @@
-import express, { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import LessonPlanService from "../services/lesson-plan.service";
+import { successResponse } from "../utils/response";
+import { validated } from "../validation/validate";
+import {
+  addLessonPlanBody,
+  deleteLessonPlanQuery,
+  lessonPlanQuery,
+  updateLessonPlanBody,
+} from "../validation/lesson-plan.schema";
 
 export default class LessonPlanController {
   private readonly lessonPlanService: LessonPlanService;
@@ -10,13 +18,11 @@ export default class LessonPlanController {
 
   async addLessonPlan(req: Request, res: Response, next: NextFunction) {
     try {
-      const lessonPlan = await this.lessonPlanService.addLessonPlan(req.body);
+      const lessonPlan = await this.lessonPlanService.addLessonPlan(
+        validated(req, addLessonPlanBody),
+      );
 
-      res.status(200).json({
-        success: true,
-        message: "add lesson plan successfully",
-        data: lessonPlan,
-      });
+      successResponse(res, lessonPlan, "add lesson plan successfully");
     } catch (err) {
       next(err);
     }
@@ -24,17 +30,11 @@ export default class LessonPlanController {
 
   async getLessonPlan(req: Request, res: Response, next: NextFunction) {
     try {
-      const section_id = req.query?.section_id as string;
+      const { section_id } = validated(req, lessonPlanQuery);
 
-      const lessonPlan = await this.lessonPlanService.getLessonPlan(
-        parseInt(section_id),
-      );
+      const lessonPlan = await this.lessonPlanService.getLessonPlan(section_id);
 
-      res.status(200).json({
-        success: true,
-        message: "get lesson plan successfully",
-        data: lessonPlan,
-      });
+      successResponse(res, lessonPlan, "get lesson plan successfully");
     } catch (err) {
       next(err);
     }
@@ -46,18 +46,14 @@ export default class LessonPlanController {
     next: NextFunction,
   ) {
     try {
-      const section_id = req.query?.section_id as string;
+      const { section_id } = validated(req, lessonPlanQuery);
 
       const lessonPlan =
         await this.lessonPlanService.getStudentLessonPlanWithMaterial(
-          parseInt(section_id),
+          section_id,
         );
 
-      res.status(200).json({
-        success: true,
-        message: "get lesson plan successfully",
-        data: lessonPlan,
-      });
+      successResponse(res, lessonPlan, "get lesson plan successfully");
     } catch (err) {
       next(err);
     }
@@ -66,14 +62,10 @@ export default class LessonPlanController {
   async updateLessonPlan(req: Request, res: Response, next: NextFunction) {
     try {
       const lessonPlan = await this.lessonPlanService.updateLessonPlan(
-        req.body,
+        validated(req, updateLessonPlanBody),
       );
 
-      res.status(200).json({
-        success: true,
-        message: "update lesson plan successfully",
-        data: lessonPlan,
-      });
+      successResponse(res, lessonPlan, "update lesson plan successfully");
     } catch (err) {
       next(err);
     }
@@ -81,17 +73,12 @@ export default class LessonPlanController {
 
   async deleteLessonPlan(req: Request, res: Response, next: NextFunction) {
     try {
-      const lesson_plan_id = req.query?.lesson_plan_id as string;
+      const { lesson_plan_id } = validated(req, deleteLessonPlanQuery);
 
-      const lessonPlan = await this.lessonPlanService.deleteLessonPlan(
-        parseInt(lesson_plan_id),
-      );
+      const lessonPlan =
+        await this.lessonPlanService.deleteLessonPlan(lesson_plan_id);
 
-      res.status(200).json({
-        success: true,
-        message: "delete lesson plan successfully",
-        data: lessonPlan,
-      });
+      successResponse(res, lessonPlan, "delete lesson plan successfully");
     } catch (err) {
       next(err);
     }
@@ -101,17 +88,12 @@ export default class LessonPlanController {
 
   async getLessonPlanOptions(req: Request, res: Response, next: NextFunction) {
     try {
-      const section_id = req.query?.section_id as string;
+      const { section_id } = validated(req, lessonPlanQuery);
 
-      const lessonPlan = await this.lessonPlanService.getLessonPlanOptions(
-        parseInt(section_id),
-      );
+      const lessonPlan =
+        await this.lessonPlanService.getLessonPlanOptions(section_id);
 
-      res.status(200).json({
-        success: true,
-        message: "get lesson plan options successfully",
-        data: lessonPlan,
-      });
+      successResponse(res, lessonPlan, "get lesson plan options successfully");
     } catch (err) {
       next(err);
     }

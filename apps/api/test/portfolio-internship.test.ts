@@ -137,7 +137,10 @@ describe("GET /portfolio-internship", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [
+        { field: "user_id", location: "query", message: "ต้องระบุ" },
+      ],
     });
   });
 });
@@ -163,7 +166,11 @@ describe("GET /portfolio-internship/:id", () => {
     const response = await request(app).get("/portfolio-internship/abc");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("answers 404 for an id that belongs to no placement", async () => {
@@ -172,7 +179,7 @@ describe("GET /portfolio-internship/:id", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      message: "Portfolio internship not found",
+      message: "ไม่พบการฝึกงานที่ต้องการ",
     });
   });
 });
@@ -262,7 +269,10 @@ describe("POST /portfolio-internship", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [
+        { field: "user_id", location: "body", message: "ต้องระบุ" },
+      ],
     });
     expect(
       await prisma.portfolio_internship.count({
@@ -279,7 +289,12 @@ describe("POST /portfolio-internship", () => {
       .field("user_id", student.student_id)
       .field("company", "บริษัทตัวอย่าง");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: type ต้องระบุ",
+      errors: [{ field: "type", location: "body", message: "ต้องระบุ" }],
+    });
     expect(
       await prisma.portfolio_internship.count({
         where: { user_id: student.student_id },
@@ -360,7 +375,11 @@ describe("PUT /portfolio-internship/:id", () => {
       .field("company", "บริษัทใหม่");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("fails for a placement that does not exist", async () => {
@@ -410,7 +429,11 @@ describe("DELETE /portfolio-internship/:id", () => {
     const response = await request(app).delete("/portfolio-internship/abc");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("fails for a placement that does not exist", async () => {

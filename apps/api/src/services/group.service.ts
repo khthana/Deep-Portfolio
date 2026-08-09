@@ -1,6 +1,16 @@
 import prisma from "../config/prisma";
 import { transporter } from "../config/mailer";
 import { env } from "../config/env";
+import { HttpError } from "../utils/http-error";
+
+/**
+ * A token that names no invitation, or one whose seven days have run out. Both
+ * are the caller's, so both carry their own status: the message is written for
+ * the person holding the link, and a 500 would keep it from them now that the
+ * error middleware forwards only what a status says was deliberate.
+ */
+const INVALID_INVITE = () =>
+  new HttpError(400, "โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว");
 
 export default class GroupService {
   async sendInviteEmail(
@@ -51,7 +61,7 @@ export default class GroupService {
           });
 
     if (!member) {
-      throw new Error("โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว");
+      throw INVALID_INVITE();
     }
 
     return type === "activity"
@@ -76,7 +86,7 @@ export default class GroupService {
           });
 
     if (!invite) {
-      throw new Error("โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว");
+      throw INVALID_INVITE();
     }
 
     return { status: invite.status };

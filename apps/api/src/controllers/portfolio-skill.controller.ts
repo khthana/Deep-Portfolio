@@ -1,6 +1,21 @@
 import { NextFunction, Request, Response } from "express";
 import { successResponse } from "../utils/response";
+import { HttpError } from "../utils/http-error";
 import PortfolioSkillService from "../services/portfolio-skill.service";
+import {
+  assignWorkToSkillsBody,
+  createPortfolioSkillBody,
+  updatePortfolioSkillBody,
+} from "../validation/portfolio-skill.schema";
+import {
+  portfolioEntryParams,
+  portfolioOwnerQuery,
+} from "../validation/portfolio.schema";
+import { validated } from "../validation/validate";
+
+const SKILL_NOT_FOUND = () => new HttpError(404, "ไม่พบทักษะที่ต้องการ");
+const MAPPING_NOT_FOUND = () =>
+  new HttpError(404, "ไม่พบการเชื่อมโยงชิ้นงานกับทักษะที่ต้องการ");
 
 export default class PortfolioSkillController {
   private readonly portfolioSkillService: PortfolioSkillService;
@@ -11,15 +26,10 @@ export default class PortfolioSkillController {
 
   async getAllPortfolioSkill(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.query.user_id as string;
-      if (!userId) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
+      const { user_id } = validated(req, portfolioOwnerQuery);
+
       const result =
-        await this.portfolioSkillService.getAllPortfolioSkill(userId);
+        await this.portfolioSkillService.getAllPortfolioSkill(user_id);
 
       successResponse(res, result, "Fetched portfolio skill successfully");
     } catch (err) {
@@ -29,13 +39,11 @@ export default class PortfolioSkillController {
 
   async getPortfolioWorks(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.query.user_id as string;
-      if (!userId) {
-        return res
-          .status(400)
-          .json({ success: false, message: "user_id is required" });
-      }
-      const result = await this.portfolioSkillService.getPortfolioWorks(userId);
+      const { user_id } = validated(req, portfolioOwnerQuery);
+
+      const result =
+        await this.portfolioSkillService.getPortfolioWorks(user_id);
+
       successResponse(res, result, "Fetched portfolio works successfully");
     } catch (err) {
       next(err);
@@ -44,21 +52,12 @@ export default class PortfolioSkillController {
 
   async getPortfolioSkillById(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       const result = await this.portfolioSkillService.getPortfolioSkillById(id);
 
       if (!result) {
-        return res.status(404).json({
-          success: false,
-          message: "Portfolio skill not found",
-        });
+        throw SKILL_NOT_FOUND();
       }
 
       successResponse(res, result, "Fetched portfolio skill successfully");
@@ -69,21 +68,11 @@ export default class PortfolioSkillController {
 
   async createPortfolioSkill(req: Request, res: Response, next: NextFunction) {
     try {
-      const { name, mappings, user_id } = req.body;
-
-      if (!user_id) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
+      const { user_id, ...data } = validated(req, createPortfolioSkillBody);
 
       const result = await this.portfolioSkillService.createPortfolioSkill(
         user_id,
-        {
-          name,
-          mappings,
-        },
+        data,
       );
 
       successResponse(res, result, "Created portfolio skill successfully", 201);
@@ -94,20 +83,13 @@ export default class PortfolioSkillController {
 
   async updatePortfolioSkill(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
+      const data = validated(req, updatePortfolioSkillBody);
 
-      const { name, mappings } = req.body;
-
-      const result = await this.portfolioSkillService.updatePortfolioSkill(id, {
-        name,
-        mappings,
-      });
+      const result = await this.portfolioSkillService.updatePortfolioSkill(
+        id,
+        data,
+      );
 
       successResponse(res, result, "Updated portfolio skill successfully");
     } catch (err) {
@@ -117,13 +99,7 @@ export default class PortfolioSkillController {
 
   async deletePortfolioSkill(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       await this.portfolioSkillService.deletePortfolioSkill(id);
 
@@ -139,22 +115,13 @@ export default class PortfolioSkillController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       const result =
         await this.portfolioSkillService.getPortfolioSkillMappingById(id);
 
       if (!result) {
-        return res.status(404).json({
-          success: false,
-          message: "Portfolio skill mapping not found",
-        });
+        throw MAPPING_NOT_FOUND();
       }
 
       successResponse(
@@ -169,31 +136,9 @@ export default class PortfolioSkillController {
 
   async assignWorkToSkills(req: Request, res: Response, next: NextFunction) {
     try {
-      const { user_id, student_activity_id, skill_ids, ...details } = req.body;
+      const data = validated(req, assignWorkToSkillsBody);
 
-      if (!user_id) {
-        return res
-          .status(400)
-          .json({ success: false, message: "user_id is required" });
-      }
-      if (!student_activity_id) {
-        return res
-          .status(400)
-          .json({ success: false, message: "student_activity_id is required" });
-      }
-      if (!Array.isArray(skill_ids) || skill_ids.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "skill_ids must be a non-empty array",
-        });
-      }
-
-      await this.portfolioSkillService.assignWorkToSkills({
-        user_id,
-        student_activity_id,
-        skill_ids,
-        ...details,
-      });
+      await this.portfolioSkillService.assignWorkToSkills(data);
 
       successResponse(res, null, "Work assigned to skills successfully", 201);
     } catch (err) {
@@ -203,12 +148,8 @@ export default class PortfolioSkillController {
 
   async deleteSkillMapping(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid mapping ID" });
-      }
+      const { id } = validated(req, portfolioEntryParams);
+
       await this.portfolioSkillService.deleteSkillMapping(id);
       successResponse(res, null, "Mapping deleted successfully");
     } catch (err) {

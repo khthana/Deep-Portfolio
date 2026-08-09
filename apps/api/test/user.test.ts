@@ -60,17 +60,20 @@ describe("GET /user", () => {
     });
   });
 
-  it("answers 500 when no id is sent at all", async () => {
-    // Not the same as an id that matches nobody. A missing query parameter
-    // reaches Prisma as `where: { user_id: undefined }`, which is not a
-    // question it will answer — the sibling of the NaN case recorded for #12
-    // and #13. #20 turns this into a 400.
+  it("answers 400 when no id is sent at all", async () => {
+    // Not the same as an id that matches nobody. The parameter used to reach
+    // Prisma as `where: { user_id: undefined }`, which is not a question it
+    // will answer, so the caller got a 500.
     await createTeacher();
 
     const response = await request(app).get("/user");
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องระบุ",
+      errors: [{ field: "id", location: "query", message: "ต้องระบุ" }],
+    });
   });
 
   it("serves a request with no session", async () => {
@@ -151,6 +154,7 @@ describe("GET /user/student", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -164,6 +168,7 @@ describe("GET /user/student", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
     });
   });

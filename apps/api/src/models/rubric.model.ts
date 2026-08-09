@@ -1,10 +1,2 @@
-export type AddRubricDetail = {
-  criteria: string;
-  weight: number;
-  levels: RubricLevel[];
-};
-
-export type RubricLevel = {
-  level_no: number;
-  description: string;
-};
+/** Stated once, by the schema that checks it. */
+export type { AddRubricDetail } from "../validation/activity.schema";

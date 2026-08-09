@@ -158,6 +158,59 @@ describe("POST /student-learning-activity/grade", () => {
     expect(response.status).toBe(500);
   });
 
+  it("answers 400 when the request names no submission", async () => {
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .post("/student-learning-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ activity_type: "INDIVIDUAL", feedback: "ดีมาก" });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: student_learning_activity_id ต้องระบุ",
+      errors: [
+        {
+          field: "student_learning_activity_id",
+          location: "body",
+          message: "ต้องระบุ",
+        },
+      ],
+    });
+  });
+
+  it("answers 400 for a kind of work it does not have", async () => {
+    // Anything that was not INDIVIDUAL used to be treated as group work, so a
+    // typo marked the submission through the group path and failed there.
+    const teacher = await createTeacher();
+    const submission = await createLearningSubmission();
+
+    const response = await request(app)
+      .post("/student-learning-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        activity_type: "PAIR",
+        student_learning_activity_id: submission.id,
+        feedback: "",
+        remark: "",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "activity_type",
+        location: "body",
+        message: "ต้องเป็นค่าใดค่าหนึ่งใน: INDIVIDUAL, GROUP",
+      },
+    ]);
+    expect(
+      await prisma.student_learning_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ status: "SUBMITTED" });
+  });
+
   it("refuses a request with no session", async () => {
     const submission = await createLearningSubmission();
 
@@ -172,6 +225,7 @@ describe("POST /student-learning-activity/grade", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
     expect(
@@ -199,6 +253,7 @@ describe("POST /student-learning-activity/grade", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
     expect(
@@ -277,6 +332,29 @@ describe("PATCH /student-learning-activity/bookmark", () => {
     expect(response.status).toBe(500);
   });
 
+  it("answers 400 when the request does not say which way to set it", async () => {
+    const teacher = await createTeacher();
+    const submission = await createLearningSubmission({ is_bookmark: true });
+
+    const response = await request(app)
+      .patch("/student-learning-activity/bookmark")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        activity_type: "INDIVIDUAL",
+        student_learning_activity_id: submission.id,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "is_bookmark", location: "body", message: "ต้องระบุ" },
+    ]);
+    expect(
+      await prisma.student_learning_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ is_bookmark: true });
+  });
+
   it("refuses a request with no session", async () => {
     const submission = await createLearningSubmission();
 
@@ -313,6 +391,7 @@ describe("PATCH /student-learning-activity/bookmark", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
     expect(

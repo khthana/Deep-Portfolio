@@ -86,7 +86,8 @@ describe("GET /portfolio-certificate", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [{ field: "user_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });
@@ -129,7 +130,18 @@ describe("GET /portfolio-certificate/:id", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      message: "Portfolio certificate not found",
+      message: "ไม่พบเกียรติบัตรที่ต้องการ",
+    });
+  });
+
+  it("answers 400 for an id that is not a number", async () => {
+    const response = await request(app).get("/portfolio-certificate/abc");
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
     });
   });
 });
@@ -187,7 +199,8 @@ describe("POST /portfolio-certificate", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [{ field: "user_id", location: "body", message: "ต้องระบุ" }],
     });
     expect(
       await prisma.portfolio_certificate.count({
@@ -219,9 +232,19 @@ describe("PUT /portfolio-certificate/:id", () => {
   });
 
   it("keeps the date a request says nothing about", async () => {
-    // Recorded, not endorsed: an absent date leaves the column alone, and so
-    // does an explicit null — the update passes `undefined` for anything
-    // falsy, so a date cannot be cleared through this endpoint at all.
+    const entry = await createPortfolioCertificate({
+      date: new Date("2023-03-01"),
+    });
+
+    const response = await request(app)
+      .put(`/portfolio-certificate/${entry.id}`)
+      .send({ name: "ชื่อใหม่" });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.date).toBe("2023-03-01T00:00:00.000Z");
+  });
+
+  it("clears the date when the request sends an explicit null", async () => {
     const entry = await createPortfolioCertificate({
       date: new Date("2023-03-01"),
     });
@@ -231,7 +254,7 @@ describe("PUT /portfolio-certificate/:id", () => {
       .send({ name: "ชื่อใหม่", date: null });
 
     expect(response.status).toBe(200);
-    expect(response.body.data.date).toBe("2023-03-01T00:00:00.000Z");
+    expect(response.body.data.date).toBeNull();
   });
 
   it("fails for a certificate that does not exist", async () => {
@@ -282,6 +305,10 @@ describe("DELETE /portfolio-certificate/:id", () => {
     const response = await request(app).delete("/portfolio-certificate/abc");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 });

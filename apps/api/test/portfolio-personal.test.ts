@@ -158,7 +158,7 @@ describe("GET /portfolio-personal/:user_id", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      message: "Portfolio personal not found",
+      message: "ไม่พบข้อมูลส่วนตัวของผู้ใช้รายนี้",
     });
   });
 });
@@ -250,7 +250,8 @@ describe("POST /portfolio-personal", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [{ field: "user_id", location: "body", message: "ต้องระบุ" }],
     });
     expect(
       await prisma.portfolio_personal.count({
@@ -301,6 +302,46 @@ describe("PUT /portfolio-personal/:user_id", () => {
       nationality: "ไทย",
       github: "https://example.test/new",
     });
+  });
+
+  it("refuses a date of birth it cannot read", async () => {
+    // See BEHAVIOR-CHANGES.md. The service used to hand the string to Prisma
+    // after `new Date(…)` had made an Invalid Date of it, which came back as a
+    // 500 about the query rather than a 400 about the field.
+    const student = await createStudent();
+    await createPortfolioPersonal({ user_id: student.student_id });
+
+    const response = await request(app)
+      .put(`/portfolio-personal/${student.student_id}`)
+      .field("date_of_birth", "เมื่อวาน");
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: date_of_birth ต้องเป็นวันที่ที่ถูกต้อง",
+      errors: [
+        {
+          field: "date_of_birth",
+          location: "body",
+          message: "ต้องเป็นวันที่ที่ถูกต้อง",
+        },
+      ],
+    });
+  });
+
+  it("clears the date of birth when the request sends an empty one", async () => {
+    const student = await createStudent();
+    await createPortfolioPersonal({
+      user_id: student.student_id,
+      date_of_birth: new Date("2003-05-14"),
+    });
+
+    const response = await request(app)
+      .put(`/portfolio-personal/${student.student_id}`)
+      .field("date_of_birth", "");
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.date_of_birth).toBeNull();
   });
 
   it("fails for a student who has no details yet", async () => {

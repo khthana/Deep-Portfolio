@@ -1,5 +1,13 @@
-import express, { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import ScoreWeightService from "../services/score-weight.service";
+import { successResponse } from "../utils/response";
+import { validated } from "../validation/validate";
+import {
+  addScoreWeightBody,
+  deleteScoreWeightQuery,
+  scoreWeightQuery,
+  updateScoreWeightBody,
+} from "../validation/score-weight.schema";
 
 export default class ScoreWeightController {
   private readonly scoreWeightService: ScoreWeightService;
@@ -11,14 +19,10 @@ export default class ScoreWeightController {
   async addScoreWeight(req: Request, res: Response, next: NextFunction) {
     try {
       const scoreWeight = await this.scoreWeightService.addScoreWeight(
-        req.body
+        validated(req, addScoreWeightBody),
       );
 
-      res.status(200).json({
-        success: true,
-        message: "add score weight successfully",
-        data: scoreWeight,
-      });
+      successResponse(res, scoreWeight, "add score weight successfully");
     } catch (err) {
       next(err);
     }
@@ -26,17 +30,12 @@ export default class ScoreWeightController {
 
   async getScoreWeight(req: Request, res: Response, next: NextFunction) {
     try {
-      const section_id = req.query?.section_id as string;
+      const { section_id } = validated(req, scoreWeightQuery);
 
-      const scoreWeight = await this.scoreWeightService.getScoreWeight(
-        parseInt(section_id)
-      );
+      const scoreWeight =
+        await this.scoreWeightService.getScoreWeight(section_id);
 
-      res.status(200).json({
-        success: true,
-        message: "get score weight successfully",
-        data: scoreWeight,
-      });
+      successResponse(res, scoreWeight, "get score weight successfully");
     } catch (err) {
       next(err);
     }
@@ -45,14 +44,10 @@ export default class ScoreWeightController {
   async updateScoreWeight(req: Request, res: Response, next: NextFunction) {
     try {
       const scoreWeight = await this.scoreWeightService.updateScoreWeight(
-        req.body
+        validated(req, updateScoreWeightBody),
       );
 
-      res.status(200).json({
-        success: true,
-        message: "update score weight successfully",
-        data: scoreWeight,
-      });
+      successResponse(res, scoreWeight, "update score weight successfully");
     } catch (err) {
       next(err);
     }
@@ -60,17 +55,12 @@ export default class ScoreWeightController {
 
   async deleteScoreWeight(req: Request, res: Response, next: NextFunction) {
     try {
-      const scoreId = req.query?.scoreId as string;
+      const { scoreId } = validated(req, deleteScoreWeightQuery);
 
-      const scoreWeight = await this.scoreWeightService.deleteScoreWeight(
-        parseInt(scoreId)
-      );
+      const scoreWeight =
+        await this.scoreWeightService.deleteScoreWeight(scoreId);
 
-      res.status(200).json({
-        success: true,
-        message: "update score weight successfully",
-        data: scoreWeight,
-      });
+      successResponse(res, scoreWeight, "delete score weight successfully");
     } catch (err) {
       next(err);
     }
@@ -80,17 +70,16 @@ export default class ScoreWeightController {
 
   async getScoreWeightOptions(req: Request, res: Response, next: NextFunction) {
     try {
-      const section_id = req.query?.section_id as string;
+      const { section_id } = validated(req, scoreWeightQuery);
 
-      const scoreWeight = await this.scoreWeightService.getScoreWeightOptions(
-        parseInt(section_id)
+      const scoreWeight =
+        await this.scoreWeightService.getScoreWeightOptions(section_id);
+
+      successResponse(
+        res,
+        scoreWeight,
+        "get score weight options successfully",
       );
-
-      res.status(200).json({
-        success: true,
-        message: "get score weight options successfully",
-        data: scoreWeight,
-      });
     } catch (err) {
       next(err);
     }

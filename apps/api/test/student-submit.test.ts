@@ -244,7 +244,10 @@ describe("POST /student/submit/activity", () => {
     expect(objects).toHaveLength(1);
   });
 
-  it("answers 500 for a group with nobody who accepted", async () => {
+  it("answers 400 for a group with nobody who accepted", async () => {
+    // Nobody has answered the invite yet, so there is no group to submit for.
+    // That is the caller's state, not the server's, and it used to be a 500
+    // with an English sentence the frontend rendered as-is.
     const leader = await createStudent();
     const course = await createCourse();
     const activity = await createActivity({ section_id: course.section_id });
@@ -263,8 +266,10 @@ describe("POST /student/submit/activity", () => {
       .field("type", "GROUP")
       .field("group_id", String(group.id));
 
-    expect(response.status).toBe(500);
-    expect(response.body.message).toBe("Group has no accepted members");
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe(
+      "ยังไม่มีสมาชิกที่ตอบรับคำเชิญในกลุ่มนี้",
+    );
     expect(
       (await prisma.student_activity.findUniqueOrThrow({
         where: { id: membership.student_activity_id! },
@@ -272,7 +277,7 @@ describe("POST /student/submit/activity", () => {
     ).toBe("NOT_SUBMITTED");
   });
 
-  it("answers 500 for a student_activity_id that belongs to no submission", async () => {
+  it("answers 404 for a student_activity_id that belongs to no submission", async () => {
     const student = await createStudent();
     const course = await createCourse();
 
@@ -284,8 +289,8 @@ describe("POST /student/submit/activity", () => {
       .field("activity_id", "999999")
       .field("type", "INDIVIDUAL");
 
-    expect(response.status).toBe(500);
-    expect(response.body.message).toBe("Student activity not found");
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("ไม่พบงานที่ต้องการส่ง");
   });
 
   it("submits somebody else's work when handed their submission id", async () => {
@@ -319,6 +324,76 @@ describe("POST /student/submit/activity", () => {
     ).toBe("SUBMITTED");
   });
 
+  it("answers 400 for a group submission that names no group", async () => {
+    // `where: { group_id: undefined }` is no filter at all, so this request used
+    // to succeed by writing to every group in the system: every accepted
+    // member's submission marked SUBMITTED, all of them linked to this one
+    // upload, and the object stored under `group-undefined`.
+    const leader = await createStudent();
+    const course = await createCourse();
+    const activity = await createActivity({ section_id: course.section_id });
+    const group = await createActivityGroup({
+      activity_id: activity.id,
+      members: [{ student_id: leader.student_id, status: "ACCEPT" }],
+    });
+    const membership = group.student_activity_group_member[0];
+
+    const response = await request(app)
+      .post("/student/submit/activity")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .field("student_activity_id", String(membership.student_activity_id))
+      .field("section_id", String(course.section_id))
+      .field("activity_id", String(activity.id))
+      .field("type", "GROUP");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "group_id",
+        location: "body",
+        message: "ต้องระบุเมื่อส่งงานแบบกลุ่ม",
+      },
+    ]);
+    expect(
+      (await prisma.student_activity.findUniqueOrThrow({
+        where: { id: membership.student_activity_id! },
+      })).status,
+    ).toBe("NOT_SUBMITTED");
+  });
+
+  it("answers 400 for a urls field that is not JSON", async () => {
+    // The controller used to hand this straight to JSON.parse inside its try
+    // block, so a form field the student never typed became a 500 about a
+    // syntax error at position 0.
+    const student = await createStudent();
+    const course = await createCourse();
+    const activity = await createActivity({ section_id: course.section_id });
+    const submission = await createSubmission({
+      student_id: student.student_id,
+      activity_id: activity.id,
+      status: "NOT_SUBMITTED",
+    });
+
+    const response = await request(app)
+      .post("/student/submit/activity")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .field("student_activity_id", String(submission.id))
+      .field("section_id", String(course.section_id))
+      .field("activity_id", String(activity.id))
+      .field("type", "INDIVIDUAL")
+      .field("urls", "ไม่ใช่ JSON");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "urls", location: "body", message: "ต้องเป็นรายการ" },
+    ]);
+    expect(
+      (await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      })).status,
+    ).toBe("NOT_SUBMITTED");
+  });
+
   it("refuses a request with no session", async () => {
     const submission = await createSubmission({ status: "NOT_SUBMITTED" });
 
@@ -329,6 +404,7 @@ describe("POST /student/submit/activity", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
     expect(
@@ -356,6 +432,7 @@ describe("POST /student/submit/activity", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
     });
     expect(await listStoredObjects()).toEqual(before);
@@ -482,7 +559,7 @@ describe("POST /student/submit/learning-activity", () => {
     expect(objects).toHaveLength(1);
   });
 
-  it("answers 500 for an id that belongs to no submission", async () => {
+  it("answers 404 for an id that belongs to no submission", async () => {
     const student = await createStudent();
     const course = await createCourse();
 
@@ -494,8 +571,46 @@ describe("POST /student/submit/learning-activity", () => {
       .field("learning_activity_id", "999999")
       .field("type", "INDIVIDUAL");
 
-    expect(response.status).toBe(500);
-    expect(response.body.message).toBe("student_learning_activity not found");
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("ไม่พบงานที่ต้องการส่ง");
+  });
+
+  it("answers 400 for a type the endpoint does not have", async () => {
+    // The column behind this is a plain VarChar, and the controller reads
+    // anything that is not INDIVIDUAL as GROUP — so a misspelling used to take
+    // the group path with no group behind it.
+    const student = await createStudent();
+    const course = await createCourse();
+    const learningActivity = await createLearningActivity({
+      section_id: course.section_id,
+    });
+    const submission = await createLearningSubmission({
+      student_id: student.student_id,
+      learning_activity_id: learningActivity.id,
+      status: "NOT_SUBMITTED",
+    });
+
+    const response = await request(app)
+      .post("/student/submit/learning-activity")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .field("student_learning_activity_id", String(submission.id))
+      .field("section_id", String(course.section_id))
+      .field("learning_activity_id", String(learningActivity.id))
+      .field("type", "SOLO");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "type",
+        location: "body",
+        message: "ต้องเป็นค่าใดค่าหนึ่งใน: INDIVIDUAL, GROUP",
+      },
+    ]);
+    expect(
+      (await prisma.student_learning_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      })).status,
+    ).toBe("NOT_SUBMITTED");
   });
 
   it("refuses a request with no session", async () => {
@@ -530,6 +645,7 @@ describe("POST /student/submit/learning-activity", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
     });
   });

@@ -1,6 +1,19 @@
 import { NextFunction, Request, Response } from "express";
+import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
+import { HttpError } from "../utils/http-error";
 import PortfolioCertificateService from "../services/portfolio-certificate.service";
+import {
+  createPortfolioCertificateBody,
+  updatePortfolioCertificateBody,
+} from "../validation/portfolio-sections.schema";
+import {
+  portfolioEntryParams,
+  portfolioOwnerQuery,
+} from "../validation/portfolio.schema";
+import { validated } from "../validation/validate";
+
+const NOT_FOUND = () => new HttpError(404, "ไม่พบเกียรติบัตรที่ต้องการ");
 
 export default class PortfolioCertificateController {
   private readonly portfolioCertificateService: PortfolioCertificateService;
@@ -15,24 +28,14 @@ export default class PortfolioCertificateController {
     next: NextFunction,
   ) {
     try {
-      const userId = req.query.user_id as string;
-      if (!userId) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
+      const { user_id } = validated(req, portfolioOwnerQuery);
 
       const result =
         await this.portfolioCertificateService.getAllPortfolioCertificate(
-          userId,
+          user_id,
         );
 
-      successResponse(
-        res,
-        result,
-        "Fetched portfolio certificate successfully",
-      );
+      successResponse(res, result, "Fetched portfolio certificate successfully");
     } catch (err) {
       next(err);
     }
@@ -44,29 +47,16 @@ export default class PortfolioCertificateController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       const result =
         await this.portfolioCertificateService.getPortfolioCertificateById(id);
 
       if (!result) {
-        return res.status(404).json({
-          success: false,
-          message: "Portfolio certificate not found",
-        });
+        throw NOT_FOUND();
       }
 
-      successResponse(
-        res,
-        result,
-        "Fetched portfolio certificate successfully",
-      );
+      successResponse(res, result, "Fetched portfolio certificate successfully");
     } catch (err) {
       next(err);
     }
@@ -78,19 +68,11 @@ export default class PortfolioCertificateController {
     next: NextFunction,
   ) {
     try {
-      const { user_id, ...data } = req.body;
-      const files = req.files as Express.Multer.File[];
-
-      if (!user_id) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
-
-      // Handle boolean conversion from FormData if necessary (FormData sends "true"/"false" strings)
-      if (data.is_show === "true") data.is_show = true;
-      if (data.is_show === "false") data.is_show = false;
+      const { user_id, ...data } = validated(
+        req,
+        createPortfolioCertificateBody,
+      );
+      const files = uploadedFiles(req);
 
       const result =
         await this.portfolioCertificateService.createPortfolioCertificate(
@@ -116,20 +98,9 @@ export default class PortfolioCertificateController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
-
-      const data = req.body;
-      const files = req.files as Express.Multer.File[];
-
-      // Handle conversions
-      if (data.is_show === "true") data.is_show = true;
-      if (data.is_show === "false") data.is_show = false;
+      const { id } = validated(req, portfolioEntryParams);
+      const data = validated(req, updatePortfolioCertificateBody);
+      const files = uploadedFiles(req);
 
       const result =
         await this.portfolioCertificateService.updatePortfolioCertificate(
@@ -138,11 +109,7 @@ export default class PortfolioCertificateController {
           files,
         );
 
-      successResponse(
-        res,
-        result,
-        "Updated portfolio certificate successfully",
-      );
+      successResponse(res, result, "Updated portfolio certificate successfully");
     } catch (err) {
       next(err);
     }
@@ -154,13 +121,7 @@ export default class PortfolioCertificateController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       await this.portfolioCertificateService.deletePortfolioCertificate(id);
 

@@ -156,6 +156,7 @@ describe("POST /student-learning-activity-group", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
     expect(
@@ -179,6 +180,7 @@ describe("POST /student-learning-activity-group", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
     });
     expect(
@@ -188,7 +190,7 @@ describe("POST /student-learning-activity-group", () => {
     ).toBe(0);
   });
 
-  it("refuses a request with no member list", async () => {
+  it("answers 400 for a request with no member list", async () => {
     const { learningActivity, students } = await classWithStudents(1);
 
     const response = await request(app)
@@ -196,7 +198,10 @@ describe("POST /student-learning-activity-group", () => {
       .set("Cookie", sessionCookie({ userId: students[0].student_id }))
       .send({ learning_activity_id: learningActivity.id });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "members", location: "body", message: "ต้องระบุ" },
+    ]);
     expect(
       await prisma.student_learning_activity_group.count({
         where: { learning_activity_id: learningActivity.id },
@@ -434,17 +439,19 @@ describe("GET /student-learning-activity-group", () => {
     expect(response.body.data).toBeNull();
   });
 
-  it("answers 500 when the learning_activity_id is missing", async () => {
-    // parseInt(undefined) is NaN, which Prisma sends as null, and the column is
-    // NOT NULL — so the query is rejected rather than matching nothing. #20
-    // turns this into a 400, here and everywhere else it happens.
+  it("answers 400 when the learning_activity_id is missing", async () => {
+    // parseInt(undefined) was NaN, which Prisma sends as null, and the column
+    // is NOT NULL — so the query was rejected rather than matching nothing.
     const student = await createStudent();
 
     const response = await request(app)
       .get("/student-learning-activity-group")
       .query({ student_id: student.student_id });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "learning_activity_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });
 
@@ -527,11 +534,10 @@ describe("GET /student-learning-activity-group/all", () => {
     expect(response.body.data).toEqual([]);
   });
 
-  it("shows every group in the section when the student_id is missing", async () => {
-    // Recorded, not endorsed, and the same on both sides: `some: { student_id:
-    // undefined }` is no filter at all rather than a filter matching nothing,
-    // so dropping the parameter widens the answer from "my groups" to
-    // "everyone's". #26 makes this a 400.
+  it("answers 400 when the student_id is missing", async () => {
+    // The same on both sides: `some: { student_id: undefined }` is no filter at
+    // all rather than a filter matching nothing, so dropping the parameter
+    // widened the answer from "my groups" to everyone's (#26).
     const { course, learningActivity, students } = await classWithStudents(2);
     await createLearningActivityGroup({
       learning_activity_id: learningActivity.id,
@@ -545,8 +551,10 @@ describe("GET /student-learning-activity-group/all", () => {
       .get("/student-learning-activity-group/all")
       .query({ section_id: course.section_id });
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toHaveLength(1);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "student_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });
 
@@ -646,15 +654,18 @@ describe("GET /student-learning-activity-group/without-group", () => {
     expect(response.body.data).toEqual([]);
   });
 
-  it("answers 500 when the section_id is missing", async () => {
-    // student_course.section_id is NOT NULL, so the NaN parseInt produces is
-    // rejected rather than matching nothing. #20 turns this into a 400.
+  it("answers 400 when the section_id is missing", async () => {
+    // student_course.section_id is NOT NULL, so the NaN parseInt produced was
+    // rejected by Postgres rather than matching nothing.
     const { learningActivity } = await classWithStudents(1);
 
     const response = await request(app)
       .get("/student-learning-activity-group/without-group")
       .query({ learning_activity_id: learningActivity.id });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });

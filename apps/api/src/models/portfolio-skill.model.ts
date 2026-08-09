@@ -1,51 +1,28 @@
-export type AssignWorkToSkillsReqBody = {
-  user_id: string;
-  student_activity_id: number;
-  skill_ids: number[];
-  repository?: string;
-  role_and_resp?: string;
-  init_expect?: string;
-  reflection?: string;
-  isShowRepo?: boolean;
-  isShowRole?: boolean;
-  isShowInit?: boolean;
-  isShowReflec?: boolean;
-};
+import type {
+  AssignWorkToSkillsFields,
+  CreatePortfolioSkillFields,
+  SkillMappingFields,
+  UpdatePortfolioSkillFields,
+} from "../validation/portfolio-skill.schema";
 
-export type SkillMappingReqBody = {
-  student_activity_id: number;
-  repository?: string;
-  role_and_resp?: string;
-  init_expect?: string;
-  reflection?: string;
-  isShowRepo?: boolean;
-  isShowRole?: boolean;
-  isShowInit?: boolean;
-  isShowReflec?: boolean;
-};
+export type AssignWorkToSkillsReqBody = AssignWorkToSkillsFields;
 
-export type CreatePortfolioSkillReqBody = {
-  name?: string;
-  mappings?: SkillMappingReqBody[];
-};
+export type SkillMappingReqBody = SkillMappingFields;
 
-export type UpdateSkillMappingReqBody = {
-  id: number; // mapping row id to update
-  student_activity_id?: number;
-  repository?: string;
-  role_and_resp?: string;
-  init_expect?: string;
-  reflection?: string;
-  isShowRepo?: boolean;
-  isShowRole?: boolean;
-  isShowInit?: boolean;
-  isShowReflec?: boolean;
-};
+export type CreatePortfolioSkillReqBody = Omit<
+  CreatePortfolioSkillFields,
+  "user_id"
+>;
 
-export type UpdatePortfolioSkillReqBody = {
-  name?: string;
-  mappings?: UpdateSkillMappingReqBody[];
-};
+/**
+ * The update takes the same mapping shape as the create.
+ *
+ * It used to declare a row `id` and an optional `student_activity_id`, as if it
+ * edited the rows in place. It never has: the handler deletes this skill's
+ * mappings and writes the list again, so an `id` would be ignored and a mapping
+ * with no work behind it would be a row pointing at submission `undefined`.
+ */
+export type UpdatePortfolioSkillReqBody = UpdatePortfolioSkillFields;
 
 export type SkillMappingResp = {
   id: number;

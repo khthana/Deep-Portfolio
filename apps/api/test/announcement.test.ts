@@ -112,14 +112,17 @@ describe("GET /announcement", () => {
     ).toEqual([mine.announcement_id]);
   });
 
-  it("fails when section_id is missing", async () => {
-    // section_id is a required column here, so the NaN parseInt produces is a
-    // Prisma validation error rather than the empty list the nullable columns
-    // elsewhere give back. Recorded, not endorsed: request validation is issue
-    // #20.
+  it("answers 400 when section_id is missing", async () => {
     const response = await request(app).get("/announcement");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: section_id ต้องระบุ",
+      errors: [
+        { field: "section_id", location: "query", message: "ต้องระบุ" },
+      ],
+    });
   });
 });
 
@@ -129,6 +132,7 @@ describe("POST /announcement", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -148,6 +152,7 @@ describe("POST /announcement", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
     expect(
@@ -361,10 +366,7 @@ describe("POST /announcement", () => {
     ).toBe(0);
   });
 
-  it("fails when the request leaves out all_section", async () => {
-    // Recorded, not endorsed: the controller parses the field as JSON without
-    // checking it is there, so a missing one throws before anything is
-    // written. Request validation is issue #20.
+  it("answers 400 when the request leaves out all_section", async () => {
     const teacher = await createTeacher();
     const course = await createCourse({ teacher_id: teacher.user_id });
 
@@ -376,12 +378,74 @@ describe("POST /announcement", () => {
       .field("created_by", teacher.user_id)
       .field("section_id", String(course.section_id));
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "all_section", location: "body", message: "ต้องระบุ" },
+    ]);
     expect(
       await prisma.announcements.count({
         where: { section_id: course.section_id },
       }),
     ).toBe(0);
+  });
+
+  it("answers 400 for content that is not JSON, and uploads nothing", async () => {
+    // The field used to go to JSON.parse inside the controller's try block, so
+    // a caller who sent plain text got a 500 quoting a position in a string
+    // they had never seen. The files are the reason this matters: multer has
+    // already read them by the time the body is looked at, and the request must
+    // be turned away before any of them reach the bucket.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const storedBefore = await listStoredObjects(UPLOAD_FOLDER);
+
+    const response = await request(app)
+      .post("/announcement")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("title", "ประกาศเนื้อหาไม่ใช่ JSON")
+      .field("content", "ไม่ใช่ JSON")
+      .field("created_by", teacher.user_id)
+      .field("section_id", String(course.section_id))
+      .field("all_section", "false")
+      .attach("files", PDF, "worksheet.pdf");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "content",
+        location: "body",
+        message: "รูปแบบไม่ถูกต้อง",
+      },
+    ]);
+    expect(
+      await prisma.announcements.count({
+        where: { section_id: course.section_id },
+      }),
+    ).toBe(0);
+    expect(await listStoredObjects(UPLOAD_FOLDER)).toEqual(storedBefore);
+  });
+
+  it("answers 400 when all_section is neither true nor false", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .post("/announcement")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("title", "ประกาศ")
+      .field("content", JSON.stringify({ text: "เนื้อหา" }))
+      .field("created_by", teacher.user_id)
+      .field("section_id", String(course.section_id))
+      .field("all_section", "yes");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "all_section",
+        location: "body",
+        message: "ต้องเป็นค่า true หรือ false",
+      },
+    ]);
   });
 });
 

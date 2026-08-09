@@ -67,7 +67,63 @@ describe("GET /files", () => {
       .query({ path: "definitely-not-uploaded.txt" });
 
     expect(response.status).toBe(404);
-    expect(response.body).toEqual({ message: "File not found" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบไฟล์ที่ต้องการ",
+    });
+  });
+
+  it("answers 400 when no path is asked for", async () => {
+    const response = await request(app).get("/files");
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: path ต้องระบุ",
+      errors: [{ field: "path", location: "query", message: "ต้องระบุ" }],
+    });
+  });
+});
+
+describe("GET /uploads/:filename", () => {
+  it("refuses a filename that climbs out of the uploads directory", async () => {
+    // Express matches ":filename" against the encoded path, so the segment
+    // cannot contain a slash — but it decodes the match before the handler
+    // sees it, and the decoded name went straight to path.resolve.
+    const response = await request(app).get("/uploads/..%2f..%2fpackage.json");
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: filename ต้องเป็นชื่อไฟล์ ไม่ใช่เส้นทาง",
+      errors: [
+        {
+          field: "filename",
+          location: "params",
+          message: "ต้องเป็นชื่อไฟล์ ไม่ใช่เส้นทาง",
+        },
+      ],
+    });
+  });
+});
+
+describe("the error handler", () => {
+  it("refuses a body that is not JSON without quoting it back", async () => {
+    // express.json() rejects this before any route or schema is reached, and
+    // attaches a 400 of its own. The status is worth keeping — the request is
+    // what is wrong, not the server — but the message it comes with is an
+    // English sentence quoting the bytes it choked on, and the frontend prints
+    // `message` as-is. So the status is taken from it and the wording is not.
+    const response = await request(app)
+      .post("/auth/google")
+      .set("Content-Type", "application/json")
+      .send('{"credential": "secret-token"');
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง",
+    });
   });
 });
 

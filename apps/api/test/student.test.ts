@@ -100,13 +100,15 @@ describe("GET /student/list", () => {
     ).toEqual([mine.student_id]);
   });
 
-  it("answers 500 when the section_id is missing", async () => {
-    // parseInt(undefined) is NaN, which Prisma sends as null against a NOT NULL
-    // column. Recorded for #12 and #13; #20 turns it into a 400.
+  it("answers 400 when the section_id is missing", async () => {
+    // parseInt(undefined) was NaN, which Prisma sends as null against a NOT
+    // NULL column — a 500 about a section the caller never named.
     const response = await request(app).get("/student/list");
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 
   it("serves a request with no session", async () => {
@@ -201,6 +203,7 @@ describe("GET /student/course/list", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -215,8 +218,40 @@ describe("GET /student/course/list", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
     });
+  });
+
+  it("answers 400 for a request that names no term", async () => {
+    // Both halves of the term are required rather than defaulted to the current
+    // one: the endpoint has no idea which term is current, and parseInt(
+    // undefined) put a NaN semester into the filter, which matches nothing.
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/student/course/list")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "semester", location: "query", message: "ต้องระบุ" },
+      { field: "academic_year", location: "query", message: "ต้องระบุ" },
+    ]);
+  });
+
+  it("answers 400 for a semester that is not a number", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/student/course/list")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ ...TERM, semester: "เทอมต้น" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "semester", location: "query", message: "ต้องเป็นตัวเลข" },
+    ]);
   });
 });
 
@@ -372,6 +407,19 @@ describe("GET /student/classwork/list", () => {
 
     expect(response.status).toBe(403);
   });
+
+  it("answers 400 for a request with no section_id", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/student/classwork/list")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
+  });
 });
 
 describe("GET /student/all/classwork/list", () => {
@@ -493,6 +541,20 @@ describe("GET /student/all/classwork/list", () => {
 
     expect(response.status).toBe(403);
   });
+
+  it("answers 400 for a request that names no term", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/student/all/classwork/list")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "semester", location: "query", message: "ต้องระบุ" },
+      { field: "academic_year", location: "query", message: "ต้องระบุ" },
+    ]);
+  });
 });
 
 describe("GET /student/enrolled/subjects", () => {
@@ -555,36 +617,40 @@ describe("GET /student/enrolled/subjects", () => {
     expect(response.body.data).toHaveLength(1);
   });
 
-  it("returns every enrolment in the system when no student_id is sent", async () => {
+  it("answers 400 when no student_id is sent", async () => {
     // `where: { student_id: undefined }` in a findMany is not an error the way
     // it is in a findUnique — it means "do not filter", so leaving the
-    // parameter off hands back everybody's timetable rather than nobody's.
-    // Same shape as GET /rubric/shared-rubric without a program_id, recorded
-    // for #13; this endpoint has no session to fall back on either. #20.
+    // parameter off used to hand back everybody's timetable rather than
+    // nobody's. Same shape as GET /rubric/shared-rubric without a program_id.
     const classmate = await createStudent();
-    const course = await enrolledCourse(classmate.student_id);
+    await enrolledCourse(classmate.student_id);
 
     const response = await request(app).get("/student/enrolled/subjects");
 
-    expect(response.status).toBe(200);
-    expect(
-      response.body.data.map((s: { section_id: number }) => s.section_id),
-    ).toContain(course.section_id);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "student_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 
-  it("answers 500 when student_id is sent twice", async () => {
+  it("answers 400 when student_id is sent twice", async () => {
     // Express parses a repeated query parameter into an array, and an array is
-    // not something Prisma will compare a String column against. The only
-    // failing case this endpoint has: everything else it is given, including
-    // nothing at all, it answers.
+    // not something Prisma will compare a String column against — so this used
+    // to be a 500 about a type mismatch deep in a query.
     const student = await createStudent();
 
     const response = await request(app)
       .get("/student/enrolled/subjects")
       .query({ student_id: [student.student_id, "65000099"] });
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "student_id",
+        location: "query",
+        message: "ต้องเป็นข้อความ",
+      },
+    ]);
   });
 });
 
@@ -661,11 +727,11 @@ describe("GET /student/activities/list", () => {
     ]);
   });
 
-  it("returns an empty list when the section_id is missing", async () => {
+  it("answers 400 when the section_id is missing", async () => {
     // A NaN in a findMany filter is only ever compared, never written, so
-    // Prisma answers it rather than rejecting it — no section has that id, so
-    // the caller gets 200 and nothing. The two sibling endpoints above answer
-    // the same mistake with a 500, because theirs reaches a NOT NULL column.
+    // Prisma used to answer it rather than reject it: the caller got 200 and an
+    // empty list, which reads as "this section has no work in it" for a section
+    // they never named.
     const student = await createStudent();
     await createActivity();
 
@@ -673,23 +739,30 @@ describe("GET /student/activities/list", () => {
       .get("/student/activities/list")
       .query({ student_id: student.student_id });
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 
-  it("answers 500 for a section_id larger than an Int", async () => {
-    // A number Prisma cannot narrow to the column's type is rejected before it
-    // reaches Postgres, where NaN was not. The same trick #15 needed to give
-    // GET /gradebook/per-activity a failing case, and for the same reason: an
-    // endpoint that only ever compares can otherwise be handed anything.
+  it("answers 400 for a section_id larger than an Int", async () => {
+    // A number Prisma cannot narrow to the column's type used to be rejected
+    // deep in the query, where NaN was not — so the same wrong parameter got a
+    // 200 or a 500 depending on how wrong it was.
     const student = await createStudent();
 
     const response = await request(app)
       .get("/student/activities/list")
       .query({ section_id: "99999999999", student_id: student.student_id });
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "section_id",
+        location: "query",
+        message: "ต้องไม่เกิน 2147483647",
+      },
+    ]);
   });
 });
 
@@ -743,19 +816,25 @@ describe("GET /student/activities/details/:student_activity_id", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      message: "Student activity not found",
+      message: "ไม่พบงานที่ต้องการ",
     });
   });
 
-  it("answers 500 for an id that is not a number", async () => {
+  it("answers 400 for an id that is not a number", async () => {
     // parseInt("abc") is NaN, and findUnique will not take one — unlike the
     // findMany above, a unique lookup rejects it outright. So the caller who
-    // mistypes a URL is told the server broke rather than that the id is
-    // wrong; #20 turns this into a 400.
+    // mistyped a URL used to be told the server broke rather than that the id
+    // is wrong.
     const response = await request(app).get("/student/activities/details/abc");
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "student_activity_id",
+        location: "params",
+        message: "ต้องเป็นตัวเลข",
+      },
+    ]);
   });
 
   it("answers about anybody's submission, with no session", async () => {

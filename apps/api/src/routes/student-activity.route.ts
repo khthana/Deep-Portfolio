@@ -1,7 +1,12 @@
 import { Router } from "express";
-import CourseController from "../controllers/course.controller";
 import StudentActivityController from "../controllers/student-activity.controller";
 import { requireRole } from "../middlewares/auth.middleware";
+import { validate } from "../validation/validate";
+import {
+  bookmarkStudentActivityBody,
+  gradeStudentActivityBody,
+  studentActivityAttachmentsQuery,
+} from "../validation/student-activity.schema";
 
 const studentActivityRouter = Router();
 const studentActivityController = new StudentActivityController();
@@ -9,7 +14,7 @@ const studentActivityController = new StudentActivityController();
 studentActivityRouter.post(
   "/grade",
   requireRole("TEACHER"),
-
+  validate({ body: gradeStudentActivityBody }),
   studentActivityController.gradeStudentActivity.bind(
     studentActivityController,
   ),
@@ -18,7 +23,7 @@ studentActivityRouter.post(
 studentActivityRouter.patch(
   "/bookmark",
   requireRole("TEACHER"),
-
+  validate({ body: bookmarkStudentActivityBody }),
   studentActivityController.addStudentActivityToBookmark.bind(
     studentActivityController,
   ),
@@ -26,6 +31,7 @@ studentActivityRouter.patch(
 
 studentActivityRouter.get(
   "/attachments",
+  validate({ query: studentActivityAttachmentsQuery }),
   studentActivityController.getStudentActivityAttachments.bind(
     studentActivityController,
   ),

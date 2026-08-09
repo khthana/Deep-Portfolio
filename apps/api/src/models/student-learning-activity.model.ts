@@ -88,16 +88,9 @@ export type Submission = {
 
 //-------------------------------
 
-export type GradeStudentLearningActivityData = {
-  activity_type: ClassworkType;
-  student_learning_activity_id: number;
-  feedback: string;
-  remark: string;
-};
-
-export type AddStudentLearningActivityToBookmark = {
-  student_learning_activity_id: number;
-  is_bookmark: boolean;
-};
+export type {
+  GradeStudentLearningActivityBody as GradeStudentLearningActivityData,
+  BookmarkStudentLearningActivityBody as AddStudentLearningActivityToBookmark,
+} from "../validation/student-learning-activity.schema";
 
 //-------------------------------

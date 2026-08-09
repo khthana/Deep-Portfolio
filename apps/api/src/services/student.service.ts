@@ -22,6 +22,25 @@ import { checkIsOverAnnouncementDate } from "../utils/check-announcement-date";
 import { GetStudentActivityDetailResp } from "../models/student-activity.model";
 import { GetLearningActivityDetailResp } from "../models/learning-activity.model";
 import { GetStudentLearningActivityDetailResp } from "../models/student-learning-activity.model";
+import { HttpError } from "../utils/http-error";
+
+/**
+ * The four ways handing work in can fail on something the caller named.
+ *
+ * All four used to be a bare `Error`, which the middleware answers with a 500
+ * and — now that it forwards a message only when a status says the message was
+ * meant for the caller — with "เกิดข้อผิดพลาดภายในระบบ". None of them is the
+ * server breaking: the submission id names nothing, or the group does. Written
+ * once each because both halves of the endpoint pair raise the same two.
+ */
+const SUBMISSION_NOT_FOUND = () =>
+  new HttpError(404, "ไม่พบงานที่ต้องการส่ง");
+
+const GROUP_HAS_NO_MEMBERS = () =>
+  new HttpError(400, "ยังไม่มีสมาชิกที่ตอบรับคำเชิญในกลุ่มนี้");
+
+const GROUP_HAS_NO_SUBMISSIONS = () =>
+  new HttpError(404, "ไม่พบงานของสมาชิกในกลุ่ม");
 
 export default class StudentService {
   private readonly courseService: CourseService;
@@ -191,7 +210,7 @@ export default class StudentService {
       });
 
       if (!activity) {
-        throw new Error("Student activity not found");
+        throw SUBMISSION_NOT_FOUND();
       }
 
       // 2. ถ้าเคย submit แล้ว → ลบงานเดิม
@@ -257,7 +276,7 @@ export default class StudentService {
       });
 
       if (members.length === 0) {
-        throw new Error("Group has no accepted members");
+        throw GROUP_HAS_NO_MEMBERS();
       }
 
       const studentIds = members.map((m) => m.student_id);
@@ -274,7 +293,7 @@ export default class StudentService {
       });
 
       if (activities.length === 0) {
-        throw new Error("Student activities not found");
+        throw GROUP_HAS_NO_SUBMISSIONS();
       }
 
       // 3. ลบ attachment เดิม (ถ้าเคย submit)
@@ -356,7 +375,7 @@ export default class StudentService {
       });
 
       if (!existingActivity) {
-        throw new Error("student_learning_activity not found");
+        throw SUBMISSION_NOT_FOUND();
       }
 
       // if (existingActivity.status === "SUBMITTED") {
@@ -416,7 +435,7 @@ export default class StudentService {
       });
 
       if (members.length === 0) {
-        throw new Error("Group has no accepted members");
+        throw GROUP_HAS_NO_MEMBERS();
       }
 
       const studentIds = members.map((m) => m.student_id);
@@ -433,7 +452,7 @@ export default class StudentService {
       });
 
       if (activities.length === 0) {
-        throw new Error("Student activities not found");
+        throw GROUP_HAS_NO_SUBMISSIONS();
       }
 
       // 3. ลบ attachment เดิม (ถ้าเคย submit)

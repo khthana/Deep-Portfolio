@@ -396,6 +396,8 @@ port ฝั่ง host ทุกตัวเป็นตัวแปร (`WEB_PO
 
 ไม่แตะ `student.service.ts` (930 บรรทัด) และ `student-activity.service.ts` (700 บรรทัด) ในเชิงโครงสร้าง
 
+*#20 เพิ่มโฟลเดอร์เดียวนอกโครงนี้คือ `apps/api/src/validation/` ซึ่งเก็บ schema ของแต่ละกลุ่ม endpoint กับ middleware ที่เรียกใช้ — ไม่ใช่ layer ใหม่ในทางไหล่ของ request เพราะไม่มีใครเรียกต่อจากมัน แต่เป็นที่เก็บ schema ที่ทั้ง route (ตอนตรวจ) และ controller (ตอนอ่านค่าที่ตรวจแล้ว) อ้างถึงร่วมกัน วางแยกเพราะถ้าอยู่ใน `models/` จะปนกับ type alias ที่ D10 เพิ่งแยกออกมาให้ชัด*
+
 ### D11 — โครงสร้าง Frontend
 
 **คงโครงเดิมทั้งหมด** โครงสร้าง feature-based ที่แยกตามบทบาท (`features/student/*`, `features/teacher/*`, `features/shared/*`) โดยแต่ละ feature มี `components` / `pages` / `services` / `stores` / `types` ของตัวเอง เป็นสถาปัตยกรรมที่ดีกว่าฝั่ง backend อยู่แล้ว

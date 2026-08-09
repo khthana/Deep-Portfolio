@@ -1,6 +1,15 @@
 import { NextFunction, Request, Response } from "express";
 import { successResponse } from "../utils/response";
+import { HttpError } from "../utils/http-error";
 import PortfolioPersonalService from "../services/portfolio-personal.service";
+import {
+  createPortfolioPersonalBody,
+  portfolioPersonalBody,
+  portfolioPersonalParams,
+} from "../validation/portfolio-personal.schema";
+import { validated } from "../validation/validate";
+
+const NOT_FOUND = () => new HttpError(404, "ไม่พบข้อมูลส่วนตัวของผู้ใช้รายนี้");
 
 export default class PortfolioPersonalController {
   private readonly portfolioPersonalService: PortfolioPersonalService;
@@ -11,19 +20,17 @@ export default class PortfolioPersonalController {
 
   async getPortfolioPersonal(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.params.user_id;
+      const { user_id } = validated(req, portfolioPersonalParams);
+
       const portfolio =
-        await this.portfolioPersonalService.getPortfolioPersonal(userId);
+        await this.portfolioPersonalService.getPortfolioPersonal(user_id);
 
       // The service answers null for an unknown user and only for that — a
       // user who exists but has entered no details gets the defaults from
       // their account instead. So this is "no such user", not "nothing filled
       // in yet".
       if (!portfolio) {
-        return res.status(404).json({
-          success: false,
-          message: "Portfolio personal not found",
-        });
+        throw NOT_FOUND();
       }
 
       successResponse(
@@ -42,15 +49,8 @@ export default class PortfolioPersonalController {
     next: NextFunction,
   ) {
     try {
-      const { user_id, ...data } = req.body;
+      const { user_id, ...data } = validated(req, createPortfolioPersonalBody);
       const file = req.file;
-
-      if (!user_id) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
 
       const portfolio =
         await this.portfolioPersonalService.createPortfolioPersonal(
@@ -76,13 +76,13 @@ export default class PortfolioPersonalController {
     next: NextFunction,
   ) {
     try {
-      const userId = req.params.user_id;
-      const data = req.body;
+      const { user_id } = validated(req, portfolioPersonalParams);
+      const data = validated(req, portfolioPersonalBody);
       const file = req.file;
 
       const portfolio =
         await this.portfolioPersonalService.updatePortfolioPersonal(
-          userId,
+          user_id,
           data,
           file,
         );
@@ -103,8 +103,9 @@ export default class PortfolioPersonalController {
     next: NextFunction,
   ) {
     try {
-      const userId = req.params.user_id;
-      await this.portfolioPersonalService.deletePortfolioPersonal(userId);
+      const { user_id } = validated(req, portfolioPersonalParams);
+
+      await this.portfolioPersonalService.deletePortfolioPersonal(user_id);
 
       successResponse(res, null, "Deleted portfolio personal successfully");
     } catch (err) {
@@ -118,13 +119,13 @@ export default class PortfolioPersonalController {
     next: NextFunction,
   ) {
     try {
-      const userId = req.params.user_id;
-      const data = req.body;
+      const { user_id } = validated(req, portfolioPersonalParams);
+      const data = validated(req, portfolioPersonalBody);
       const file = req.file;
 
       const portfolio =
         await this.portfolioPersonalService.upsertPortfolioPersonal(
-          userId,
+          user_id,
           data,
           file,
         );

@@ -91,13 +91,32 @@ describe("GET /course/clo", () => {
     expect(response.body.data).toEqual([]);
   });
 
-  it("fails when section_id is missing", async () => {
-    // parseInt(undefined) is NaN and the query goes to Prisma as it is, so a
-    // caller that forgets the parameter gets a 500 rather than a 400. Recorded,
-    // not endorsed: request validation is issue #20.
+  it("answers 400 when section_id is missing", async () => {
     const response = await request(app).get("/course/clo");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: section_id ต้องระบุ",
+      errors: [
+        { field: "section_id", location: "query", message: "ต้องระบุ" },
+      ],
+    });
+  });
+
+  it("answers 400 when section_id is not a number", async () => {
+    const response = await request(app)
+      .get("/course/clo")
+      .query({ section_id: "หนึ่ง" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "section_id",
+        location: "query",
+        message: "ต้องเป็นตัวเลข",
+      },
+    ]);
   });
 });
 
@@ -107,6 +126,7 @@ describe("POST /course/clo", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -126,6 +146,7 @@ describe("POST /course/clo", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
 
@@ -458,5 +479,17 @@ describe("GET /course/plo/list", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual([]);
+  });
+
+  it("answers 400 when no programme is named", async () => {
+    // It used to answer 200 with every programme's outcomes: a findMany reads
+    // program_id: undefined as "do not filter", so leaving the parameter out
+    // widened the query instead of narrowing it. See BEHAVIOR-CHANGES.md.
+    const response = await request(app).get("/course/plo/list");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "program_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });

@@ -1,8 +1,12 @@
-import express, { NextFunction, Request, Response } from "express";
-import UserService from "../services/user.service";
-import StudentActivityService from "../services/student-activity.service";
+import { NextFunction, Request, Response } from "express";
 import StudentLearningActivityService from "../services/student-learning-activity.service";
 import { ClassworkType } from "../models/student.model";
+import { successResponse } from "../utils/response";
+import { validated } from "../validation/validate";
+import {
+  bookmarkStudentLearningActivityBody,
+  gradeStudentLearningActivityBody,
+} from "../validation/student-learning-activity.schema";
 
 export default class StudentLearningActivityController {
   private readonly studentLearningActivityService: StudentLearningActivityService;
@@ -13,20 +17,18 @@ export default class StudentLearningActivityController {
 
   async gradeStudentActivity(req: Request, res: Response, next: NextFunction) {
     try {
+      const body = validated(req, gradeStudentLearningActivityBody);
+
       const courses =
-        req.body.activity_type === ClassworkType.INDIVIDUAL
+        body.activity_type === ClassworkType.INDIVIDUAL
           ? await this.studentLearningActivityService.gradeStudentLearningActivity(
-              req.body,
+              body,
             )
           : await this.studentLearningActivityService.gradeStudentGroupLearningActivity(
-              req.body,
+              body,
             );
 
-      res.status(200).json({
-        success: true,
-        message: "Grade student successfully",
-        data: courses,
-      });
+      successResponse(res, courses, "Grade student successfully");
     } catch (err) {
       next(err);
     }
@@ -38,20 +40,18 @@ export default class StudentLearningActivityController {
     next: NextFunction,
   ) {
     try {
+      const body = validated(req, bookmarkStudentLearningActivityBody);
+
       const bookmark =
-        req.body.activity_type === ClassworkType.INDIVIDUAL
+        body.activity_type === ClassworkType.INDIVIDUAL
           ? await this.studentLearningActivityService.addStudentLearningActivityToBookmark(
-              req.body,
+              body,
             )
           : await this.studentLearningActivityService.addStudentLearningActivityGroupToBookmark(
-              req.body,
+              body,
             );
 
-      res.status(200).json({
-        success: true,
-        message: "bookmark successfully",
-        data: bookmark,
-      });
+      successResponse(res, bookmark, "bookmark successfully");
     } catch (err) {
       next(err);
     }

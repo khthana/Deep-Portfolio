@@ -23,6 +23,10 @@ type PortfolioAwardWithAttachments = NonNullable<
   Prisma.PromiseReturnType<typeof inferAward>
 >;
 
+type PortfolioAwardAttachment = NonNullable<
+  PortfolioAwardResp["attachments"]
+>[number];
+
 export default class PortfolioAwardService {
   private readonly attachmentsService: AttachmentsService;
 
@@ -45,7 +49,7 @@ export default class PortfolioAwardService {
 
     return await Promise.all(
       awards.map(async (award: PortfolioAwardWithAttachments) => {
-        let attachments: any[] = [];
+        let attachments: PortfolioAwardAttachment[] = [];
         if (award.portfolio_award_attachments.length > 0) {
           const attachmentIds = award.portfolio_award_attachments.map(
             (paa) => ({
@@ -105,7 +109,7 @@ export default class PortfolioAwardService {
 
     if (!award) return null;
 
-    let attachments: any[] = [];
+    let attachments: PortfolioAwardAttachment[] = [];
     if (award.portfolio_award_attachments.length > 0) {
       const attachmentIds = award.portfolio_award_attachments.map((paa) => ({
         attachment_id: paa.attachments.attachment_id,
@@ -151,15 +155,19 @@ export default class PortfolioAwardService {
     data: CreatePortfolioAwardReqBody,
     files: Express.Multer.File[] = [],
   ): Promise<PortfolioAwardResp> {
-    const { date, ...awardData } = data;
+    const { date, is_show, ...awardData } = data;
 
     const award = await prisma.portfolio_award.create({
       data: {
         user_id: userId,
-        date: date ? new Date(date) : null,
+        date: date ?? null,
         ...awardData,
-        is_show:
-          String(awardData.is_show) === "true" || awardData.is_show === true,
+
+        // An award created without `is_show` is hidden, which is not what the
+        // column's default says and not what the other sections do. Pinned in
+        // BEHAVIOR-CHANGES.md since #17 and kept deliberately: what a missing
+        // flag ought to mean is a decision, not a defect to fix in passing.
+        is_show: is_show === true,
       },
     });
 
@@ -190,30 +198,18 @@ export default class PortfolioAwardService {
     data: UpdatePortfolioAwardReqBody,
     files: Express.Multer.File[] = [],
   ): Promise<PortfolioAwardResp> {
-    const { ids_to_delete, date, ...updateData } = data;
+    const { ids_to_delete, ...updateData } = data;
 
     const updatedAward = await prisma.portfolio_award.update({
       where: { id },
-      data: {
-        date: date ? new Date(date) : undefined,
-        ...updateData,
-        is_show:
-          updateData.is_show === undefined
-            ? undefined
-            : String(updateData.is_show) === "true" ||
-              updateData.is_show === true,
-      },
+      data: updateData,
     });
 
     if (ids_to_delete && ids_to_delete.length > 0) {
-      const idsToDelete = Array.isArray(ids_to_delete)
-        ? ids_to_delete.map(Number)
-        : [Number(ids_to_delete)];
-
       await prisma.portfolio_award_attachments.deleteMany({
         where: {
           award_id: id,
-          attachment_id: { in: idsToDelete },
+          attachment_id: { in: ids_to_delete },
         },
       });
     }

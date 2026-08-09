@@ -40,6 +40,7 @@ describe("POST /learning-activity", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -57,6 +58,7 @@ describe("POST /learning-activity", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
     expect(
@@ -156,10 +158,9 @@ describe("POST /learning-activity", () => {
     );
   });
 
-  it("fails when the section is missing", async () => {
+  it("answers 400 when the section is missing", async () => {
     // section_id is NOT NULL here, unlike on activities, so the NaN a missing
-    // field parses to reaches Postgres as a null it will not take. Recorded,
-    // not endorsed — issue #20.
+    // field parsed to used to reach Postgres as a null it would not take.
     const teacher = await createTeacher();
 
     const response = await request(app)
@@ -168,10 +169,69 @@ describe("POST /learning-activity", () => {
       .field("learning_activity_name", "กิจกรรมไร้ห้องเรียน")
       .field("learning_activity_type", "INDIVIDUAL");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: section_id ต้องระบุ",
+      errors: [{ field: "section_id", location: "body", message: "ต้องระบุ" }],
+    });
     expect(
       await prisma.learning_activities.count({
         where: { learning_activity_name: "กิจกรรมไร้ห้องเรียน" },
+      }),
+    ).toBe(0);
+  });
+
+  it("answers 400 for a kind of work it does not have, and uploads nothing", async () => {
+    // Same plain VarChar as /activity, read back the same way, so the same two
+    // words are all it takes.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const before = await listStoredObjects(LEARNING_PREFIX);
+
+    const response = await request(app)
+      .post("/learning-activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("section_id", String(course.section_id))
+      .field("learning_activity_name", "กิจกรรมประเภทประหลาด")
+      .field("learning_activity_type", "PAIR")
+      .attach("files", PDF, "worksheet.pdf");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "learning_activity_type",
+        location: "body",
+        message: "ต้องเป็นค่าใดค่าหนึ่งใน: INDIVIDUAL, GROUP",
+      },
+    ]);
+    expect(
+      await prisma.learning_activities.count({
+        where: { learning_activity_name: "กิจกรรมประเภทประหลาด" },
+      }),
+    ).toBe(0);
+    expect(await listStoredObjects(LEARNING_PREFIX)).toEqual(before);
+  });
+
+  it("answers 400 for links that are not JSON", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .post("/learning-activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("section_id", String(course.section_id))
+      .field("learning_activity_name", "กิจกรรมลิงก์พัง")
+      .field("learning_activity_type", "INDIVIDUAL")
+      .field("urls", "ไม่ใช่ JSON");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "urls", location: "body", message: "ต้องเป็นรายการ" },
+    ]);
+    expect(
+      await prisma.learning_activities.count({
+        where: { learning_activity_name: "กิจกรรมลิงก์พัง" },
       }),
     ).toBe(0);
   });
@@ -289,6 +349,34 @@ describe("PUT /learning-activity", () => {
 
     expect(response.status).toBe(500);
   });
+
+  it("answers 400 when no activity is named", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const activity = await createLearningActivity({
+      section_id: course.section_id,
+      learning_activity_name: "ชื่อเดิม",
+    });
+
+    const response = await request(app)
+      .put("/learning-activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("section_id", String(course.section_id))
+      .field("learning_activity_name", "ชื่อใหม่")
+      .field("learning_activity_type", "INDIVIDUAL");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "learning_activity_id", location: "body", message: "ต้องระบุ" },
+    ]);
+    expect(
+      (
+        await prisma.learning_activities.findUniqueOrThrow({
+          where: { id: activity.id },
+        })
+      ).learning_activity_name,
+    ).toBe("ชื่อเดิม");
+  });
 });
 
 describe("DELETE /learning-activity", () => {
@@ -357,6 +445,23 @@ describe("DELETE /learning-activity", () => {
 
     expect(response.status).toBe(500);
   });
+
+  it("answers 400 when no activity is named, and deletes nothing", async () => {
+    const teacher = await createTeacher();
+    const activity = await createLearningActivity();
+
+    const response = await request(app)
+      .delete("/learning-activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "learning_activity_id", location: "query", message: "ต้องระบุ" },
+    ]);
+    expect(
+      await prisma.learning_activities.findUnique({ where: { id: activity.id } }),
+    ).not.toBeNull();
+  });
 });
 
 describe("GET /learning-activity", () => {
@@ -408,10 +513,21 @@ describe("GET /learning-activity", () => {
     });
   });
 
-  it("fails when learning_activity_id is missing", async () => {
+  it("answers 400 when learning_activity_id is missing", async () => {
     const response = await request(app).get("/learning-activity");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: learning_activity_id ต้องระบุ",
+      errors: [
+        {
+          field: "learning_activity_id",
+          location: "query",
+          message: "ต้องระบุ",
+        },
+      ],
+    });
   });
 });
 
@@ -457,15 +573,18 @@ describe("GET /learning-activity/list", () => {
     });
   });
 
-  it("fails when section_id is missing", async () => {
+  it("answers 400 when section_id is missing", async () => {
     // section_id is NOT NULL on this table, so the null a missing parameter
-    // turns into is not a value the column can be compared against at all.
-    // Recorded, not endorsed — issue #20.
+    // used to turn into was not a value the column could be compared against
+    // at all.
     await createLearningActivity();
 
     const response = await request(app).get("/learning-activity/list");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });
 
@@ -493,12 +612,15 @@ describe("GET /learning-activity/options", () => {
     ]);
   });
 
-  it("fails when section_id is missing", async () => {
+  it("answers 400 when section_id is missing", async () => {
     await createLearningActivity();
 
     const response = await request(app).get("/learning-activity/options");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });
 
@@ -541,6 +663,21 @@ describe("GET /learning-activity/student/detail", () => {
     expect(response.body.data).toEqual({
       submitted_files: { file: [], url: [] },
     });
+  });
+
+  it("answers 400 for a row id that is not a number", async () => {
+    const response = await request(app)
+      .get("/learning-activity/student/detail")
+      .query({ student_learning_activity_id: "abc" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "student_learning_activity_id",
+        location: "query",
+        message: "ต้องเป็นตัวเลข",
+      },
+    ]);
   });
 });
 

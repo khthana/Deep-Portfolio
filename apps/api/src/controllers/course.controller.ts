@@ -5,6 +5,17 @@ import UserService from "../services/user.service";
 import CLOService from "../services/clo.service";
 import PLOService from "../services/plo.service";
 import { sessionUserId } from "../middlewares/auth.middleware";
+import { validated } from "../validation/validate";
+import {
+  addCLOBody,
+  cloQuery,
+  courseDetailQuery,
+  createScheduleBody,
+  deleteCLOQuery,
+  ploListQuery,
+  teacherCourseListQuery,
+  updateCLOBody,
+} from "../validation/course.schema";
 
 export default class CourseController {
   private readonly courseService: CourseService;
@@ -20,15 +31,15 @@ export default class CourseController {
   async getAllCourses(req: Request, res: Response, next: NextFunction) {
     try {
       const teacher_id = sessionUserId(req);
-
-      // const teacher_id = req.query?.teacher_id as string;
-      const academic_year = req.query?.academic_year as string;
-      const semester = req.query?.semester as string;
+      const { academic_year, semester } = validated(
+        req,
+        teacherCourseListQuery,
+      );
 
       const courses = await this.courseService.getAllCourses({
         teacher_id,
         academic_year,
-        semester: parseInt(semester),
+        semester,
       });
 
       successResponse(res, courses, "Fetched courses successfully");
@@ -39,11 +50,9 @@ export default class CourseController {
 
   async getCourseDetail(req: Request, res: Response, next: NextFunction) {
     try {
-      const section_id = req.query?.section_id as string;
+      const { section_id } = validated(req, courseDetailQuery);
 
-      const course = await this.courseService.getCourseDetail(
-        parseInt(section_id),
-      );
+      const course = await this.courseService.getCourseDetail(section_id);
 
       successResponse(res, course, "Fetched course successfully");
     } catch (err) {
@@ -58,7 +67,7 @@ export default class CourseController {
   ) {
     try {
       const course = await this.courseService.createCourseSectionSchedule(
-        req.body,
+        validated(req, createScheduleBody),
       );
 
       successResponse(
@@ -75,9 +84,9 @@ export default class CourseController {
 
   async getCLO(req: Request, res: Response, next: NextFunction) {
     try {
-      const section_id = req.query?.section_id as string;
+      const { section_id } = validated(req, cloQuery);
 
-      const clo = await this.cloService.getCLO(parseInt(section_id));
+      const clo = await this.cloService.getCLO(section_id);
 
       res.status(200).json({
         success: true,
@@ -91,7 +100,7 @@ export default class CourseController {
 
   async addCLO(req: Request, res: Response, next: NextFunction) {
     try {
-      const clo = await this.cloService.addCLO(req.body);
+      const clo = await this.cloService.addCLO(validated(req, addCLOBody));
 
       res.status(200).json({
         success: true,
@@ -105,7 +114,7 @@ export default class CourseController {
 
   async updateCLO(req: Request, res: Response, next: NextFunction) {
     try {
-      const clo = await this.cloService.updateCLO(req.body);
+      const clo = await this.cloService.updateCLO(validated(req, updateCLOBody));
 
       res.status(200).json({
         success: true,
@@ -119,9 +128,9 @@ export default class CourseController {
 
   async deleteCLO(req: Request, res: Response, next: NextFunction) {
     try {
-      const clo_id = req.query?.clo_id as string;
+      const { clo_id } = validated(req, deleteCLOQuery);
 
-      const clo = await this.cloService.deleteCLO(parseInt(clo_id));
+      const clo = await this.cloService.deleteCLO(clo_id);
 
       res.status(200).json({
         success: true,
@@ -136,7 +145,7 @@ export default class CourseController {
   //--------------------------------------------------------------
   async getPLOList(req: Request, res: Response, next: NextFunction) {
     try {
-      const program_id = req.query?.program_id as string;
+      const { program_id } = validated(req, ploListQuery);
 
       const plo = await this.ploService.getPLOList(program_id);
 

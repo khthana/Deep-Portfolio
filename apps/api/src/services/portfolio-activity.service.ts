@@ -23,6 +23,10 @@ type PortfolioActivityWithAttachments = NonNullable<
   Prisma.PromiseReturnType<typeof inferActivity>
 >;
 
+type PortfolioActivityAttachment = NonNullable<
+  PortfolioActivityResp["attachments"]
+>[number];
+
 export default class PortfolioActivityService {
   private readonly attachmentsService: AttachmentsService;
 
@@ -47,7 +51,7 @@ export default class PortfolioActivityService {
 
     return await Promise.all(
       activities.map(async (activity: PortfolioActivityWithAttachments) => {
-        let attachments: any[] = [];
+        let attachments: PortfolioActivityAttachment[] = [];
         if (activity.portfolio_activity_attachments.length > 0) {
           const attachmentIds = activity.portfolio_activity_attachments.map(
             (paa) => ({ attachment_id: paa.attachments.attachment_id }),
@@ -106,7 +110,7 @@ export default class PortfolioActivityService {
 
     if (!activity) return null;
 
-    let attachments: any[] = [];
+    let attachments: PortfolioActivityAttachment[] = [];
     if (activity.portfolio_activity_attachments.length > 0) {
       const attachmentIds = activity.portfolio_activity_attachments.map(
         (paa) => ({ attachment_id: paa.attachments.attachment_id }),
@@ -195,14 +199,10 @@ export default class PortfolioActivityService {
     });
 
     if (ids_to_delete && ids_to_delete.length > 0) {
-      const idsToDelete = Array.isArray(ids_to_delete)
-        ? ids_to_delete.map(Number)
-        : [Number(ids_to_delete)];
-
       await prisma.portfolio_activity_attachments.deleteMany({
         where: {
           activity_id: id,
-          attachment_id: { in: idsToDelete },
+          attachment_id: { in: ids_to_delete },
         },
       });
     }

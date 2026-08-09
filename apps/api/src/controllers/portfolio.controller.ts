@@ -1,6 +1,18 @@
 import { NextFunction, Request, Response } from "express";
 import { successResponse } from "../utils/response";
+import { HttpError } from "../utils/http-error";
 import PortfolioService from "../services/portfolio.service";
+import {
+  createPortfolioBody,
+  generateShareLinkBody,
+  portfolioOwnerQuery,
+  portfolioParams,
+  shareTokenParams,
+  updatePortfolioBody,
+} from "../validation/portfolio.schema";
+import { validated } from "../validation/validate";
+
+const NOT_FOUND = () => new HttpError(404, "ไม่พบแฟ้มสะสมผลงานที่ต้องการ");
 
 export default class PortfolioController {
   private readonly portfolioService: PortfolioService;
@@ -11,14 +23,9 @@ export default class PortfolioController {
 
   async getAllPortfolios(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.query.user_id as string;
-      if (!userId) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
-      const result = await this.portfolioService.getAllPortfolios(userId);
+      const { user_id } = validated(req, portfolioOwnerQuery);
+
+      const result = await this.portfolioService.getAllPortfolios(user_id);
       successResponse(res, result, "Fetched portfolios successfully");
     } catch (err) {
       next(err);
@@ -27,20 +34,11 @@ export default class PortfolioController {
 
   async getPortfolioById(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = req.params.id;
-      if (!id) {
-        return res.status(400).json({
-          success: false,
-          message: "ID is required",
-        });
-      }
+      const { id } = validated(req, portfolioParams);
 
       const result = await this.portfolioService.getPortfolioById(id);
       if (!result) {
-        return res.status(404).json({
-          success: false,
-          message: "Portfolio not found",
-        });
+        throw NOT_FOUND();
       }
 
       successResponse(res, result, "Fetched portfolio successfully");
@@ -55,49 +53,30 @@ export default class PortfolioController {
     next: NextFunction,
   ) {
     try {
-      const token = req.params.token;
-      if (!token) {
-        return res.status(400).json({
-          success: false,
-          message: "Token is required",
-        });
-      }
+      const { token } = validated(req, shareTokenParams);
 
+      // The expired link is a 410 the service raises as an HttpError, so it
+      // reaches the client through the error handler like every other refusal
+      // rather than being caught and re-answered here.
       const result = await this.portfolioService.getPublicPortfolioById(token);
       if (!result) {
-        return res.status(404).json({
-          success: false,
-          message: "Portfolio not found",
-        });
+        throw NOT_FOUND();
       }
 
       successResponse(res, result, "Fetched public portfolio successfully");
-    } catch (err: any) {
-      if (err.status === 410) {
-        return res.status(410).json({
-          success: false,
-          message: "This link has expired",
-        });
-      }
+    } catch (err) {
       next(err);
     }
   }
 
   async generateShareLink(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = req.params.id;
-      const { expiresAt } = req.body;
-
-      if (!id) {
-        return res.status(400).json({
-          success: false,
-          message: "ID is required",
-        });
-      }
+      const { id } = validated(req, portfolioParams);
+      const { expiresAt } = validated(req, generateShareLinkBody);
 
       const result = await this.portfolioService.generateShareLink(
         id,
-        expiresAt || null,
+        expiresAt ?? null,
       );
 
       successResponse(res, result, "Generated share link successfully");
@@ -108,18 +87,9 @@ export default class PortfolioController {
 
   async createPortfolio(req: Request, res: Response, next: NextFunction) {
     try {
-      const { user_id, ...data } = req.body;
-      if (!user_id) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
+      const data = validated(req, createPortfolioBody);
 
-      const result = await this.portfolioService.createPortfolio({
-        user_id,
-        ...data,
-      });
+      const result = await this.portfolioService.createPortfolio(data);
 
       successResponse(res, result, "Created portfolio successfully", 201);
     } catch (err) {
@@ -129,15 +99,10 @@ export default class PortfolioController {
 
   async updatePortfolio(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = req.params.id;
-      if (!id) {
-        return res.status(400).json({
-          success: false,
-          message: "ID is required",
-        });
-      }
+      const { id } = validated(req, portfolioParams);
+      const data = validated(req, updatePortfolioBody);
 
-      const result = await this.portfolioService.updatePortfolio(id, req.body);
+      const result = await this.portfolioService.updatePortfolio(id, data);
       successResponse(res, result, "Updated portfolio successfully");
     } catch (err) {
       next(err);
@@ -146,13 +111,7 @@ export default class PortfolioController {
 
   async deletePortfolio(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = req.params.id;
-      if (!id) {
-        return res.status(400).json({
-          success: false,
-          message: "ID is required",
-        });
-      }
+      const { id } = validated(req, portfolioParams);
 
       await this.portfolioService.deletePortfolio(id);
       successResponse(res, null, "Deleted portfolio successfully");

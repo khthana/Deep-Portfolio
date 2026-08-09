@@ -64,7 +64,32 @@ describe("POST /group/validate-invite", () => {
       .send({ type: "activity" });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ message: "ต้องระบุ Token" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: token ต้องระบุ",
+      errors: [{ field: "token", location: "body", message: "ต้องระบุ" }],
+    });
+  });
+
+  it("refuses a type that is neither of the two tables", async () => {
+    // Only the exact word "activity" took the activity path, so a typo searched
+    // the learning-activity side instead and reported a real token as invalid.
+    await createActivityGroup({
+      members: [{}, { invite_token: "typo-in-type" }],
+    });
+
+    const response = await request(app)
+      .post("/group/validate-invite")
+      .send({ token: "typo-in-type", type: "activty" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "type",
+        location: "body",
+        message: "ต้องเป็นค่าใดค่าหนึ่งใน: activity, learning-activity",
+      },
+    ]);
   });
 
   it("refuses a token that belongs to nobody", async () => {
@@ -72,10 +97,13 @@ describe("POST /group/validate-invite", () => {
       .post("/group/validate-invite")
       .send({ token: "not-a-token-anyone-was-given", type: "activity" });
 
-    expect(response.status).toBe(500);
-    expect(response.body.message).toBe(
-      "โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว",
-    );
+    // 400, not 500: the message is written for the person holding the link, and
+    // only an error that names its own status is forwarded to them.
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว",
+    });
   });
 
   it("refuses an expired token", async () => {
@@ -90,7 +118,7 @@ describe("POST /group/validate-invite", () => {
       .post("/group/validate-invite")
       .send({ token: "expired-token", type: "activity" });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
     expect(response.body.message).toBe(
       "โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว",
     );
@@ -107,7 +135,7 @@ describe("POST /group/validate-invite", () => {
       .post("/group/validate-invite")
       .send({ token: "activity-side-token", type: "learning-activity" });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
   });
 });
 
@@ -185,7 +213,11 @@ describe("POST /group/accept-invite", () => {
       .send({ action: "ACCEPT", type: "activity" });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ message: "ต้องระบุ Token" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: token ต้องระบุ",
+      errors: [{ field: "token", location: "body", message: "ต้องระบุ" }],
+    });
   });
 
   it("refuses an expired token, leaving the invitation unanswered", async () => {
@@ -208,7 +240,7 @@ describe("POST /group/accept-invite", () => {
         type: "activity",
       });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
     expect(response.body.message).toBe(
       "โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว",
     );
@@ -219,12 +251,11 @@ describe("POST /group/accept-invite", () => {
     ).toMatchObject({ status: "PENDING" });
   });
 
-  it("writes whatever action it is given", async () => {
-    // Recorded, not endorsed. `action` goes into the status column unchecked,
-    // so a caller can put the member back to PENDING after accepting, and a
-    // value the enum does not have is a 500 from Postgres rather than a 400.
-    // Request validation is #20's job; the point here is that this endpoint
-    // does none of its own.
+  it("answers 400 for an action that is not an answer", async () => {
+    // `action` used to go into the status column unchecked, so a caller could
+    // put an accepted member back to PENDING — the third value of the enum, and
+    // not something an invitation can be answered with. A value the enum does
+    // not have at all was a 500 from Postgres.
     const group = await createActivityGroup({
       members: [{}, { invite_token: "any-action", status: "ACCEPT" }],
     });
@@ -234,11 +265,18 @@ describe("POST /group/accept-invite", () => {
       .post("/group/accept-invite")
       .send({ token: "any-action", action: "PENDING", type: "activity" });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "action",
+        location: "body",
+        message: "ต้องเป็นค่าใดค่าหนึ่งใน: ACCEPT, REJECTED",
+      },
+    ]);
     expect(
       await prisma.student_activity_group_member.findUniqueOrThrow({
         where: { id: invited.id },
       }),
-    ).toMatchObject({ status: "PENDING" });
+    ).toMatchObject({ status: "ACCEPT" });
   });
 });

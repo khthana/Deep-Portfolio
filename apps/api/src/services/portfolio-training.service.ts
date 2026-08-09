@@ -23,6 +23,10 @@ type PortfolioTrainingWithAttachments = NonNullable<
   Prisma.PromiseReturnType<typeof inferTraining>
 >;
 
+type PortfolioTrainingAttachment = NonNullable<
+  PortfolioTrainingResp["attachments"]
+>[number];
+
 export default class PortfolioTrainingService {
   private readonly attachmentsService: AttachmentsService;
 
@@ -47,7 +51,7 @@ export default class PortfolioTrainingService {
 
     return await Promise.all(
       trainings.map(async (training: PortfolioTrainingWithAttachments) => {
-        let attachments: any[] = [];
+        let attachments: PortfolioTrainingAttachment[] = [];
         if (training.portfolio_training_attachments.length > 0) {
           const attachmentIds = training.portfolio_training_attachments.map(
             (pta) => ({ attachment_id: pta.attachments.attachment_id }),
@@ -107,7 +111,7 @@ export default class PortfolioTrainingService {
 
     if (!training) return null;
 
-    let attachments: any[] = [];
+    let attachments: PortfolioTrainingAttachment[] = [];
     if (training.portfolio_training_attachments.length > 0) {
       const attachmentIds = training.portfolio_training_attachments.map(
         (pta) => ({ attachment_id: pta.attachments.attachment_id }),
@@ -197,14 +201,10 @@ export default class PortfolioTrainingService {
     });
 
     if (ids_to_delete && ids_to_delete.length > 0) {
-      const idsToDelete = Array.isArray(ids_to_delete)
-        ? ids_to_delete.map(Number)
-        : [Number(ids_to_delete)];
-
       await prisma.portfolio_training_attachments.deleteMany({
         where: {
           training_id: id,
-          attachment_id: { in: idsToDelete },
+          attachment_id: { in: ids_to_delete },
         },
       });
     }

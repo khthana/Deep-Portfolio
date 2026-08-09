@@ -1,23 +1,10 @@
 import { CourseMaterialDetail } from "./course-material.model";
 
-export type AddLessonPlanBody = {
-  year: string;
-  semester: number;
-  subject_id: string;
-  week_no: number;
-  title: string;
-  description?: string;
-  remark?: string;
-  created_by: string;
-  section_id: number;
-};
-
-export type UpdateLessonPlanBody = {
-  lesson_plan_id: number;
-  title: string;
-  description?: string;
-  remark?: string;
-};
+/** Stated once, by the schemas that check it. */
+export type {
+  AddLessonPlanBody,
+  UpdateLessonPlanBody,
+} from "../validation/lesson-plan.schema";
 
 export type GetStudentLessonPlanWithMaterialResp = {
   allActivities: string[];

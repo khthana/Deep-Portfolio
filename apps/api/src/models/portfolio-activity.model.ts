@@ -1,15 +1,14 @@
-export type CreatePortfolioActivityReqBody = {
-  name: string;
-  date?: string;
-  role?: string;
-  description?: string;
-  is_show?: boolean;
-};
+import type {
+  CreatePortfolioActivityFields,
+  UpdatePortfolioActivityFields,
+} from "../validation/portfolio-sections.schema";
 
-export type UpdatePortfolioActivityReqBody =
-  Partial<CreatePortfolioActivityReqBody> & {
-    ids_to_delete?: number[];
-  };
+export type CreatePortfolioActivityReqBody = Omit<
+  CreatePortfolioActivityFields,
+  "user_id"
+>;
+
+export type UpdatePortfolioActivityReqBody = UpdatePortfolioActivityFields;
 
 export type PortfolioActivityResp = {
   id: number;

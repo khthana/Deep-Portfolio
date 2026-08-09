@@ -174,8 +174,14 @@ describe("POST /mapping/activity", () => {
     // Recorded, not endorsed. score_ratio_id is NOT NULL with a real foreign
     // key, and the service falls back to 0 when the activity has no category —
     // an id no row ever has, so Postgres refuses it and the caller gets a 500
-    // that says nothing about the actual problem. Request validation is
-    // issue #20.
+    // that says nothing about the actual problem. #20 left this as it stands:
+    // the request is well formed, so no schema can catch it. See the pinned
+    // list in BEHAVIOR-CHANGES.md.
+    //
+    // It is also the suite's one genuine 500, so it is where the shape of an
+    // unexpected failure is asserted: the caller is told the server failed and
+    // nothing else. Prisma's message names the table and the constraint, and
+    // used to be forwarded verbatim.
     const teacher = await createTeacher();
     const course = await createCourse();
     const activity = await createActivity({
@@ -190,6 +196,54 @@ describe("POST /mapping/activity", () => {
       .send({ activity_id: activity.id, clo_id: clo.clo_id, weight: 100 });
 
     expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      message: "เกิดข้อผิดพลาดภายในระบบ",
+    });
+    expect(
+      await prisma.activity_clo_mapping.count({
+        where: { activity_id: activity.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("answers 400 when the mapping says nothing about what it is worth", async () => {
+    // weight went straight into an arithmetic expression, so a request without
+    // one produced a NaN score that Postgres refused.
+    const teacher = await createTeacher();
+    const activity = await mappableActivity();
+    const clo = await createCLO({ section_id: activity.section_id! });
+
+    const response = await request(app)
+      .post("/mapping/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ activity_id: activity.id, clo_id: clo.clo_id });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "weight", location: "body", message: "ต้องระบุ" },
+    ]);
+    expect(
+      await prisma.activity_clo_mapping.count({
+        where: { activity_id: activity.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("answers 400 for a weight that is not a number", async () => {
+    const teacher = await createTeacher();
+    const activity = await mappableActivity();
+    const clo = await createCLO({ section_id: activity.section_id! });
+
+    const response = await request(app)
+      .post("/mapping/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ activity_id: activity.id, clo_id: clo.clo_id, weight: "ครึ่ง" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "weight", location: "body", message: "ต้องเป็นตัวเลข" },
+    ]);
     expect(
       await prisma.activity_clo_mapping.count({
         where: { activity_id: activity.id },
@@ -268,16 +322,20 @@ describe("GET /mapping/activity", () => {
     expect(response.body.data).toEqual([]);
   });
 
-  it("returns an empty list when clo_id is missing", async () => {
-    // NaN reaches Prisma as null, and clo_id is nullable here, so this asks for
-    // the mappings that point at no CLO at all rather than failing. Recorded,
-    // not endorsed — issue #20.
+  it("answers 400 when clo_id is missing", async () => {
+    // This used to be a 200 with an empty list: NaN reached Prisma as null, and
+    // clo_id is nullable here, so it asked for the mappings that point at no CLO
+    // at all — an answer indistinguishable from a CLO nothing measures.
     await mapActivityToCLO();
 
     const response = await request(app).get("/mapping/activity");
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: clo_id ต้องระบุ",
+      errors: [{ field: "clo_id", location: "query", message: "ต้องระบุ" }],
+    });
   });
 });
 
@@ -304,12 +362,15 @@ describe("GET /mapping/activity/validate", () => {
     expect(response.body.data).toBe(false);
   });
 
-  it("fails when activity_id is missing", async () => {
+  it("answers 400 when activity_id is missing", async () => {
     // activity_id is NOT NULL on this table, so the null a missing parameter
-    // turns into is not something the column can be compared against.
+    // used to turn into was not something the column could be compared against.
     const response = await request(app).get("/mapping/activity/validate");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "activity_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });
 
@@ -412,6 +473,28 @@ describe("POST /mapping/learning-activity", () => {
       }),
     ).toBe(0);
   });
+
+  it("answers 400 when the mapping names no CLO", async () => {
+    // clo_id is nullable on this table, so a mapping that measures nothing used
+    // to be written and answered with a 200.
+    const teacher = await createTeacher();
+    const activity = await createLearningActivity();
+
+    const response = await request(app)
+      .post("/mapping/learning-activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ learning_activity_id: activity.id });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "clo_id", location: "body", message: "ต้องระบุ" },
+    ]);
+    expect(
+      await prisma.learning_activity_clo_mapping.count({
+        where: { learning_activity_id: activity.id },
+      }),
+    ).toBe(0);
+  });
 });
 
 describe("GET /mapping/learning-activity", () => {
@@ -453,12 +536,14 @@ describe("GET /mapping/learning-activity", () => {
     expect(response.body.data).toEqual([]);
   });
 
-  it("returns an empty list when clo_id is missing", async () => {
+  it("answers 400 when clo_id is missing", async () => {
     await mapLearningActivityToCLO();
 
     const response = await request(app).get("/mapping/learning-activity");
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "clo_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });

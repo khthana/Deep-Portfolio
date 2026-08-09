@@ -29,8 +29,9 @@ import {
  *   or overwrite anyone's portfolio. That is #31, and it is why no case here
  *   sends a cookie — none is looked at.
  * - The id is a uuid column. A well-formed id that belongs to nobody is a 404;
- *   a string that is not a uuid at all never reaches the lookup, because
- *   Postgres rejects the comparison, so it is a 500. Both are pinned below.
+ *   a string that is not a uuid at all is refused by the schema before the
+ *   lookup, which is what it used to reach — Postgres rejected the comparison
+ *   and the caller was told the server had failed. See BEHAVIOR-CHANGES.md.
  */
 
 /** Well-formed uuids that no case creates a row for. */
@@ -103,7 +104,8 @@ describe("GET /portfolio", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [{ field: "user_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });
@@ -173,17 +175,24 @@ describe("GET /portfolio/:id", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      message: "Portfolio not found",
+      message: "ไม่พบแฟ้มสะสมผลงานที่ต้องการ",
     });
   });
 
-  it("answers 500 for an id that is not a uuid", async () => {
-    // Recorded, not endorsed. The 404 above is only reachable for a
-    // well-formed id; anything else fails in Postgres before the controller
-    // gets to decide. Request validation is #20.
+  it("answers 400 for an id that is not a uuid", async () => {
+    // See BEHAVIOR-CHANGES.md. This used to be a 500: the 404 above was only
+    // reachable for a well-formed id, and anything else failed in Postgres
+    // before the controller got to decide.
     const response = await request(app).get("/portfolio/not-a-uuid");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นรหัส UUID",
+      errors: [
+        { field: "id", location: "params", message: "ต้องเป็นรหัส UUID" },
+      ],
+    });
   });
 });
 
@@ -271,7 +280,20 @@ describe("GET /portfolio/public/:token", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      message: "Portfolio not found",
+      message: "ไม่พบแฟ้มสะสมผลงานที่ต้องการ",
+    });
+  });
+
+  it("answers 400 for a token that is not a uuid", async () => {
+    const response = await request(app).get("/portfolio/public/not-a-uuid");
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: token ต้องเป็นรหัส UUID",
+      errors: [
+        { field: "token", location: "params", message: "ต้องเป็นรหัส UUID" },
+      ],
     });
   });
 
@@ -289,7 +311,7 @@ describe("GET /portfolio/public/:token", () => {
     expect(response.status).toBe(410);
     expect(response.body).toEqual({
       success: false,
-      message: "This link has expired",
+      message: "ลิงก์นี้หมดอายุแล้ว",
     });
   });
 
@@ -352,6 +374,34 @@ describe("POST /portfolio/:id/generate-share-link", () => {
         })
       ).share_expires_at,
     ).toEqual(new Date(expiresAt));
+  });
+
+  it("refuses an expiry it cannot read", async () => {
+    const portfolio = await createPortfolio();
+
+    const response = await request(app)
+      .post(`/portfolio/${portfolio.id}/generate-share-link`)
+      .send({ expiresAt: "สิ้นเดือน" });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: expiresAt ต้องเป็นวันที่ที่ถูกต้อง",
+      errors: [
+        {
+          field: "expiresAt",
+          location: "body",
+          message: "ต้องเป็นวันที่ที่ถูกต้อง",
+        },
+      ],
+    });
+    expect(
+      (
+        await prisma.portfolio.findUniqueOrThrow({
+          where: { id: portfolio.id },
+        })
+      ).public_share_token,
+    ).toBe(portfolio.public_share_token);
   });
 
   it("fails for a portfolio that does not exist", async () => {
@@ -431,12 +481,38 @@ describe("POST /portfolio", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [{ field: "user_id", location: "body", message: "ต้องระบุ" }],
     });
     expect(
       await prisma.portfolio.count({
         where: { portfolio_name: "แฟ้มไร้เจ้าของ" },
       }),
+    ).toBe(0);
+  });
+
+  it("refuses a template and a skill list it cannot read", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .post("/portfolio")
+      .send({
+        user_id: student.student_id,
+        template_id: "คลาสสิก",
+        selectedSkillIds: ["ทักษะแรก"],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "template_id", location: "body", message: "ต้องเป็นตัวเลข" },
+      {
+        field: "selectedSkillIds[0]",
+        location: "body",
+        message: "ต้องเป็นตัวเลข",
+      },
+    ]);
+    expect(
+      await prisma.portfolio.count({ where: { user_id: student.student_id } }),
     ).toBe(0);
   });
 

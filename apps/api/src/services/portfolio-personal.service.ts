@@ -13,33 +13,31 @@ export default class PortfolioPersonalService {
     this.attachmentsService = new AttachmentsService();
   }
 
-  private sanitizeData(
-    data: any,
-  ): CreatePortfolioPersonalReqBody | UpdatePortfolioPersonalReqBody {
-    const sanitized = { ...data };
-
-    for (const key in sanitized) {
-      if (sanitized[key] === "null") {
-        sanitized[key] = null;
-      } else if (sanitized[key] === "") {
-        // Allow empty string for email and phone_number to support "deletion" (clearing)
-        if (key === "email" || key === "phone_number") {
-          sanitized[key] = "";
-        } else {
-          sanitized[key] = null;
-        }
-      }
+  /**
+   * The uploaded picture, folded into the fields the caller sent.
+   *
+   * An upload wins over an `attachment_id` in the body: the file becomes an
+   * attachment row and its id replaces whatever the field said. With no file
+   * the fields go through untouched — the clearing pass that used to live here,
+   * turning `""` and the string `"null"` into NULL over the keys of an `any`,
+   * is now part of the schema, where each column keeps its own type.
+   */
+  private async withUploadedPicture(
+    data: CreatePortfolioPersonalReqBody | UpdatePortfolioPersonalReqBody,
+    file?: Express.Multer.File,
+  ) {
+    if (!file) {
+      return data;
     }
 
-    if (sanitized.date_of_birth && typeof sanitized.date_of_birth === "string") {
-      sanitized.date_of_birth = new Date(sanitized.date_of_birth);
-    }
+    const attachmentIds = await this.attachmentsService.createAttachments(
+      { urls: [], files: [file] },
+      "portfolio-personal",
+    );
 
-    if (sanitized.attachment_id && typeof sanitized.attachment_id === "string") {
-      sanitized.attachment_id = parseInt(sanitized.attachment_id, 10);
-    }
-
-    return sanitized;
+    return attachmentIds.length > 0
+      ? { ...data, attachment_id: attachmentIds[0] }
+      : data;
   }
 
   async getPortfolioPersonal(
@@ -77,23 +75,24 @@ export default class PortfolioPersonalService {
         linkedin: null,
         attachment_id: null,
         attachments: null,
-      } as any;
+      };
     }
 
     // Fallback to user data if portfolio fields are null. The row the user
     // signed up with is the one they would otherwise have to type in again,
     // and the branch above already answers that way for a user who has no
     // portfolio_personal row at all.
+    //
+    // `users` is destructured off rather than spread: the join is how the
+    // fallback was reached, not something the caller asked for —
+    // PortfolioPersonalResp does not declare it and the frontend does not read
+    // it. It used to be spread in and then `delete`d back off through an `any`.
+    const { users, ...columns } = portfolio;
     const result = {
-      ...portfolio,
-      email: portfolio.email ?? portfolio.users.email,
-      phone_number: portfolio.phone_number ?? portfolio.users.phone,
+      ...columns,
+      email: portfolio.email ?? users.email,
+      phone_number: portfolio.phone_number ?? users.phone,
     };
-
-    // The join is how the fallback was reached, not something the caller asked
-    // for — PortfolioPersonalResp does not declare it and the frontend does not
-    // read it.
-    delete (result as any).users;
 
     let attachments = null;
     if (portfolio.attachment_id) {
@@ -127,25 +126,12 @@ export default class PortfolioPersonalService {
     data: CreatePortfolioPersonalReqBody,
     file?: Express.Multer.File,
   ): Promise<PortfolioPersonalResp> {
-    const sanitizedData = this.sanitizeData(data);
-
-    if (file) {
-      const attachmentIds = await this.attachmentsService.createAttachments(
-        {
-          urls: [],
-          files: [file],
-        },
-        "portfolio-personal",
-      );
-      if (attachmentIds.length > 0) {
-        sanitizedData.attachment_id = attachmentIds[0];
-      }
-    }
+    const personal = await this.withUploadedPicture(data, file);
 
     return await prisma.portfolio_personal.create({
       data: {
         user_id: userId,
-        ...sanitizedData,
+        ...personal,
       },
     });
   }
@@ -155,24 +141,11 @@ export default class PortfolioPersonalService {
     data: UpdatePortfolioPersonalReqBody,
     file?: Express.Multer.File,
   ): Promise<PortfolioPersonalResp> {
-    const sanitizedData = this.sanitizeData(data);
-
-    if (file) {
-      const attachmentIds = await this.attachmentsService.createAttachments(
-        {
-          urls: [],
-          files: [file],
-        },
-        "portfolio-personal",
-      );
-      if (attachmentIds.length > 0) {
-        sanitizedData.attachment_id = attachmentIds[0];
-      }
-    }
+    const personal = await this.withUploadedPicture(data, file);
 
     return await prisma.portfolio_personal.update({
       where: { user_id: userId },
-      data: sanitizedData,
+      data: personal,
     });
   }
 
@@ -181,27 +154,14 @@ export default class PortfolioPersonalService {
     data: CreatePortfolioPersonalReqBody,
     file?: Express.Multer.File,
   ): Promise<PortfolioPersonalResp> {
-    const sanitizedData = this.sanitizeData(data);
-
-    if (file) {
-      const attachmentIds = await this.attachmentsService.createAttachments(
-        {
-          urls: [],
-          files: [file],
-        },
-        "portfolio-personal",
-      );
-      if (attachmentIds.length > 0) {
-        sanitizedData.attachment_id = attachmentIds[0];
-      }
-    }
+    const personal = await this.withUploadedPicture(data, file);
 
     return await prisma.portfolio_personal.upsert({
       where: { user_id: userId },
-      update: sanitizedData,
+      update: personal,
       create: {
         user_id: userId,
-        ...sanitizedData,
+        ...personal,
       },
     });
   }

@@ -1,18 +1,14 @@
-export type CreatePortfolioEducationReqBody = {
-  education_level: string;
-  institution?: string;
-  start_year?: number;
-  end_year?: number;
-  country?: string;
-  gpa?: number;
-  study_plan?: string;
-  faculty?: string;
-  major?: string;
-  is_show?: boolean;
-};
+import type {
+  CreatePortfolioEducationFields,
+  UpdatePortfolioEducationFields,
+} from "../validation/portfolio-sections.schema";
 
-export type UpdatePortfolioEducationReqBody =
-  Partial<CreatePortfolioEducationReqBody>;
+export type CreatePortfolioEducationReqBody = Omit<
+  CreatePortfolioEducationFields,
+  "user_id"
+>;
+
+export type UpdatePortfolioEducationReqBody = UpdatePortfolioEducationFields;
 
 export type PortfolioEducationResp = {
   id: number;

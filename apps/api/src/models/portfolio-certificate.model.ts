@@ -1,15 +1,15 @@
-export type CreatePortfolioCertificateReqBody = {
-  date?: string; // Expecting ISO string or similar from frontend for Date
-  organize?: string;
-  name?: string;
-  description?: string;
-  is_show?: boolean;
-};
+import type {
+  CreatePortfolioCertificateFields,
+  UpdatePortfolioCertificateFields,
+} from "../validation/portfolio-sections.schema";
+
+export type CreatePortfolioCertificateReqBody = Omit<
+  CreatePortfolioCertificateFields,
+  "user_id"
+>;
 
 export type UpdatePortfolioCertificateReqBody =
-  Partial<CreatePortfolioCertificateReqBody> & {
-    ids_to_delete?: number[];
-  };
+  UpdatePortfolioCertificateFields;
 
 export type PortfolioCertificateResp = {
   id: number;

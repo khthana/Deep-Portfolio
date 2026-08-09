@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import prisma from "../config/prisma";
+import { errorResponse } from "../utils/response";
 import { env } from "../config/env";
 
 /**
@@ -58,8 +59,12 @@ export function sessionUserId(req: Request): string {
   return user.user_id;
 }
 
-/** Shown when there is no usable session at all — missing, expired, or forged. */
-const NO_SESSION = "ไม่พบ Token หรือ Token หมดอายุ";
+/**
+ * Shown when there is no usable session at all — missing, expired, or forged.
+ * Exported because /auth/refresh refuses on the same grounds and used to say so
+ * in English, in its own words.
+ */
+export const NO_SESSION = "ไม่พบ Token หรือ Token หมดอายุ";
 
 /**
  * Rejection messages reach the user as-is, so they are Thai and they name the
@@ -124,7 +129,7 @@ export const requireUser = async (
   const session = readSession(req);
 
   if (!session) {
-    return res.status(401).json({ message: NO_SESSION });
+    return errorResponse(res, 401, NO_SESSION);
   }
 
   try {
@@ -134,7 +139,7 @@ export const requireUser = async (
     });
 
     if (!user) {
-      return res.status(401).json({ message: NO_SESSION });
+      return errorResponse(res, 401, NO_SESSION);
     }
 
     req.user = session;
@@ -162,7 +167,7 @@ export function requireRole(...roles: string[]) {
     const session = readSession(req);
 
     if (!session) {
-      return res.status(401).json({ message: NO_SESSION });
+      return errorResponse(res, 401, NO_SESSION);
     }
 
     try {
@@ -176,7 +181,7 @@ export function requireRole(...roles: string[]) {
       });
 
       if (!granted) {
-        return res.status(403).json({ message: roleDeniedMessage(roles) });
+        return errorResponse(res, 403, roleDeniedMessage(roles));
       }
 
       // role_id is nullable in the schema, but a null cannot have matched the

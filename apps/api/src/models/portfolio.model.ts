@@ -1,22 +1,11 @@
-export type CreatePortfolioReqBody = {
-  user_id: string;
-  template_id?: number;
-  portfolio_name?: string;
-  template_color?: string;
-  about_me?: string;
-  isShowPersonal?: boolean;
-  isShowEducation?: boolean;
-  isShowTraining?: boolean;
-  isShowCertificate?: boolean;
-  isShowSkill?: boolean;
-  isShowIntern?: boolean;
-  isShowThesis?: boolean;
-  isShowAward?: boolean;
-  isShowActivity?: boolean;
-  selectedSkillIds?: number[];
-};
+import type {
+  CreatePortfolioFields,
+  UpdatePortfolioFields,
+} from "../validation/portfolio.schema";
 
-export type UpdatePortfolioReqBody = Partial<CreatePortfolioReqBody>;
+export type CreatePortfolioReqBody = CreatePortfolioFields;
+
+export type UpdatePortfolioReqBody = UpdatePortfolioFields;
 
 export type PortfolioResp = {
   id: string;

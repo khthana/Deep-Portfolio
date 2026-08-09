@@ -1,6 +1,19 @@
 import { NextFunction, Request, Response } from "express";
+import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
+import { HttpError } from "../utils/http-error";
 import PortfolioAwardService from "../services/portfolio-award.service";
+import {
+  createPortfolioAwardBody,
+  updatePortfolioAwardBody,
+} from "../validation/portfolio-sections.schema";
+import {
+  portfolioEntryParams,
+  portfolioOwnerQuery,
+} from "../validation/portfolio.schema";
+import { validated } from "../validation/validate";
+
+const NOT_FOUND = () => new HttpError(404, "ไม่พบรางวัลที่ต้องการ");
 
 export default class PortfolioAwardController {
   private readonly portfolioAwardService: PortfolioAwardService;
@@ -11,16 +24,10 @@ export default class PortfolioAwardController {
 
   async getAllPortfolioAward(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.query.user_id as string;
-      if (!userId) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
+      const { user_id } = validated(req, portfolioOwnerQuery);
 
       const result =
-        await this.portfolioAwardService.getAllPortfolioAward(userId);
+        await this.portfolioAwardService.getAllPortfolioAward(user_id);
 
       successResponse(res, result, "Fetched portfolio award successfully");
     } catch (err) {
@@ -30,21 +37,12 @@ export default class PortfolioAwardController {
 
   async getPortfolioAwardById(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       const result = await this.portfolioAwardService.getPortfolioAwardById(id);
 
       if (!result) {
-        return res.status(404).json({
-          success: false,
-          message: "Portfolio award not found",
-        });
+        throw NOT_FOUND();
       }
 
       successResponse(res, result, "Fetched portfolio award successfully");
@@ -55,15 +53,8 @@ export default class PortfolioAwardController {
 
   async createPortfolioAward(req: Request, res: Response, next: NextFunction) {
     try {
-      const { user_id, ...data } = req.body;
-      const files = req.files as Express.Multer.File[];
-
-      if (!user_id) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
+      const { user_id, ...data } = validated(req, createPortfolioAwardBody);
+      const files = uploadedFiles(req);
 
       const result = await this.portfolioAwardService.createPortfolioAward(
         user_id,
@@ -79,16 +70,9 @@ export default class PortfolioAwardController {
 
   async updatePortfolioAward(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
-
-      const data = req.body;
-      const files = req.files as Express.Multer.File[];
+      const { id } = validated(req, portfolioEntryParams);
+      const data = validated(req, updatePortfolioAwardBody);
+      const files = uploadedFiles(req);
 
       const result = await this.portfolioAwardService.updatePortfolioAward(
         id,
@@ -104,13 +88,7 @@ export default class PortfolioAwardController {
 
   async deletePortfolioAward(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       await this.portfolioAwardService.deletePortfolioAward(id);
 

@@ -56,6 +56,7 @@ describe("POST /activity", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -74,6 +75,7 @@ describe("POST /activity", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
     expect(
@@ -215,11 +217,9 @@ describe("POST /activity", () => {
     );
   });
 
-  it("fails when the request carries no rubric", async () => {
-    // Recorded, not endorsed. The controller runs JSON.parse over the field
-    // without checking it is there, so the shape of a missing field is a 500
-    // rather than anything a caller could act on. Request validation is
-    // issue #20.
+  it("answers 400 when the request carries no rubric", async () => {
+    // The controller ran JSON.parse over the field without checking it was
+    // there, so a missing rubric was a 500 quoting a syntax error.
     const teacher = await createTeacher();
     const course = await createCourse({ teacher_id: teacher.user_id });
 
@@ -230,12 +230,67 @@ describe("POST /activity", () => {
       .field("activity_name", "รายงานที่ไม่มีเกณฑ์")
       .field("activity_type", "INDIVIDUAL");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: rubric ต้องระบุ",
+      errors: [{ field: "rubric", location: "body", message: "ต้องระบุ" }],
+    });
     expect(
       await prisma.activities.count({
         where: { activity_name: "รายงานที่ไม่มีเกณฑ์" },
       }),
     ).toBe(0);
+  });
+
+  it("answers 400 for a kind of work it does not have", async () => {
+    // activity_type is a plain VarChar, and the read endpoints hand back
+    // whatever is in it as though it were one of the two the frontend knows.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .post("/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("section_id", String(course.section_id))
+      .field("activity_name", "รายงานประเภทประหลาด")
+      .field("activity_type", "PAIR")
+      .field("rubric", JSON.stringify(RUBRIC));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "activity_type",
+        location: "body",
+        message: "ต้องเป็นค่าใดค่าหนึ่งใน: INDIVIDUAL, GROUP",
+      },
+    ]);
+    expect(
+      await prisma.activities.count({
+        where: { activity_name: "รายงานประเภทประหลาด" },
+      }),
+    ).toBe(0);
+  });
+
+  it("answers 400 for a rubric that is not JSON, and uploads nothing", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const before = await listStoredObjects(ACTIVITY_PREFIX);
+
+    const response = await request(app)
+      .post("/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("section_id", String(course.section_id))
+      .field("activity_name", "รายงานเกณฑ์พัง")
+      .field("activity_type", "INDIVIDUAL")
+      .field("rubric", "ไม่ใช่ JSON")
+      .attach("files", PDF, "brief.pdf");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "rubric", location: "body", message: "ต้องเป็นรายการ" },
+    ]);
+    expect(await listStoredObjects(ACTIVITY_PREFIX)).toEqual(before);
   });
 });
 
@@ -374,16 +429,47 @@ describe("PUT /activity", () => {
 
   it("fails for an activity that does not exist", async () => {
     const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
 
     const response = await request(app)
       .put("/activity")
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .field("activity_id", "999999")
+      .field("section_id", String(course.section_id))
       .field("activity_name", "ไม่มีอยู่จริง")
       .field("activity_type", "INDIVIDUAL")
       .field("rubric", JSON.stringify(RUBRIC));
 
     expect(response.status).toBe(500);
+  });
+
+  it("answers 400 when no activity is named", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const activity = await createActivity({
+      section_id: course.section_id,
+      activity_name: "ชื่อเดิม",
+    });
+
+    const response = await request(app)
+      .put("/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("section_id", String(course.section_id))
+      .field("activity_name", "ชื่อใหม่")
+      .field("activity_type", "INDIVIDUAL")
+      .field("rubric", JSON.stringify(RUBRIC));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "activity_id", location: "body", message: "ต้องระบุ" },
+    ]);
+    expect(
+      (
+        await prisma.activities.findUniqueOrThrow({
+          where: { id: activity.id },
+        })
+      ).activity_name,
+    ).toBe("ชื่อเดิม");
   });
 });
 
@@ -460,6 +546,23 @@ describe("DELETE /activity", () => {
 
     expect(response.status).toBe(500);
   });
+
+  it("answers 400 when no activity is named, and deletes nothing", async () => {
+    const teacher = await createTeacher();
+    const activity = await createActivity();
+
+    const response = await request(app)
+      .delete("/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "activity_id", location: "query", message: "ต้องระบุ" },
+    ]);
+    expect(
+      await prisma.activities.findUnique({ where: { id: activity.id } }),
+    ).not.toBeNull();
+  });
 });
 
 describe("GET /activity", () => {
@@ -508,12 +611,19 @@ describe("GET /activity", () => {
     });
   });
 
-  it("fails when activity_id is missing", async () => {
-    // parseInt(undefined) is NaN, which reaches Prisma as null on a column that
-    // cannot be null. Recorded, not endorsed — issue #20.
+  it("answers 400 when activity_id is missing", async () => {
+    // parseInt(undefined) is NaN, which used to reach Prisma as null on a
+    // column that cannot be null.
     const response = await request(app).get("/activity");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: activity_id ต้องระบุ",
+      errors: [
+        { field: "activity_id", location: "query", message: "ต้องระบุ" },
+      ],
+    });
   });
 });
 
@@ -572,14 +682,15 @@ describe("GET /activity/list", () => {
     expect(response.body.data[0].subject_score_ratio).toBeNull();
   });
 
-  it("returns an empty list when section_id is missing", async () => {
-    // NaN reaches Prisma as null, and no activity has a null section — issue #20.
+  it("answers 400 when section_id is missing", async () => {
     await createActivity();
 
     const response = await request(app).get("/activity/list");
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });
 
@@ -607,13 +718,15 @@ describe("GET /activity/options", () => {
     ]);
   });
 
-  it("returns an empty list when section_id is missing", async () => {
+  it("answers 400 when section_id is missing", async () => {
     await createActivity();
 
     const response = await request(app).get("/activity/options");
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });
 
@@ -657,6 +770,19 @@ describe("GET /activity/student/detail", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual({ submitted_files: { file: [], url: [] } });
+  });
+
+  it("answers 400 when no submission is named", async () => {
+    const response = await request(app).get("/activity/student/detail");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "student_activity_id",
+        location: "query",
+        message: "ต้องระบุ",
+      },
+    ]);
   });
 });
 

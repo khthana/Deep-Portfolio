@@ -277,6 +277,9 @@ describe("POST /student/submit/activity", () => {
   });
 
   it("refuses a group submission nobody has accepted", async () => {
+    // Both members are still PENDING, so there is no group to submit for. That
+    // is the caller's state rather than the server breaking, and it answered
+    // 500 with an English sentence until #20.
     const course = await createCourse();
     const activity = await createActivity({
       section_id: course.section_id,
@@ -298,7 +301,10 @@ describe("POST /student/submit/activity", () => {
       .field("group_id", String(group.id))
       .attach("files", PDF, "group-report.pdf");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe(
+      "ยังไม่มีสมาชิกที่ตอบรับคำเชิญในกลุ่มนี้",
+    );
     expect(
       await prisma.student_activity.findUniqueOrThrow({
         where: { id: first.student_activity_id },
@@ -318,7 +324,10 @@ describe("POST /student/submit/activity", () => {
       .field("type", "INDIVIDUAL")
       .attach("files", PDF, "report.pdf");
 
-    expect(response.status).toBe(500);
+    // A well-formed id that names no row: 404 since #20, where it used to be a
+    // 500 carrying "Student activity not found".
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("ไม่พบงานที่ต้องการส่ง");
     // The upload happens inside the transaction, after the submission has been
     // found, so nothing reaches the bucket either.
     expect(await listStoredObjects(sectionPrefix(course.section_id))).toEqual(
@@ -339,6 +348,7 @@ describe("POST /student/submit/activity", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
     expect(
@@ -366,6 +376,7 @@ describe("POST /student/submit/activity", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
     });
     expect(await listStoredObjects(sectionPrefix(course.section_id))).toEqual(
@@ -476,7 +487,9 @@ describe("POST /student/submit/learning-activity", () => {
       .field("type", "INDIVIDUAL")
       .attach("files", PDF, "worksheet.pdf");
 
-    expect(response.status).toBe(500);
+    // As on the activity side above: 404 since #20, not 500.
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("ไม่พบงานที่ต้องการส่ง");
     expect(await listStoredObjects(sectionPrefix(course.section_id))).toEqual(
       [],
     );
@@ -516,6 +529,7 @@ describe("POST /student/submit/learning-activity", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
     });
     expect(await listStoredObjects(sectionPrefix(course.section_id))).toEqual(

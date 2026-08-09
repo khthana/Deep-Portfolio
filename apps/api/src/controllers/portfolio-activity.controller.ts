@@ -1,6 +1,19 @@
 import { NextFunction, Request, Response } from "express";
+import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
+import { HttpError } from "../utils/http-error";
 import PortfolioActivityService from "../services/portfolio-activity.service";
+import {
+  createPortfolioActivityBody,
+  updatePortfolioActivityBody,
+} from "../validation/portfolio-sections.schema";
+import {
+  portfolioEntryParams,
+  portfolioOwnerQuery,
+} from "../validation/portfolio.schema";
+import { validated } from "../validation/validate";
+
+const NOT_FOUND = () => new HttpError(404, "ไม่พบกิจกรรมที่ต้องการ");
 
 export default class PortfolioActivityController {
   private readonly portfolioActivityService: PortfolioActivityService;
@@ -15,16 +28,10 @@ export default class PortfolioActivityController {
     next: NextFunction,
   ) {
     try {
-      const userId = req.query.user_id as string;
-      if (!userId) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
+      const { user_id } = validated(req, portfolioOwnerQuery);
 
       const result =
-        await this.portfolioActivityService.getAllPortfolioActivity(userId);
+        await this.portfolioActivityService.getAllPortfolioActivity(user_id);
 
       successResponse(res, result, "Fetched portfolio activity successfully");
     } catch (err) {
@@ -38,22 +45,13 @@ export default class PortfolioActivityController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       const result =
         await this.portfolioActivityService.getPortfolioActivityById(id);
 
       if (!result) {
-        return res.status(404).json({
-          success: false,
-          message: "Portfolio activity not found",
-        });
+        throw NOT_FOUND();
       }
 
       successResponse(res, result, "Fetched portfolio activity successfully");
@@ -68,22 +66,8 @@ export default class PortfolioActivityController {
     next: NextFunction,
   ) {
     try {
-      const { user_id, ...data } = req.body;
-      const files = req.files as Express.Multer.File[];
-
-      if (!user_id) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
-
-      // Handle FormData conversions
-      if (data.is_show === "true") data.is_show = true;
-      else if (data.is_show === "false") data.is_show = false;
-      else if (data.is_show === "") delete data.is_show;
-      if (data.date) data.date = new Date(data.date).toISOString();
-      else if (data.date === "") delete data.date;
+      const { user_id, ...data } = validated(req, createPortfolioActivityBody);
+      const files = uploadedFiles(req);
 
       const result =
         await this.portfolioActivityService.createPortfolioActivity(
@@ -92,12 +76,7 @@ export default class PortfolioActivityController {
           files,
         );
 
-      successResponse(
-        res,
-        result,
-        "Created portfolio activity successfully",
-        201,
-      );
+      successResponse(res, result, "Created portfolio activity successfully", 201);
     } catch (err) {
       next(err);
     }
@@ -109,30 +88,15 @@ export default class PortfolioActivityController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
+      const data = validated(req, updatePortfolioActivityBody);
+      const files = uploadedFiles(req);
 
-      const data = req.body;
-      const files = req.files as Express.Multer.File[];
-
-      // Handle FormData conversions
-      if (data.is_show === "true") data.is_show = true;
-      else if (data.is_show === "false") data.is_show = false;
-      else if (data.is_show === "") delete data.is_show;
-      if (data.date) data.date = new Date(data.date).toISOString();
-      else if (data.date === "") delete data.date;
-
-      const result =
-        await this.portfolioActivityService.updatePortfolioActivity(
-          id,
-          data,
-          files,
-        );
+      const result = await this.portfolioActivityService.updatePortfolioActivity(
+        id,
+        data,
+        files,
+      );
 
       successResponse(res, result, "Updated portfolio activity successfully");
     } catch (err) {
@@ -146,13 +110,7 @@ export default class PortfolioActivityController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       await this.portfolioActivityService.deletePortfolioActivity(id);
 

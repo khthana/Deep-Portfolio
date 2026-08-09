@@ -1,6 +1,19 @@
 import { NextFunction, Request, Response } from "express";
+import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
+import { HttpError } from "../utils/http-error";
 import PortfolioTrainingService from "../services/portfolio-training.service";
+import {
+  createPortfolioTrainingBody,
+  updatePortfolioTrainingBody,
+} from "../validation/portfolio-sections.schema";
+import {
+  portfolioEntryParams,
+  portfolioOwnerQuery,
+} from "../validation/portfolio.schema";
+import { validated } from "../validation/validate";
+
+const NOT_FOUND = () => new HttpError(404, "ไม่พบการอบรมที่ต้องการ");
 
 export default class PortfolioTrainingController {
   private readonly portfolioTrainingService: PortfolioTrainingService;
@@ -15,16 +28,10 @@ export default class PortfolioTrainingController {
     next: NextFunction,
   ) {
     try {
-      const userId = req.query.user_id as string;
-      if (!userId) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
+      const { user_id } = validated(req, portfolioOwnerQuery);
 
       const result =
-        await this.portfolioTrainingService.getAllPortfolioTraining(userId);
+        await this.portfolioTrainingService.getAllPortfolioTraining(user_id);
 
       successResponse(res, result, "Fetched portfolio training successfully");
     } catch (err) {
@@ -38,22 +45,13 @@ export default class PortfolioTrainingController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       const result =
         await this.portfolioTrainingService.getPortfolioTrainingById(id);
 
       if (!result) {
-        return res.status(404).json({
-          success: false,
-          message: "Portfolio training not found",
-        });
+        throw NOT_FOUND();
       }
 
       successResponse(res, result, "Fetched portfolio training successfully");
@@ -68,20 +66,8 @@ export default class PortfolioTrainingController {
     next: NextFunction,
   ) {
     try {
-      const { user_id, ...data } = req.body;
-      const files = req.files as Express.Multer.File[];
-
-      if (!user_id) {
-        return res.status(400).json({
-          success: false,
-          message: "user_id is required",
-        });
-      }
-
-      // Handle boolean conversion from FormData if necessary (FormData sends "true"/"false" strings)
-      if (data.is_show === "true") data.is_show = true;
-      if (data.is_show === "false") data.is_show = false;
-      if (data.year) data.year = Number(data.year);
+      const { user_id, ...data } = validated(req, createPortfolioTrainingBody);
+      const files = uploadedFiles(req);
 
       const result =
         await this.portfolioTrainingService.createPortfolioTraining(
@@ -90,12 +76,7 @@ export default class PortfolioTrainingController {
           files,
         );
 
-      successResponse(
-        res,
-        result,
-        "Created portfolio training successfully",
-        201,
-      );
+      successResponse(res, result, "Created portfolio training successfully", 201);
     } catch (err) {
       next(err);
     }
@@ -107,28 +88,15 @@ export default class PortfolioTrainingController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
+      const data = validated(req, updatePortfolioTrainingBody);
+      const files = uploadedFiles(req);
 
-      const data = req.body;
-      const files = req.files as Express.Multer.File[];
-
-      // Handle conversions
-      if (data.is_show === "true") data.is_show = true;
-      if (data.is_show === "false") data.is_show = false;
-      if (data.year) data.year = Number(data.year);
-
-      const result =
-        await this.portfolioTrainingService.updatePortfolioTraining(
-          id,
-          data,
-          files,
-        );
+      const result = await this.portfolioTrainingService.updatePortfolioTraining(
+        id,
+        data,
+        files,
+      );
 
       successResponse(res, result, "Updated portfolio training successfully");
     } catch (err) {
@@ -142,13 +110,7 @@ export default class PortfolioTrainingController {
     next: NextFunction,
   ) {
     try {
-      const id = Number(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid ID",
-        });
-      }
+      const { id } = validated(req, portfolioEntryParams);
 
       await this.portfolioTrainingService.deletePortfolioTraining(id);
 

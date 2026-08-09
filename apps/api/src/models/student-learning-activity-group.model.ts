@@ -1,19 +1,11 @@
 import { GroupRole, MemberStatus } from "./student-activity-group.model";
 
-export type CreateStudentLearningActivityGroupBody = {
-  learning_activity_id: number;
-  members: MemberDetail[];
-};
+export type {
+  CreateStudentLearningActivityGroupBody,
+  UpdateStudentLearningActivityGroupBody,
+} from "../validation/student-learning-activity-group.schema";
 
-export type UpdateStudentLearningActivityGroupBody = {
-  group_id: number;
-  members: MemberDetail[];
-};
-
-export type MemberDetail = {
-  student_id: string;
-  role: GroupRole;
-};
+export type { MemberDetail } from "./student-activity-group.model";
 
 export type GetStudentLearningActivityGroupResp = {
   group_id: number;

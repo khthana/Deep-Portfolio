@@ -23,6 +23,7 @@ describe("GET /course/list", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -37,8 +38,23 @@ describe("GET /course/list", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
+  });
+
+  it("answers 400 when the term is not named", async () => {
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .get("/course/list")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "academic_year", location: "query", message: "ต้องระบุ" },
+      { field: "semester", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 
   it("returns empty lists for a teacher who teaches nothing", async () => {
@@ -203,6 +219,19 @@ describe("GET /course", () => {
     expect(response.body.data).toBeNull();
   });
 
+  it("answers 400 for a section id that is not a positive number", async () => {
+    const response = await request(app).get("/course").query({ section_id: 0 });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "section_id",
+        location: "query",
+        message: "ต้องมากกว่า 0",
+      },
+    ]);
+  });
+
   it("reports no course for a section with nobody teaching it", async () => {
     // Current behaviour, recorded rather than endorsed: a section exists here,
     // and the endpoint still answers null purely because the teacher lookup
@@ -270,6 +299,41 @@ describe("POST /course/schedule", () => {
       end_time: "12:00",
       classroom: "ECC-303",
     });
+  });
+
+  it("answers 400 for a day and a time it cannot read", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .post("/course/schedule")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        section_id: course.section_id,
+        day_of_week: "วันศุกร์",
+        start_time: "10am",
+        end_time: "12:00",
+        classroom: "ECC-303",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "day_of_week",
+        location: "body",
+        message: "ต้องเป็นค่าใดค่าหนึ่งใน: MON, TUE, WED, THU, FRI, SAT, SUN",
+      },
+      {
+        field: "start_time",
+        location: "body",
+        message: "ต้องเป็นเวลาตามรูปแบบ HH:MM",
+      },
+    ]);
+
+    const schedules = await prisma.course_section_schedule.findMany({
+      where: { section_id: course.section_id },
+    });
+    expect(schedules).toEqual([]);
   });
 
   it("moves the existing schedule rather than adding a second one", async () => {

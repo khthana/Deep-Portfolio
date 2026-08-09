@@ -1,13 +1,15 @@
 import prisma from "../config/prisma";
+import { HttpError } from "../utils/http-error";
 import {
   AssignWorkToSkillsReqBody,
   CreatePortfolioSkillReqBody,
+  SkillMappingReqBody,
   UpdatePortfolioSkillReqBody,
   PortfolioSkillResp,
   PortfolioWorkResp,
 } from "../models/portfolio-skill.model";
 
-const mapToMappingData = (skillId: number, m: any) => ({
+const mapToMappingData = (skillId: number, m: SkillMappingReqBody) => ({
   skill_id: skillId,
   student_activity_id: m.student_activity_id,
   repository: m.repository ?? null,
@@ -229,10 +231,6 @@ export default class PortfolioSkillService {
       isShowReflec = false,
     } = data;
 
-    if (!skill_ids || skill_ids.length === 0) {
-      throw new Error("At least one skill_id is required");
-    }
-
     await prisma.$transaction(async (tx) => {
       // Verify all skills belong to this user
       const ownedSkills = await tx.portfolio_skill.findMany({
@@ -245,10 +243,7 @@ export default class PortfolioSkillService {
         // this as a 500, which tells the caller the server broke when in fact
         // it declined. Same shape as the expired share link in
         // portfolio.service.ts.
-        throw Object.assign(
-          new Error("One or more skills do not belong to this user"),
-          { status: 403 },
-        );
+        throw new HttpError(403, "มีทักษะบางรายการที่ไม่ใช่ของผู้ใช้รายนี้");
       }
 
       await tx.portfolio_skill_activity_mapping.deleteMany({

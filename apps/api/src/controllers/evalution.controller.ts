@@ -1,6 +1,9 @@
-import express, { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import EvaluationService from "../services/evaluation-service.service";
 import { sessionUserId } from "../middlewares/auth.middleware";
+import { successResponse } from "../utils/response";
+import { validated } from "../validation/validate";
+import { evaluationListQuery } from "../validation/evaluation.schema";
 
 export default class EvaluationController {
   private readonly evaluationService: EvaluationService;
@@ -16,17 +19,17 @@ export default class EvaluationController {
   ) {
     try {
       const student_id = sessionUserId(req);
-      const section_id = req.query.section_id as string;
+      const { section_id } = validated(req, evaluationListQuery);
       const evaluation = await this.evaluationService.getStudentEvaluationList(
         student_id,
-        parseInt(section_id),
+        section_id,
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched student evaluation list successfully",
-        data: evaluation,
-      });
+      successResponse(
+        res,
+        evaluation,
+        "Fetched student evaluation list successfully",
+      );
     } catch (err) {
       next(err);
     }

@@ -1,16 +1,17 @@
-export type CreatePortfolioPersonalReqBody = {
-  date_of_birth?: Date;
-  nationality?: string;
-  race?: string;
-  github?: string;
-  linkedin?: string;
-  email?: string;
-  phone_number?: string;
-  attachment_id?: number;
-};
+import type { PortfolioPersonalFields } from "../validation/portfolio-personal.schema";
 
-export type UpdatePortfolioPersonalReqBody =
-  Partial<CreatePortfolioPersonalReqBody>;
+/**
+ * Create and update take the same fields.
+ *
+ * They always have — the create names the student in the body and the update in
+ * the path, and neither is part of what is written — but the declared types
+ * said every field was optional, which is what let the service treat `""` and
+ * the string `"null"` as values worth a runtime pass of their own. Every field
+ * here is `T | null | undefined`: sent, sent empty, or not sent.
+ */
+export type CreatePortfolioPersonalReqBody = PortfolioPersonalFields;
+
+export type UpdatePortfolioPersonalReqBody = PortfolioPersonalFields;
 
 export type PortfolioPersonalResp = {
   user_id: string;

@@ -1,13 +1,13 @@
 import { NextFunction, Request, Response } from "express";
-import { sessionUserId } from "../middlewares/auth.middleware";
+import { NO_SESSION, sessionUserId } from "../middlewares/auth.middleware";
 import AuthService from "../services/auth.service";
 import { identityProvider } from "../services/identity.service";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { sessionCookieOptions } from "../config/cookies";
-
-/** Shown when the browser posts nothing usable — a bug on our side, not theirs. */
-const NO_CREDENTIAL = "ไม่พบข้อมูลการเข้าสู่ระบบจาก Google";
+import { errorResponse, successResponse } from "../utils/response";
+import { validated } from "../validation/validate";
+import { googleLoginBody } from "../validation/identity.schema";
 
 /** Google would not vouch for the token: expired, tampered with, or not ours. */
 const GOOGLE_REJECTED = "ยืนยันตัวตนกับ Google ไม่สำเร็จ";
@@ -33,13 +33,10 @@ export default class AuthController {
 
       const userDetail = await this.authService.getUserDetail(user_id);
       if (!userDetail) {
-        return res.status(404).json({ message: "ไม่พบข้อมูลผู้ใช้งาน" });
+        return errorResponse(res, 404, "ไม่พบข้อมูลผู้ใช้งาน");
       }
-      res.status(200).json({
-        success: true,
-        message: "Fetched user successfully",
-        data: userDetail,
-      });
+
+      successResponse(res, userDetail, "Fetched user successfully");
     } catch (err) {
       next(err);
     }
@@ -51,7 +48,7 @@ export default class AuthController {
     res.clearCookie("access_token", sessionCookieOptions());
     res.clearCookie("refresh_token", sessionCookieOptions());
 
-    return res.status(200).json({ message: "Logout successful" });
+    successResponse(res, undefined, "Logout successful");
   }
 
   /**
@@ -69,22 +66,18 @@ export default class AuthController {
    */
   async googleLogin(req: Request, res: Response, next: NextFunction) {
     try {
-      const credential = req.body?.credential;
-
-      if (typeof credential !== "string" || credential === "") {
-        return res.status(400).json({ message: NO_CREDENTIAL });
-      }
+      const { credential } = validated(req, googleLoginBody);
 
       const identity = await identityProvider().verifyIdToken(credential);
 
       if (!identity) {
-        return res.status(401).json({ message: GOOGLE_REJECTED });
+        return errorResponse(res, 401, GOOGLE_REJECTED);
       }
 
       const user = await this.authService.findUserByEmail(identity.email);
 
       if (!user) {
-        return res.status(403).json({ message: NOT_REGISTERED });
+        return errorResponse(res, 403, NOT_REGISTERED);
       }
 
       // user_id only. The role used to ride along in the access token and was
@@ -103,7 +96,7 @@ export default class AuthController {
       res.cookie("access_token", accessToken, sessionCookieOptions());
       res.cookie("refresh_token", refreshToken, sessionCookieOptions());
 
-      return res.status(200).json({ message: "login successful" });
+      successResponse(res, undefined, "login successful");
     } catch (err) {
       next(err);
     }
@@ -113,14 +106,16 @@ export default class AuthController {
     const refreshToken = req.cookies.refresh_token;
 
     if (!refreshToken) {
-      return res.status(401).json({ message: "No refresh token" });
+      return errorResponse(res, 401, NO_SESSION);
     }
 
     try {
-      const decoded = jwt.verify(
-        refreshToken,
-        env.JWT_REFRESH_SECRET,
-      ) as any;
+      // Verified, then read as a payload of our own making — the only tokens
+      // that get past jwt.verify are ones this server signed, and it signs
+      // exactly this shape. `as any` here used to make decoded.anything legal.
+      const decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as {
+        user_id: string;
+      };
 
       const newAccessToken = jwt.sign(
         { user_id: decoded.user_id },
@@ -134,9 +129,9 @@ export default class AuthController {
       // it landed scoped to /auth/refresh and was never sent to anything else.
       res.cookie("access_token", newAccessToken, sessionCookieOptions());
 
-      return res.json({ success: true });
+      successResponse(res, undefined, "Refreshed session successfully");
     } catch {
-      return res.status(401).json({ message: "Invalid refresh token" });
+      errorResponse(res, 401, NO_SESSION);
     }
   }
 }

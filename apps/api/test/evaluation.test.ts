@@ -265,6 +265,7 @@ describe("GET /evaluation/list", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
@@ -280,22 +281,25 @@ describe("GET /evaluation/list", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
     });
   });
 
-  it("answers 500 when the section_id is missing", async () => {
-    // parseInt(undefined) is NaN, which Prisma sends as null, and
+  it("answers 400 when the section_id is missing", async () => {
+    // parseInt(undefined) was NaN, which Prisma sends as null, and
     // learning_activities.section_id is NOT NULL. The activity half of the
-    // answer survives it — activities.section_id is nullable — so the request
-    // gets as far as the classroom-work query before failing. #20 turns this
-    // into a 400.
+    // answer survived it — activities.section_id is nullable — so the request
+    // got as far as the classroom-work query before failing.
     const student = await createStudent();
 
     const response = await request(app)
       .get("/evaluation/list")
       .set("Cookie", sessionCookie({ userId: student.student_id }));
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });

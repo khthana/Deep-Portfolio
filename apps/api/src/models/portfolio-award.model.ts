@@ -1,16 +1,19 @@
-export type CreatePortfolioAwardReqBody = {
-  organize?: string;
-  name?: string;
-  award?: string;
-  date?: string; 
-  description?: string;
-  is_show?: boolean;
-};
+import type {
+  CreatePortfolioAwardFields,
+  UpdatePortfolioAwardFields,
+} from "../validation/portfolio-sections.schema";
 
-export type UpdatePortfolioAwardReqBody =
-  Partial<CreatePortfolioAwardReqBody> & {
-    ids_to_delete?: number[];
-  };
+/**
+ * What the service is handed, which is what the schema let through — minus
+ * `user_id`, which the controller passes separately because it is the owner of
+ * the row rather than one of its columns.
+ */
+export type CreatePortfolioAwardReqBody = Omit<
+  CreatePortfolioAwardFields,
+  "user_id"
+>;
+
+export type UpdatePortfolioAwardReqBody = UpdatePortfolioAwardFields;
 
 export type PortfolioAwardResp = {
   id: number;

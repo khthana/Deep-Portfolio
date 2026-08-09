@@ -1,12 +1,17 @@
 import { Router } from "express";
-import CourseController from "../controllers/course.controller";
 import UserController from "../controllers/user.controller";
 import { requireRole } from "../middlewares/auth.middleware";
+import { validate } from "../validation/validate";
+import { userQuery } from "../validation/identity.schema";
 
 const userRouter = Router();
 const userController = new UserController();
 
-userRouter.get("/", userController.getUser.bind(userController));
+userRouter.get(
+  "/",
+  validate({ query: userQuery }),
+  userController.getUser.bind(userController),
+);
 
 userRouter.get(
   "/student",

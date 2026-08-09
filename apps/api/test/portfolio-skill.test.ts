@@ -94,7 +94,8 @@ describe("GET /portfolio-skill", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [{ field: "user_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });
@@ -182,7 +183,8 @@ describe("GET /portfolio-skill/works", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [{ field: "user_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });
@@ -205,7 +207,11 @@ describe("GET /portfolio-skill/:id", () => {
     const response = await request(app).get("/portfolio-skill/abc");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("answers 404 for an id that belongs to no skill", async () => {
@@ -214,7 +220,7 @@ describe("GET /portfolio-skill/:id", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      message: "Portfolio skill not found",
+      message: "ไม่พบทักษะที่ต้องการ",
     });
   });
 });
@@ -282,11 +288,46 @@ describe("POST /portfolio-skill", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [{ field: "user_id", location: "body", message: "ต้องระบุ" }],
     });
     expect(
       await prisma.portfolio_skill.count({
         where: { name: "ทักษะไร้เจ้าของ" },
+      }),
+    ).toBe(0);
+  });
+
+  it("refuses a mapping that names no work", async () => {
+    // See BEHAVIOR-CHANGES.md. student_activity_id has no foreign key, so a
+    // mapping with none used to be written with the column left NULL — a row
+    // evidencing a skill with nothing at all.
+    const student = await createStudent();
+
+    const response = await request(app)
+      .post("/portfolio-skill")
+      .send({
+        user_id: student.student_id,
+        name: "การเขียนโปรแกรม",
+        mappings: [{ repository: "https://example.test/repo" }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message:
+        "ข้อมูลที่ส่งมาไม่ถูกต้อง: mappings[0].student_activity_id ต้องระบุ",
+      errors: [
+        {
+          field: "mappings[0].student_activity_id",
+          location: "body",
+          message: "ต้องระบุ",
+        },
+      ],
+    });
+    expect(
+      await prisma.portfolio_skill.count({
+        where: { user_id: student.student_id },
       }),
     ).toBe(0);
   });
@@ -388,7 +429,11 @@ describe("PUT /portfolio-skill/:id", () => {
       .send({ name: "ชื่อใหม่" });
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("fails for a skill that does not exist", async () => {
@@ -431,7 +476,11 @@ describe("DELETE /portfolio-skill/:id", () => {
     const response = await request(app).delete("/portfolio-skill/abc");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("fails for a skill that does not exist", async () => {
@@ -467,7 +516,11 @@ describe("GET /portfolio-skill/mapping/:id", () => {
     const response = await request(app).get("/portfolio-skill/mapping/abc");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ success: false, message: "Invalid ID" });
+    expect(response.body).toEqual({
+      success: false,
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
   });
 
   it("answers 404 for an id that belongs to no mapping", async () => {
@@ -476,7 +529,7 @@ describe("GET /portfolio-skill/mapping/:id", () => {
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
-      message: "Portfolio skill mapping not found",
+      message: "ไม่พบการเชื่อมโยงชิ้นงานกับทักษะที่ต้องการ",
     });
   });
 });
@@ -600,7 +653,7 @@ describe("POST /portfolio-skill/assign-work", () => {
     expect(response.status).toBe(403);
     expect(response.body).toMatchObject({
       success: false,
-      message: "One or more skills do not belong to this user",
+      message: "มีทักษะบางรายการที่ไม่ใช่ของผู้ใช้รายนี้",
     });
     // The whole call is one transaction, so the skill that was the caller's own
     // gets no mapping either.
@@ -619,7 +672,8 @@ describe("POST /portfolio-skill/assign-work", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "user_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
+      errors: [{ field: "user_id", location: "body", message: "ต้องระบุ" }],
     });
   });
 
@@ -633,7 +687,14 @@ describe("POST /portfolio-skill/assign-work", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "student_activity_id is required",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: student_activity_id ต้องระบุ",
+      errors: [
+        {
+          field: "student_activity_id",
+          location: "body",
+          message: "ต้องระบุ",
+        },
+      ],
     });
   });
 
@@ -654,7 +715,14 @@ describe("POST /portfolio-skill/assign-work", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "skill_ids must be a non-empty array",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: skill_ids ต้องมีอย่างน้อย 1 รายการ",
+      errors: [
+        {
+          field: "skill_ids",
+          location: "body",
+          message: "ต้องมีอย่างน้อย 1 รายการ",
+        },
+      ],
     });
     expect(
       await prisma.portfolio_skill_activity_mapping.count({
@@ -697,7 +765,8 @@ describe("DELETE /portfolio-skill/mapping/:id", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "Invalid mapping ID",
+      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
+      errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
     });
   });
 

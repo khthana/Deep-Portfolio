@@ -156,6 +156,7 @@ describe("POST /student-activity-group", () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
+      success: false,
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
     expect(
@@ -179,6 +180,7 @@ describe("POST /student-activity-group", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({
+      success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
     });
     expect(
@@ -188,7 +190,7 @@ describe("POST /student-activity-group", () => {
     ).toBe(0);
   });
 
-  it("refuses a request with no member list", async () => {
+  it("answers 400 for a request with no member list", async () => {
     const { activity, students } = await classWithStudents(1);
 
     const response = await request(app)
@@ -196,7 +198,39 @@ describe("POST /student-activity-group", () => {
       .set("Cookie", sessionCookie({ userId: students[0].student_id }))
       .send({ activity_id: activity.id });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "members", location: "body", message: "ต้องระบุ" },
+    ]);
+    expect(
+      await prisma.student_activity_group.count({
+        where: { activity_id: activity.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("answers 400 for a role the group does not have", async () => {
+    // The column is an enum of these two words, so anything else used to be a
+    // failed insert halfway through the transaction — reported as a 500 about
+    // an enum value the caller never wrote down that way.
+    const { activity, students } = await classWithStudents(1);
+
+    const response = await request(app)
+      .post("/student-activity-group")
+      .set("Cookie", sessionCookie({ userId: students[0].student_id }))
+      .send({
+        activity_id: activity.id,
+        members: [{ student_id: students[0].student_id, role: "OWNER" }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "members[0].role",
+        location: "body",
+        message: "ต้องเป็นค่าใดค่าหนึ่งใน: LEADER, MEMBER",
+      },
+    ]);
     expect(
       await prisma.student_activity_group.count({
         where: { activity_id: activity.id },
@@ -427,17 +461,20 @@ describe("GET /student-activity-group", () => {
     expect(response.body.data).toBeNull();
   });
 
-  it("answers 500 when the activity_id is missing", async () => {
-    // parseInt(undefined) is NaN, which Prisma sends as null, and activity_id
-    // is NOT NULL — so the query is rejected rather than matching nothing.
-    // #20 turns this into a 400, here and everywhere else it happens.
+  it("answers 400 when the activity_id is missing", async () => {
+    // parseInt(undefined) was NaN, which Prisma sends as null, and activity_id
+    // is NOT NULL — so the query was rejected rather than matching nothing, and
+    // the caller was told about it in a 500.
     const student = await createStudent();
 
     const response = await request(app)
       .get("/student-activity-group")
       .query({ student_id: student.student_id });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "activity_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });
 
@@ -527,12 +564,11 @@ describe("GET /student-activity-group/all", () => {
     expect(response.body.data).toEqual([]);
   });
 
-  it("shows every group in the section when the student_id is missing", async () => {
-    // Recorded, not endorsed. `some: { student_id: undefined }` is not a filter
-    // that matches nothing, it is no filter at all — so dropping the parameter
-    // widens the answer from "my groups" to "everyone's", and the caller is
-    // shown the member lists of students they were never part of a group with.
-    // #26 makes this a 400.
+  it("answers 400 when the student_id is missing", async () => {
+    // `some: { student_id: undefined }` is not a filter that matches nothing,
+    // it is no filter at all — so dropping the parameter widened the answer
+    // from "my groups" to everyone's, and the caller was shown the member
+    // lists of students they were never in a group with (#26).
     const { course, activity, students } = await classWithStudents(2);
     await createActivityGroup({
       activity_id: activity.id,
@@ -546,8 +582,10 @@ describe("GET /student-activity-group/all", () => {
       .get("/student-activity-group/all")
       .query({ section_id: course.section_id });
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toHaveLength(1);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "student_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });
 
@@ -603,15 +641,18 @@ describe("GET /student-activity-group/without-group", () => {
     expect(response.body.data).toEqual([]);
   });
 
-  it("answers 500 when the section_id is missing", async () => {
-    // student_course.section_id is NOT NULL, so the NaN parseInt produces is
-    // rejected rather than matching nothing. #20 turns this into a 400.
+  it("answers 400 when the section_id is missing", async () => {
+    // student_course.section_id is NOT NULL, so the NaN parseInt produced was
+    // rejected by Postgres rather than matching nothing.
     const { activity } = await classWithStudents(1);
 
     const response = await request(app)
       .get("/student-activity-group/without-group")
       .query({ activity_id: activity.id });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "section_id", location: "query", message: "ต้องระบุ" },
+    ]);
   });
 });
