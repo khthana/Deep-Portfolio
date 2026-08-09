@@ -4,7 +4,6 @@ import { Form, message, Table } from "antd";
 import Button from "../../../../components/button/button";
 import type {
   AddScoreWeightBody,
-  GetScoreWeightParams,
   UpdateScoreWeightBody,
 } from "../types/score-weight-type.type";
 import { v4 as uuidv4 } from "uuid";
@@ -74,7 +73,7 @@ const ScoreWeightTable = () => {
       handleFetchData();
 
       messageApi.success("ลบเรียบร้อย");
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถลบได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -88,7 +87,7 @@ const ScoreWeightTable = () => {
       }
 
       setEditingKey("");
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถยกเลิกได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -104,7 +103,7 @@ const ScoreWeightTable = () => {
 
       setData([...data, newRow]);
       edit(newRow);
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถเพิ่มข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -131,7 +130,7 @@ const ScoreWeightTable = () => {
       }
 
       setEditingKey("");
-    } catch (errInfo) {
+    } catch {
       messageApi.error("กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -156,7 +155,7 @@ const ScoreWeightTable = () => {
       messageApi.success("เพิ่มเรียบร้อย");
 
       handleFetchData();
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถเพิ่มได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -176,7 +175,7 @@ const ScoreWeightTable = () => {
       messageApi.success("แก้ไขข้อมูลเรียบร้อย");
 
       handleFetchData();
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถแก้ไขข้อมูล กรุณาลองใหม่อีกครั้ง");
     }
   };

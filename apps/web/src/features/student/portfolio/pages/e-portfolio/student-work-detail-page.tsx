@@ -4,7 +4,6 @@ import { Image as AntImage, Spin } from "antd";
 import {
   ArrowLeftOutlined,
   PlayCircleOutlined,
-  PictureOutlined,
   FilePdfOutlined,
   LinkOutlined,
   FileOutlined,
@@ -21,18 +20,6 @@ interface ExtendedWork extends BaseWork {
   relatedSkills?: { id: string; name: string }[];
 }
 
-interface Mapping {
-  id: number;
-  student_activity_id: number;
-  repository?: string;
-  isShowRepo?: boolean;
-  role_and_resp?: string;
-  isShowRole?: boolean;
-  init_expect?: string;
-  isShowInit?: boolean;
-  reflection?: string;
-  isShowReflec?: boolean;
-}
 import { Header } from "../../components/e-portfolio-template/theme-modern-blue/header";
 import { Footer } from "../../components/e-portfolio-template/theme-modern-blue/footer";
 import { useEffect, useState } from "react";

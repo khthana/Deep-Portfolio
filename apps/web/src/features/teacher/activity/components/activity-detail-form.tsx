@@ -7,16 +7,15 @@ import {
   Select,
   Upload,
 } from "antd";
-import { useForm, type FormInstance } from "antd/es/form/Form";
+import { type FormInstance } from "antd/es/form/Form";
 import TextEditor from "../../../../components/input/text-editor";
-import CheckboxWithLabel from "../../../../components/input/checkbox-with-label";
 import Button from "../../../../components/button/button";
 import UploadButton from "../../../../components/input/upload-button";
 import {
   AttachmentType,
   type AttachmentDetailItem,
 } from "../../announcement/types/announement-type";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { AppDispatch, RootState } from "../../../../stores/stores";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchScoreWeightOptions } from "../../course/stores/teacher-course-action";
@@ -26,7 +25,7 @@ import {
   activityTypeOptions,
   type CreateActivityFormType,
 } from "../types/activity-type.type";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import type { RangePickerProps } from "antd/es/date-picker";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import type { JSONContent } from "@tiptap/react";
@@ -41,7 +40,6 @@ import type {
   FileDetail,
   URLDetail,
 } from "../../../../types/attachment-type.type";
-import type { MessageInstance } from "antd/es/message/interface";
 
 type Props = {
   classworkForm: FormInstance<CreateActivityFormType>;

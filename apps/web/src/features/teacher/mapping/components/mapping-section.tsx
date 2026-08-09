@@ -54,7 +54,7 @@ const MappingSection = (props: Props) => {
         messageApi.success("เพิ่มกิจกรรมสำเร็จ");
         fetchActivityData();
       }
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถเพิ่มกิจกรรมได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -74,7 +74,7 @@ const MappingSection = (props: Props) => {
         messageApi.success("เพิ่มกิจกรรมสำเร็จ");
         fetchLearningActivityData();
       }
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถเพิ่มกิจกรรมได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -86,7 +86,9 @@ const MappingSection = (props: Props) => {
       if (data) {
         setActivityData(data);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const fetchLearningActivityData = async () => {
@@ -98,7 +100,9 @@ const MappingSection = (props: Props) => {
       if (data) {
         setLearningActivityData(data);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {

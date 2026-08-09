@@ -53,7 +53,6 @@ const TrainingSection = ({ data, onRefresh }: TrainingSectionProps) => {
       {contextHolder}
       <SectionLayout
         title="การฝึกอบรม"
-        onClick={() => console.log("click")}
         href={paths.student.portfolio.educationTraining.newTraining}
       >
         {data && data.length > 0 ? (

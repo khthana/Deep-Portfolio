@@ -5,7 +5,6 @@ import {
   type ClassworkDetail,
 } from "../../course/types/course-type";
 import {
-  checkIsOverSubmittionDeadline,
   convertDateToThaiFormat,
 } from "../../../../utils/format-thai-date";
 import { generateHTML } from "@tiptap/react";

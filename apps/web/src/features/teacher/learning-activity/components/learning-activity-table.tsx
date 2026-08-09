@@ -75,7 +75,7 @@ const LearningActivityTable = () => {
       handleFetchData();
 
       messageApi.success("ลบเรียบร้อย");
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถลบได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -89,24 +89,6 @@ const LearningActivityTable = () => {
     //   setEditingKey("");
     // } catch (error) {
     //   messageApi.error("ไม่สามารถยกเลิกได้ กรุณาลองใหม่อีกครั้ง");
-    // }
-  };
-
-  const handleAdd = () => {
-    // try {
-    //   const newRow: DataType = {
-    //     key: uuidv4(),
-    //     week: data.length + 1,
-    //     title: "",
-    //     detail: "",
-    //     activity: "",
-    //     remark: "",
-    //     isNew: true,
-    //   };
-    //   setData([...data, newRow]);
-    //   edit(newRow);
-    // } catch (error) {
-    //   messageApi.error("ไม่สามารถเพิ่มข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
     // }
   };
 
@@ -124,7 +106,7 @@ const LearningActivityTable = () => {
 
       handleFetchData();
       setEditingKey("");
-    } catch (errInfo) {
+    } catch {
       messageApi.error("กรุณาลองใหม่อีกครั้ง");
     }
   };

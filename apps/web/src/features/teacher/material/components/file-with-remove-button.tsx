@@ -3,7 +3,7 @@ import type { FileDetail } from "../../../../types/attachment-type.type";
 import type { AppDispatch } from "../../../../stores/stores";
 import { useDispatch } from "react-redux";
 import { removeCourseMaterial } from "../stores/teacher-material-action";
-import { message, Popconfirm, type FormInstance } from "antd";
+import { Popconfirm, type FormInstance } from "antd";
 import type { MessageInstance } from "antd/es/message/interface";
 import type { AttachmentItemsType } from "./material-table";
 
@@ -36,7 +36,7 @@ const FileWithRemoveButton = (props: Props) => {
         props.form.setFieldsValue({ attachments: newAttachments });
         props.handleFetchData();
       }
-    } catch (error) {
+    } catch {
       props.messageInstance.error("ลบไฟล์ไม่สำเร็จ");
     }
   };

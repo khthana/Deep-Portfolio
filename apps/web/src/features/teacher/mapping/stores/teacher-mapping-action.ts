@@ -1,5 +1,5 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import type { Options, ResponseWrapper } from "../../../../types/global-type";
+import type { ResponseWrapper } from "../../../../types/global-type";
 import type {
   ActivityMappingDetailResp,
   CreateActivityCLOMappingBodyReq,

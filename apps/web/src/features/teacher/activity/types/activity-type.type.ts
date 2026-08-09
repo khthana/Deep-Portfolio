@@ -1,6 +1,5 @@
 import type { JSONContent } from "@tiptap/react";
 import type { AttachmentDetailItem } from "../../announcement/types/announement-type";
-import type { AttachmentDetailResp } from "../../../../types/attachment-type.type";
 import type {
   ScoreWeightDetail,
   StudentActivityStatusDB,

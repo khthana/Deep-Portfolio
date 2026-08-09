@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Popconfirm, message, Tag, Image } from "antd";
+import { Popconfirm, message, Image } from "antd";
 import { getFile } from "../../../../../utils/get-file";
 import WhiteContainer from "../../../../../components/container/white-container";
 import type { PortfolioWorkResp } from "../../../../../types/portfolio-skill-type.type";

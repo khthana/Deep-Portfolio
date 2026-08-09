@@ -13,7 +13,6 @@ import {
   postSubmitLearningActivity,
 } from "../../stores/course-action";
 import type {
-  ClassworkDetailFull,
   GetStudentActivityGroupParams,
   GetStudentActivityGroupResp,
   GetStudentLearningActivityGroupParams,
@@ -26,7 +25,6 @@ import { mapFileDetailToUploadFile } from "../../../../../types/map-file";
 import SubmitClassworkForm from "./submit-classwork-form";
 import CreateGroupworkSection from "./create-groupwork-section";
 import ShowGroupworkModal from "./show-groupwork-modal";
-import { appendAttachments } from "../../../../../utils/append-form-data";
 
 type Props = {
   // classworkDetail: ClassworkDetailFull;
@@ -130,10 +128,6 @@ const SubmitClassworkSection = (props: Props) => {
         formData.append("existing_files_ids", JSON.stringify(existingFileIds));
       }
 
-      for (const [key, value] of formData) {
-        console.log(`${key}: ${value}`);
-      }
-
       const resp = await dispatch(postSubmitActivity(formData)).unwrap();
 
       if (resp.success) {
@@ -141,7 +135,9 @@ const SubmitClassworkSection = (props: Props) => {
         setResubmitted(false);
         // await props.handleFetchData();
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleOnSubmitLearningActivity = async () => {

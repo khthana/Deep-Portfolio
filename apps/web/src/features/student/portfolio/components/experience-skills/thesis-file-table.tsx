@@ -1,10 +1,8 @@
 import { Form, message, Table, type TableProps } from "antd";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
-import type { AppDispatch, RootState } from "../../../../../stores/stores";
+import type { RootState } from "../../../../../stores/stores";
 import EditableCell from "../../../../../components/input/table/editable-cell";
-import WhiteContainer from "../../../../../components/container/white-container";
 import ThesisFileColumn from "./thesis-file-column";
 import { MockThesisAttachmentType } from "../../types/experience-skill-type.type";
 
@@ -17,7 +15,7 @@ export type DataType = {
   isNew?: boolean;
 };
 
-export const mockData: DataType[] = [
+const mockData: DataType[] = [
   {
     id: 1,
     key: "1",
@@ -44,12 +42,11 @@ export const mockData: DataType[] = [
 type ColumnTypes = Exclude<TableProps<DataType>["columns"], undefined>;
 
 const ThesisFileTable = () => {
-  const dispatch = useDispatch<AppDispatch>();
   const homeSlice = useSelector((state: RootState) => state.teacherHome);
 
   const [messageApi, contextHolder] = message.useMessage();
 
-  const [data, setData] = useState<DataType[]>(mockData);
+  const [data] = useState<DataType[]>(mockData);
   const [editingKey, setEditingKey] = useState("");
 
   const isEditing = (record: DataType) => record.key === editingKey;
@@ -98,24 +95,6 @@ const ThesisFileTable = () => {
     // }
   };
 
-  const handleAdd = () => {
-    // try {
-    //   const newRow: DataType = {
-    //     key: uuidv4(),
-    //     week: data.length + 1,
-    //     title: "",
-    //     detail: "",
-    //     activity: "",
-    //     remark: "",
-    //     isNew: true,
-    //   };
-    //   setData([...data, newRow]);
-    //   edit(newRow);
-    // } catch (error) {
-    //   messageApi.error("ไม่สามารถเพิ่มข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
-    // }
-  };
-
   const handleSave = async (key: React.Key) => {
     try {
       //   const row = (await form.validateFields()) as DataType;
@@ -128,48 +107,9 @@ const ThesisFileTable = () => {
       //   }
       //   handleFetchData();
       //   setEditingKey("");
-    } catch (errInfo) {
+    } catch {
       messageApi.error("กรุณาลองใหม่อีกครั้ง");
     }
-  };
-
-  const handleCreateNewLessonPlan = async (row: DataType) => {
-    // try {
-    //   if (!homeSlice.selectedCourse) return;
-    //   const body: AddLessonPlanBody = {
-    //     year: homeSlice.selectedCourse?.academic_year,
-    //     semester: homeSlice.selectedCourse?.semester,
-    //     subject_id: homeSlice.selectedCourse?.course_id,
-    //     week_no: data.length,
-    //     title: row.title,
-    //     description: row.detail,
-    //     remark: row.remark,
-    //     created_by: homeSlice.selectedCourse.teacher_id,
-    //     section_id: homeSlice.selectedCourse.section_id,
-    //   };
-    //   await dispatch(postLessonPlan(body)).unwrap();
-    //   messageApi.success("เพิ่มเรียบร้อย");
-    //   handleFetchData();
-    // } catch (error) {
-    //   messageApi.error("ไม่สามารถเพิ่มได้ กรุณาลองใหม่อีกครั้ง");
-    // }
-  };
-
-  const handleUpdateLessonPlan = async (row: DataType, id: number) => {
-    // try {
-    //   if (!homeSlice.selectedCourse) return;
-    //   const body: UpdateLessonPlanBody = {
-    //     lesson_plan_id: id,
-    //     title: row.title,
-    //     description: row.detail,
-    //     remark: row.remark,
-    //   };
-    //   await dispatch(editLessonPlan(body)).unwrap();
-    //   messageApi.success("แก้ไขข้อมูลเรียบร้อย");
-    //   handleFetchData();
-    // } catch (error) {
-    //   messageApi.error("ไม่สามารถแก้ไขข้อมูล กรุณาลองใหม่อีกครั้ง");
-    // }
   };
 
   const columns = ThesisFileColumn({
@@ -203,6 +143,7 @@ const ThesisFileTable = () => {
 
   return (
     <Form.Item>
+      {contextHolder}
       <div>
         <Table<DataType>
           components={{

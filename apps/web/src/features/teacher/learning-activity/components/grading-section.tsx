@@ -3,14 +3,13 @@ import type { GetStudentLearningActivityDetailResp } from "../../../../types/stu
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import ActivityFileCard from "../../activity/components/activity-file-card";
 import StatusChip from "../../activity/components/status-chip";
-import type { FileDetail } from "../../../../types/attachment-type.type";
 import TextArea from "antd/es/input/TextArea";
 import { useForm } from "antd/es/form/Form";
 import type {
   GradeStudentLearningActivityData,
   GradingFormType,
 } from "../types/learning-activity-type.type";
-import { Form, Input, message, Tooltip } from "antd";
+import { Form, message, Tooltip } from "antd";
 import Button from "../../../../components/button/button";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../../../stores/stores";
@@ -56,8 +55,6 @@ const GradingSection = (props: Props) => {
 
   const handleOnFinish = async (value: GradingFormType) => {
     try {
-      console.log(value);
-
       const data: GradeStudentLearningActivityData = {
         activity_type: props.classworkData.learning_activity_type,
         student_learning_activity_id: props.classworkData.id,
@@ -73,7 +70,9 @@ const GradingSection = (props: Props) => {
         messageApi.success("บันทึกสำเร็จ");
         props.handleFetchStudentLearningActivityDetail();
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {

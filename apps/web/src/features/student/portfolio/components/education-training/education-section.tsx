@@ -57,7 +57,6 @@ const EducationSection = ({ data, onRefresh }: EducationSectionProps) => {
       {contextHolder}
       <SectionLayout
         title="ประวัติการศึกษา"
-        onClick={() => console.log("click")}
         href={paths.student.portfolio.educationTraining.newEducation}
       >
         {data && data.length > 0 ? (

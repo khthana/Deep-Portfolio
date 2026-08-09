@@ -16,7 +16,6 @@ const ProfessionalQualificationSection = () => {
   return (
     <SectionLayout
       title="คุณวุฒิทางวิชาชีพ"
-      onClick={() => console.log("click")}
       href={
         paths.student.portfolio.educationTraining.newProfessionalQualification
       }

@@ -4,7 +4,7 @@ import BackButton from "../../../../components/button/back-button";
 import { paths } from "../../../../routes/paths.config";
 import GradingSection from "../components/grading-section";
 import ActivityViewer from "../components/activity-viewer";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import PageLayout from "../../../../components/container/page-layout";
 import WhiteContainer from "../../../../components/container/white-container";
 import type { AppDispatch } from "../../../../stores/stores";
@@ -49,7 +49,9 @@ const TeacherGradingPage = () => {
         // handleFetchStudentActivityDetail();
         setIsBookmark(resp.data.is_bookmark);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handlePreviewFile = (src: string) => {

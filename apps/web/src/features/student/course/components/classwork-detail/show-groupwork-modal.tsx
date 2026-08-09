@@ -1,6 +1,5 @@
-import { SearchOutlined } from "@ant-design/icons";
-import { Input, message, Modal, Select, Space } from "antd";
-import Search from "antd/es/input/Search";
+
+import { message, Modal, Select } from "antd";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import GroupMemberItem from "./group-member-item";
 import { useDispatch, useSelector } from "react-redux";
@@ -133,7 +132,7 @@ const ShowGroupworkModal = (props: Props) => {
         setIsEditing(false);
         props.setOpenModal(false);
       }
-    } catch (error) {
+    } catch {
       messageApi.error("เกิดข้อผิดพลาดในการแก้ไขกลุ่ม");
     }
   };
@@ -152,13 +151,15 @@ const ShowGroupworkModal = (props: Props) => {
         learning_activity_id: props.classworkDetail.activity_id,
       };
 
-    props.classworkDetail.category === "activity"
-      ? await dispatch(fetchStudentWithoutGroup(getStudentWithoutGroupParams))
-      : await dispatch(
-          fetchStudentLearningActivityWithoutGroup(
-            getStudentLearningActivityWithoutGroupParams,
-          ),
-        );
+    if (props.classworkDetail.category === "activity") {
+      await dispatch(fetchStudentWithoutGroup(getStudentWithoutGroupParams));
+    } else {
+      await dispatch(
+        fetchStudentLearningActivityWithoutGroup(
+          getStudentLearningActivityWithoutGroupParams,
+        ),
+      );
+    }
   };
 
   const filterOptions = memberOptions.filter(

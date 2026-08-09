@@ -92,7 +92,6 @@ const CreateThesisForm = () => {
       }
     } catch (error: any) {
       console.error("Create Thesis Error:", error);
-      console.log("Error Response:", error.response?.data);
       const errorMessage =
         error.response?.data?.message || "เกิดข้อผิดพลาดในการสร้างโครงงาน";
       messageApi.error(errorMessage);

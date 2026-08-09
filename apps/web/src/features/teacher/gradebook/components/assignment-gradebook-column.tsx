@@ -1,4 +1,4 @@
-import type { GradebookPerActivityDataType } from "../types/gradebook-type.type";
+
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 
 // type Props = {

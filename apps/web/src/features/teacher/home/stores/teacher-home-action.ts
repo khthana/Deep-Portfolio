@@ -1,8 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import type {
-  CourseDetailBrief,
   GetAllCoursesParams,
-  GetCourseDetailParams,
   TeacherCourseListResp,
 } from "../types/home-type";
 import { getAllCourses } from "../services/home-service.service";

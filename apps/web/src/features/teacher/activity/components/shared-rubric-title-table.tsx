@@ -1,12 +1,9 @@
-import { Form, message, Table, type TableProps } from "antd";
+import { Table, type TableProps } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../../../stores/stores";
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useState,} from "react";
 import EditableCell from "../../../../components/input/table/editable-cell";
 import { fetchSharedRubric } from "../stores/teacher-activity-action";
-
-type TableRowSelection<T extends object = object> =
-  TableProps<T>["rowSelection"];
 
 export type DataType = {
   key: string;
@@ -21,12 +18,8 @@ type Props = {
 };
 
 const SharedRubricTitleTable = (props: Props) => {
-  const [form] = Form.useForm();
-
   const dispatch = useDispatch<AppDispatch>();
   const homeSlice = useSelector((state: RootState) => state.teacherHome);
-
-  const [messageApi, contextHolder] = message.useMessage();
 
   const [data, setData] = useState<DataType[]>([]);
 
@@ -45,7 +38,9 @@ const SharedRubricTitleTable = (props: Props) => {
       }));
 
       setData(mappedData);
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const columns = [
@@ -86,19 +81,6 @@ const SharedRubricTitleTable = (props: Props) => {
     };
   });
 
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-
-  const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
-    console.log("selectedRowKeys changed: ", newSelectedRowKeys);
-    setSelectedRowKeys(newSelectedRowKeys);
-  };
-
-  const rowSelection: TableRowSelection<DataType> = {
-    type: "radio",
-    selectedRowKeys,
-    onChange: onSelectChange,
-  };
-
   useEffect(() => {
     handleFetchData();
   }, [homeSlice.selectedCourse]);
@@ -115,7 +97,6 @@ const SharedRubricTitleTable = (props: Props) => {
         columns={mergedColumns as ColumnTypes}
         pagination={false}
         className="ical-align-top-table custom-table blue cursor-pointer"
-        //   rowSelection={rowSelection}Qs
         onRow={(record) => ({
           onClick: () => props.handleSelectedKey(record.key),
         })}

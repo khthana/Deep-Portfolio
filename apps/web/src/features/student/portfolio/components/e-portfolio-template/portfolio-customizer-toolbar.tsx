@@ -18,7 +18,7 @@ import {
   generateShareLink,
 } from "../../../../../services/portfolio.service";
 import type { CreatePortfolioReq } from "../../../../../services/portfolio.service";
-import { Select, DatePicker } from "antd";
+import { DatePicker } from "antd";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 

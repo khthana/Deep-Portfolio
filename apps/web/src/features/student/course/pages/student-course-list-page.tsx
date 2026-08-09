@@ -3,9 +3,8 @@ import PageLayout from "../../../../components/container/page-layout";
 import type { AppDispatch, RootState } from "../../../../stores/stores";
 import CourseCard from "../components/course-card";
 import { fetchStudentCourseList } from "../stores/course-action";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { GetStudentCourseListParams } from "../types/course-type";
-import type { CourseDetail } from "../../../../types/course-type.type";
 
 const StudentCourseListPage = () => {
   const dispatch = useDispatch<AppDispatch>();

@@ -4,7 +4,6 @@ import {
   Input,
   Select,
   DatePicker,
-  message,
   Upload,
   Image,
 } from "antd";
@@ -68,17 +67,6 @@ const InternshipEditModal = ({
       setShowResponsibilities(data.is_show_resp || false);
       setShowLearningOutcomes(data.is_show_learning || false);
       setShowReflections(data.is_show_reflec || false);
-
-      let initialPosition = data.title;
-      let initialTitle = "";
-
-      if (data.type === "COOP" && data.title && data.title.includes(" - ")) {
-        const parts = data.title.split(" - ");
-        // Assume format "Position - Title"
-        // But title might contain " - ", so prefer first part as position
-        initialPosition = parts[0];
-        initialTitle = parts.slice(1).join(" - ");
-      }
 
       form.setFieldsValue({
         title: data.title, // Only relevant if COOP
@@ -164,14 +152,6 @@ const InternshipEditModal = ({
       setLoading(true);
 
       if (!data?.id) return;
-
-      // Combine position and title for COOP if needed, or just save position as title
-      // Based on request "show position as header", we prioritize position.
-      // We'll store "Position" or "Position - Title"
-      let finalTitle = values.position;
-      if (programType === "COOP" && values.title) {
-        finalTitle = `${values.position} - ${values.title}`;
-      }
 
       const payload: UpdatePortfolioInternshipReq = {
         type: programType,

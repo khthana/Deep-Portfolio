@@ -1,16 +1,13 @@
 import { Form, Tooltip, type FormInstance } from "antd";
 import type {
-  GradeStudentActivityData,
   GradingFormType,
 } from "../types/activity-type.type";
 import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
 import TextArea from "antd/es/input/TextArea";
 import RubricCard from "./rubric-card";
-import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch, RootState } from "../../../../stores/stores";
-import { useForm } from "antd/es/form/Form";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../../../stores/stores";
 import type { MessageInstance } from "antd/es/message/interface";
-import { postGradeStudentActivity } from "../stores/teacher-activity-action";
 import Button from "../../../../components/button/button";
 import { InfoCircleOutlined } from "@ant-design/icons";
 

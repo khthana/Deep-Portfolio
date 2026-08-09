@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -23,10 +22,13 @@ export default defineConfig({
       // they are written from local parts and pass under Bangkok, New York and
       // Kiritimati alike — which is what #19 asked for.
       TZ: "UTC",
-      // Read at module load by src/utils/get-file.ts, which builds the URL an
-      // attachment is fetched from. Named here rather than left to a local
-      // .env so the suite states the value it asserts against.
+      // Read at module load by src/configs/env.ts, which every module that
+      // wants either of them goes through — and which throws when one is
+      // missing, so a test importing anything downstream of it needs both.
+      // Named here rather than left to a local .env so the suite states the
+      // values it asserts against.
       VITE_BACKEND_URL: "http://backend.test",
+      VITE_GOOGLE_CLIENT_ID: "test-client-id.apps.googleusercontent.com",
     },
   },
 });

@@ -70,7 +70,6 @@ const ThesisSection = () => {
     <div className="flex flex-col gap-6">
       <SectionLayout
         title="โครงงานปริญญาตรี"
-        onClick={() => console.log("click")}
         href={paths.student.portfolio.experienceSkills.newThesis}
       >
         <div className="grid grid-cols-1 gap-4">

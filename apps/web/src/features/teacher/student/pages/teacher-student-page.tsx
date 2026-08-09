@@ -1,5 +1,4 @@
 import TeacherBreadcrumb from "../../../../components/breadcrumb/teacher-breadcrumb";
-import Button from "../../../../components/button/button";
 import PageLayout from "../../../../components/container/page-layout";
 import WhiteContainer from "../../../../components/container/white-container";
 import StudentTable from "../components/student-table";

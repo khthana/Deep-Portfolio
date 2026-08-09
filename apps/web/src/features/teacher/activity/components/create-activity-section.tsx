@@ -62,9 +62,6 @@ const CreateActivitySection = (props: Props) => {
 
       const formData = formatFormData(classworkValues, rubricValues);
 
-      for (const [key, value] of formData.entries()) {
-        console.log(`${key}: ${value}`);
-      }
       const resp = await dispatch(postActivity(formData)).unwrap();
 
       if (resp.success) {
@@ -91,10 +88,6 @@ const CreateActivitySection = (props: Props) => {
 
       const formData = formatEditFormData(classworkValues, rubricValues);
 
-      const formObject = Object.fromEntries(formData);
-      console.log(formObject);
-
-      // }
       const resp = await dispatch(putActivity(formData)).unwrap();
 
       if (resp.success) {

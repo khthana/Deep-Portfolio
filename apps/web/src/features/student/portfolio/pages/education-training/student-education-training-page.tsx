@@ -50,7 +50,6 @@ const StudentEducationTrainingPage = () => {
   };
 
   useEffect(() => {
-    console.log("student id : ", studentId);
     fetchData();
   }, [studentId]);
 

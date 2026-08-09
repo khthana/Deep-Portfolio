@@ -1,15 +1,12 @@
 import React from "react";
-import { Result, Typography } from "antd";
+import { Result } from "antd";
 import { useNavigate } from "react-router-dom";
-import { HomeOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import { useAuth } from "../../../../hooks/use-auth";
 import Button from "../../../../components/button/button";
 
-const { Text } = Typography;
-
 const NotFoundPage: React.FC = () => {
   const navigate = useNavigate();
-  const { roles, userData } = useAuth();
+  const { roles } = useAuth();
 
   // คำนวณหาหน้าหลักตาม Role
   const getHomePath = () => {

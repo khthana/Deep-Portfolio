@@ -1,4 +1,4 @@
-import { Form, InputNumber, Select, type FormProps } from "antd";
+import { Form, Select, type FormProps } from "antd";
 import type { Options } from "../../../../types/global-type";
 import Button from "../../../../components/button/button";
 import type { Dispatch, SetStateAction } from "react";
@@ -18,7 +18,9 @@ const AddLearningActivityForm = (props: Props) => {
       props.onAddLearningActivity(values);
 
       props.setIsAdding(false);
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

@@ -1,5 +1,4 @@
 import { Breadcrumb } from "antd";
-import ImageSection from "../../components/personal-details/image-section";
 import PersonalDetailsSection from "../../components/personal-details/personal-details-section";
 import PageLayout from "../../../../../components/container/page-layout";
 

@@ -2,7 +2,6 @@ import {
   Modal,
   Form,
   Input,
-  message,
   Upload,
   Image,
   DatePicker,

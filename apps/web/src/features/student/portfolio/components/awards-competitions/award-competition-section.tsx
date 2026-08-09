@@ -68,7 +68,6 @@ const AwardCompetitionSection = () => {
       {contextHolder}
       <SectionLayout
         title="รางวัลและการแข่งขัน"
-        onClick={() => console.log("click")}
         href={paths.student.portfolio.awardsCompetitions.new}
       >
         {data && data.length > 0 ? (

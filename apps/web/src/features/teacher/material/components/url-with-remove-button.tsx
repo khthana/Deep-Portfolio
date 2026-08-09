@@ -1,12 +1,11 @@
 import { DeleteOutlined } from "@ant-design/icons";
 import type {
-  FileDetail,
   URLDetail,
 } from "../../../../types/attachment-type.type";
 import type { AppDispatch } from "../../../../stores/stores";
 import { useDispatch } from "react-redux";
 import { removeCourseMaterial } from "../stores/teacher-material-action";
-import { message, Popconfirm } from "antd";
+import { Popconfirm } from "antd";
 import type { MessageInstance } from "antd/es/message/interface";
 
 type Props = {
@@ -27,7 +26,7 @@ const UrlWithRemoveButton = (props: Props) => {
 
       props.messageInstance.success("ลบไฟล์สำเร็จ");
       props.handleFetchData();
-    } catch (error) {
+    } catch {
       props.messageInstance.error("ลบไฟล์ไม่สำเร็จ");
     }
   };

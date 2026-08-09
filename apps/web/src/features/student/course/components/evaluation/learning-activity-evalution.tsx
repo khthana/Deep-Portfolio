@@ -1,14 +1,11 @@
 import { generatePath, useParams } from "react-router-dom";
-import TeacherBreadcrumb from "../../../../../components/breadcrumb/teacher-breadcrumb";
 import BackButton from "../../../../../components/button/back-button";
 import { paths } from "../../../../../routes/paths.config";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import PageLayout from "../../../../../components/container/page-layout";
 import WhiteContainer from "../../../../../components/container/white-container";
 import type { AppDispatch } from "../../../../../stores/stores";
 import { useDispatch } from "react-redux";
-import type { GetStudentActivityDetailResp } from "../../../../../types/student-activity-type.type";
-import { fetchStudentActivityDetail } from "../../../../teacher/activity/stores/teacher-activity-action";
 import { activityTypeLabel } from "../../../../teacher/activity/types/activity-type.type";
 import ActivityViewer from "../../../../teacher/activity/components/activity-viewer";
 import { Breadcrumb } from "antd";
@@ -27,7 +24,7 @@ const LearningActivityEvaluation = () => {
   const [classworkData, setClassworkData] =
     useState<GetStudentLearningActivityDetailResp>();
   const [fileSrc, setFileSrc] = useState<string | null>(null);
-  const [isBookmark, setIsBookmark] = useState<boolean>(false);
+  const [isBookmark] = useState<boolean>(false);
 
   // const handleAddBookmark = async () => {
   //   try {

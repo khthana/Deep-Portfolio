@@ -5,7 +5,6 @@ import type {
   AcceptInviteBody,
   ValidateInvite,
 } from "../types/group-type.type";
-import type { UserResp } from "../types/user-type.type";
 
 export const acceptInvite = async (body: AcceptInviteBody) => {
   const resp = await axiosInstance.post<ResponseWrapper<any>>(

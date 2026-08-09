@@ -29,7 +29,9 @@ const TeacherEditLearningActivityPage = () => {
       ).unwrap();
 
       setActivityDetail(data);
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {

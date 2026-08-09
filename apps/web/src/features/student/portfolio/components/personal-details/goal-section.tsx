@@ -4,10 +4,7 @@ import TitleWithEditIcon from "../title-with-edit-icon";
 const GoalSection = () => {
   return (
     <WhiteContainer>
-      <TitleWithEditIcon
-        title="เป้าหมายทางวิชาชีพ"
-        onEdit={() => console.log("click")}
-      />
+      <TitleWithEditIcon title="เป้าหมายทางวิชาชีพ" />
       <div>
         พัฒนาตนเองให้เป็นนักพัฒนาซอฟต์แวร์ที่มีความเชี่ยวชาญด้าน Web Development
         และ Cloud Technology โดยมุ่งเน้นการเรียนรู้และฝึกฝนทักษะจากการฝึกงาน

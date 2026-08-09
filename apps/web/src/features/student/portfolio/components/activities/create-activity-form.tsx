@@ -1,4 +1,4 @@
-import { DatePicker, Form, Input, Upload, Image, message } from "antd";
+import { DatePicker, Form, Input, Upload, Image } from "antd";
 import type { UploadFile } from "antd";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";

@@ -1,6 +1,5 @@
 import { endpoints } from "../../../../configs/endpoints.config";
 import { axiosInstance } from "../../../../lib/axios";
-import type { CourseDetail } from "../../../../types/course-type.type";
 import type { ResponseWrapper } from "../../../../types/global-type";
 import type {
   AllClassworkDetailResp,

@@ -9,7 +9,6 @@ import Button from "../../../../components/button/button";
 import EditableCell from "../../../../components/input/table/editable-cell";
 import type {
   AddLessonPlanBody,
-  GetLessonPlanParams,
   UpdateLessonPlanBody,
 } from "../types/lesson-plan-type.type";
 import {
@@ -79,7 +78,7 @@ const LessonPlanTable = () => {
       handleFetchData();
 
       messageApi.success("ลบเรียบร้อย");
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถลบได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -93,7 +92,7 @@ const LessonPlanTable = () => {
       }
 
       setEditingKey("");
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถยกเลิกได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -112,7 +111,7 @@ const LessonPlanTable = () => {
       };
       setData([...data, newRow]);
       edit(newRow);
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถเพิ่มข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -131,7 +130,7 @@ const LessonPlanTable = () => {
 
       handleFetchData();
       setEditingKey("");
-    } catch (errInfo) {
+    } catch {
       messageApi.error("กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -154,7 +153,7 @@ const LessonPlanTable = () => {
 
       messageApi.success("เพิ่มเรียบร้อย");
       handleFetchData();
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถเพิ่มได้ กรุณาลองใหม่อีกครั้ง");
     }
   };
@@ -175,7 +174,7 @@ const LessonPlanTable = () => {
       messageApi.success("แก้ไขข้อมูลเรียบร้อย");
 
       handleFetchData();
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถแก้ไขข้อมูล กรุณาลองใหม่อีกครั้ง");
     }
   };

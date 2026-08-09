@@ -77,7 +77,7 @@ const TextEditor = ({
     extensions: [StarterKit, TabHandler],
     onUpdate: ({ editor }) => {
       const json = editor.getJSON();
-      isEditorEmpty(json) ? handleOnChange(null) : handleOnChange(json);
+      handleOnChange(isEditorEmpty(json) ? null : json);
     },
     editorProps: {
       attributes: {

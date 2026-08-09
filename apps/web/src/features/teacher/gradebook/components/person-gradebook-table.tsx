@@ -1,13 +1,6 @@
-import { Form, message, Select, Table, type TableProps } from "antd";
-import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch, RootState } from "../../../../stores/stores";
-import { useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
-
-import Button from "../../../../components/button/button";
+import { Form, Table, type TableProps } from "antd";
 import EditableCell from "../../../../components/input/table/editable-cell";
 import PersonGradebookColumn from "./person-gradebook-column";
-import { fetchAllStudentInSection } from "../../student/stores/teacher-student-action";
 import type {} from "../pages/teacher-gradebook-page";
 import type {
   AssignmentHeaderColumnType,

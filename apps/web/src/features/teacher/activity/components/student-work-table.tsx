@@ -1,13 +1,8 @@
 import { Form, message, Table, type TableProps } from "antd";
-import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch, RootState } from "../../../../stores/stores";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../../../stores/stores";
 import { useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
-
-import Button from "../../../../components/button/button";
 import EditableCell from "../../../../components/input/table/editable-cell";
-import ActivityColumn from "./activity-column";
-import type { activityType } from "../types/activity-type.type";
 import StudentWorkColumn from "./student-work-column";
 import type { DataType } from "../pages/teacher-activity-detail-page";
 
@@ -20,7 +15,6 @@ type Props = {
 const StudentWorkTable = (props: Props) => {
   const [form] = Form.useForm();
 
-  const dispatch = useDispatch<AppDispatch>();
   const homeSlice = useSelector((state: RootState) => state.teacherHome);
 
   const [messageApi, contextHolder] = message.useMessage();
@@ -89,7 +83,7 @@ const StudentWorkTable = (props: Props) => {
 
       handleFetchData();
       setEditingKey("");
-    } catch (errInfo) {
+    } catch {
       messageApi.error("กรุณาลองใหม่อีกครั้ง");
     }
   };

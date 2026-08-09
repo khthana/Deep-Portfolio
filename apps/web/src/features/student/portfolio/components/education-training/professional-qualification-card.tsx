@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import WhiteContainer from "../../../../../components/container/white-container";
 import ShowDetailCheckbox from "../show-detail-checkbox";
 import type { MockProfessionalQualificationType } from "../../types/education-section-type.type";

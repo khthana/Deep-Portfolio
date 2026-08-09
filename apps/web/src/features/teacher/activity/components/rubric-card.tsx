@@ -14,8 +14,6 @@ type Props = {
 const RubricCard = (props: Props) => {
   const rubricDetail = Form.useWatch("rubric_detail", props.gradingForm) || [];
 
-  const orangeStyle = {};
-
   const selectedLevel = rubricDetail.find(
     (r: any) => r.rubric_id === props.rubric.id,
   )?.rubric_level_id;
@@ -23,7 +21,7 @@ const RubricCard = (props: Props) => {
   const levels = () => {
     if (!props.rubric.rubric_levels) return [];
 
-    let level_no = [];
+    const level_no = [];
     let index = props.rubric.rubric_levels.length;
     while (index > 0) {
       level_no.push({

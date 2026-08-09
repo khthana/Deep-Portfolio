@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { BACKEND_API_URL } from "../../../../lib/axios";
 import { getFile } from "../../../../utils/get-file";
 import { cleanNullStr } from "../../../../utils/clean-null-str";
 import type {
@@ -226,8 +225,6 @@ export const usePortfolio = (
         }
 
         const realWorks = Array.from(realWorksMap.values());
-
-        console.log("Mapped real works:", realWorks);
 
         // Map fetched data to PortfolioData structure
         const mappedData: PortfolioData = {

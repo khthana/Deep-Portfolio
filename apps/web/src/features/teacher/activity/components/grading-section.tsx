@@ -1,7 +1,5 @@
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+
 import StatusChip from "./status-chip";
-import RubricCard from "./rubric-card";
-import TextArea from "antd/es/input/TextArea";
 import ActivityFileCard from "./activity-file-card";
 import { useEffect, useState } from "react";
 import type {
@@ -9,12 +7,10 @@ import type {
   GradingFormType,
 } from "../types/activity-type.type";
 import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
-import type { FileDetail } from "../../../../types/attachment-type.type";
-import Button from "../../../../components/button/button";
 import { useForm } from "antd/es/form/Form";
-import { Form, message } from "antd";
-import type { AppDispatch, RootState } from "../../../../stores/stores";
-import { useDispatch, useSelector } from "react-redux";
+import { message } from "antd";
+import type { AppDispatch } from "../../../../stores/stores";
+import { useDispatch } from "react-redux";
 import { postGradeStudentActivity } from "../stores/teacher-activity-action";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import RubricModal from "./rubric-modal";
@@ -71,7 +67,7 @@ const GradingSection = (props: Props) => {
         messageApi.success("บันทึกสำเร็จ");
         props.handleFetchStudentActivityDetail();
       }
-    } catch (error) {
+    } catch {
       messageApi.error("เกิดข้อผิดพลาดในการบันทึก");
     }
   };

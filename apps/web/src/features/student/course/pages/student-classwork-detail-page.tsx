@@ -10,7 +10,7 @@ import {
   fetchStudentActivityDetail,
   fetchLearningActivityDetail,
 } from "../stores/course-action";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import { generateHTML } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -63,21 +63,16 @@ const StudentClassworkDetailPage = () => {
   const handleFetchActivityDetail = async () => {
     if (!activityId) return;
 
-    const { data } = await dispatch(
-      fetchStudentActivityDetail(parseInt(activityId)),
-    ).unwrap();
-
-    // setClassworkDetail(mapActivityDetail(data));
+    // The response is not read here: the detail this page shows comes from the
+    // slice this thunk fills. Kept as a call for that side effect.
+    await dispatch(fetchStudentActivityDetail(parseInt(activityId))).unwrap();
   };
 
   const handleFetchLearningActivityDetail = async () => {
     if (!activityId) return;
 
-    const { data } = await dispatch(
-      fetchLearningActivityDetail(parseInt(activityId)),
-    ).unwrap();
-
-    // setClassworkDetail(mapLearningActivityDetail(data));
+    // As above: called for what it puts in the slice.
+    await dispatch(fetchLearningActivityDetail(parseInt(activityId))).unwrap();
   };
 
   useEffect(() => {

@@ -125,7 +125,7 @@ const CreateGroupworkModal = (props: Props) => {
           props.handleFetchData();
         }, 500);
       }
-    } catch (error) {
+    } catch {
       messageApi.error("เกิดข้อผิดพลาดในการสร้างกลุ่ม");
     }
   };
@@ -168,7 +168,6 @@ const CreateGroupworkModal = (props: Props) => {
       selectedMembers.length === 0 &&
       !props.membersData
     ) {
-      console.log("homeSlice.studentId : ", homeSlice.studentId);
       handleOnChange(homeSlice.studentId, "LEADER");
     }
   }, [homeSlice.studentId, courseSlice.studentList]);
@@ -184,10 +183,6 @@ const CreateGroupworkModal = (props: Props) => {
       setSelectedMembers(mapMembers);
     }
   }, [props.membersData]);
-
-  // useEffect(() => {
-  //   console.log("selected : ", selectedMembers);
-  // }, [selectedMembers]);
 
   return (
     <Modal

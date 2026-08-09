@@ -37,12 +37,10 @@ import type {
 import type {
   AnnouncementDetailResp,
   CourseDetail,
-  LessonPlanResp,
   ScoreWeightResp,
 } from "../../../../types/course-type.type";
 import {
   getCourseById,
-  getLessonPlan,
   getScoreWeight,
 } from "../../../../services/course-service.service";
 import { getCLO } from "../../../../services/course-service.service";

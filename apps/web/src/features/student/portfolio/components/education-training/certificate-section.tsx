@@ -52,7 +52,6 @@ const CertificateSection = ({ data, onRefresh }: CertificateSectionProps) => {
       {contextHolder}
       <SectionLayout
         title="คุณวุฒิทางวิชาชีพ"
-        onClick={() => console.log("click")}
         href={paths.student.portfolio.educationTraining.newCertificate}
       >
         {data && data.length > 0 ? (

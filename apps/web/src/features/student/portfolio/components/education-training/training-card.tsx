@@ -1,7 +1,5 @@
-import { useState } from "react";
 import { Image, Popconfirm } from "antd";
 import WhiteContainer from "../../../../../components/container/white-container";
-import ShowDetailCheckbox from "../show-detail-checkbox";
 import type { PortfolioTrainingResp } from "../../../../../types/portfolio-training-type.type";
 import { getFile } from "../../../../../utils/get-file";
 import { convertToBE } from "../../../../../utils/year-utils";
@@ -13,15 +11,7 @@ type Props = {
 };
 
 const TrainingCard = (props: Props) => {
-  const [isShowDetail, setIsShowDetail] = useState<boolean>(
-    props.data.is_show ?? false,
-  );
-
-  const handleOnClick = () => {
-    setIsShowDetail((prev) => !prev);
-  };
-
-  const isImage = (filename: string | null) => {
+  const isImage =(filename: string | null) => {
     if (!filename) return false;
     const ext = filename.split(".").pop()?.toLowerCase();
     return ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext || "");
@@ -120,8 +110,6 @@ const TrainingCard = (props: Props) => {
           {!props.data.is_show && (
             <div className="text-red-500 text-sm">ไม่แสดงบนหน้าเว็บผลงาน</div>
           )}
-
-          {/* <ShowDetailCheckbox checked={isShowDetail} onClick={handleOnClick} /> */}
         </div>
       </div>
     </WhiteContainer>

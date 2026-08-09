@@ -19,7 +19,9 @@ const AddActivityForm = (props: Props) => {
       props.onAddActivity(values);
 
       props.setIsAdding(false);
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

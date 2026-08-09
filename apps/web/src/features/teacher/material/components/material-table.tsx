@@ -2,9 +2,6 @@ import { Form, message, Table, type TableProps } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../../../stores/stores";
 import { useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
-
-import Button from "../../../../components/button/button";
 import EditableCell from "../../../../components/input/table/editable-cell";
 import MaterialColumn from "./material-column";
 import WhiteContainer from "../../../../components/container/white-container";
@@ -14,7 +11,6 @@ import {
 } from "../stores/teacher-material-action";
 import type { AttachmentDetailResp } from "../../../../types/attachment-type.type";
 import {
-  AttachmentType,
   type AttachmentDetailItem,
 } from "../../announcement/types/announement-type";
 
@@ -47,9 +43,9 @@ const MaterialTable = () => {
 
   const [data, setData] = useState<DataType[]>([]);
   const [editingKey, setEditingKey] = useState("");
-  const [attachmentItems, setAttachmentItems] = useState<AttachmentItemsType[]>(
-    [],
-  );
+  // Only the setter is used here: the list itself is held by `MaterialColumn`,
+  // which is handed this setter to fill in.
+  const [, setAttachmentItems] = useState<AttachmentItemsType[]>([]);
 
   const isEditing = (record: DataType) => record.key === editingKey;
 
@@ -96,27 +92,9 @@ const MaterialTable = () => {
 
       form.resetFields();
       setEditingKey("");
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถยกเลิกได้ กรุณาลองใหม่อีกครั้ง");
     }
-  };
-
-  const handleAdd = () => {
-    // try {
-    //   const newRow: DataType = {
-    //     key: uuidv4(),
-    //     week: data.length + 1,
-    //     title: "",
-    //     detail: "",
-    //     activity: "",
-    //     remark: "",
-    //     isNew: true,
-    //   };
-    //   setData([...data, newRow]);
-    //   edit(newRow);
-    // } catch (error) {
-    //   messageApi.error("ไม่สามารถเพิ่มข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
-    // }
   };
 
   const handleSave = async (key: React.Key) => {
@@ -141,7 +119,6 @@ const MaterialTable = () => {
       const lectureUrlList: { title: string; url: string }[] = [];
       const recordUrlList: { title: string; url: string }[] = [];
 
-      console.log("row : ", row.attachments);
       // 2. วน Loop ครั้งเดียว จัดการทั้ง FILE และ LINK
       (row.attachments || []).forEach((item) => {
         // ----------------- LECTURE -----------------
@@ -198,45 +175,6 @@ const MaterialTable = () => {
       console.error(errInfo);
       messageApi.error("กรุณาลองใหม่อีกครั้ง");
     }
-  };
-
-  const handleCreateNewLessonPlan = async (row: DataType) => {
-    // try {
-    //   if (!homeSlice.selectedCourse) return;
-    //   const body: AddLessonPlanBody = {
-    //     year: homeSlice.selectedCourse?.academic_year,
-    //     semester: homeSlice.selectedCourse?.semester,
-    //     subject_id: homeSlice.selectedCourse?.course_id,
-    //     week_no: data.length,
-    //     title: row.title,
-    //     description: row.detail,
-    //     remark: row.remark,
-    //     created_by: homeSlice.selectedCourse.teacher_id,
-    //     section_id: homeSlice.selectedCourse.section_id,
-    //   };
-    //   await dispatch(postLessonPlan(body)).unwrap();
-    //   messageApi.success("เพิ่มเรียบร้อย");
-    //   handleFetchData();
-    // } catch (error) {
-    //   messageApi.error("ไม่สามารถเพิ่มได้ กรุณาลองใหม่อีกครั้ง");
-    // }
-  };
-
-  const handleUpdateLessonPlan = async (row: DataType, id: number) => {
-    // try {
-    //   if (!homeSlice.selectedCourse) return;
-    //   const body: UpdateLessonPlanBody = {
-    //     lesson_plan_id: id,
-    //     title: row.title,
-    //     description: row.detail,
-    //     remark: row.remark,
-    //   };
-    //   await dispatch(editLessonPlan(body)).unwrap();
-    //   messageApi.success("แก้ไขข้อมูลเรียบร้อย");
-    //   handleFetchData();
-    // } catch (error) {
-    //   messageApi.error("ไม่สามารถแก้ไขข้อมูล กรุณาลองใหม่อีกครั้ง");
-    // }
   };
 
   const columns = MaterialColumn({

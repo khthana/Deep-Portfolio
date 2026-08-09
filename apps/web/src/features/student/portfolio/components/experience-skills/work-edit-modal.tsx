@@ -5,7 +5,6 @@ import {
   Select,
   Divider,
   message,
-  Spin,
   Upload,
   Image,
 } from "antd";
@@ -68,18 +67,10 @@ const WorkEditModal = ({
 
   // Upload states
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [idsToDelete, setIdsToDelete] = useState<number[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
 
-  const handleRemove = (file: UploadFile) => {
-    if (file.url) {
-      setIdsToDelete((prev) => [...prev, Number(file.uid)]);
-    }
-    return true;
-  };
-
-  const getBase64 = (file: File): Promise<string> =>
+  const getBase64 =(file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -131,7 +122,6 @@ const WorkEditModal = ({
     if (!isOpen || !work) {
       form.resetFields();
       setFileList([]);
-      setIdsToDelete([]);
       return;
     }
     setShowRole(work.isShowRole);

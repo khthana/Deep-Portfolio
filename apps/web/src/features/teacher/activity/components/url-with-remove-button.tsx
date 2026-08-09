@@ -1,12 +1,6 @@
 import { DeleteOutlined, PaperClipOutlined } from "@ant-design/icons";
-import type {
-  FileDetail,
-  URLDetail,
-} from "../../../../types/attachment-type.type";
-import type { AppDispatch } from "../../../../stores/stores";
-import { useDispatch } from "react-redux";
-import { message, Popconfirm } from "antd";
-import type { MessageInstance } from "antd/es/message/interface";
+import type { URLDetail } from "../../../../types/attachment-type.type";
+import { Popconfirm } from "antd";
 
 type Props = {
   urlDetail: URLDetail;
@@ -16,15 +10,14 @@ type Props = {
 };
 
 const UrlWithRemoveButton = (props: Props) => {
-  const dispatch = useDispatch<AppDispatch>();
-  // const [messageApi, contextHolder] = message.useMessage();
-
   const handleOnRemove = async () => {
     try {
       if (!props.setRemoveFile || !props.setOldUrls) return;
       props.setOldUrls((prev) => prev.filter((url) => url !== props.urlDetail));
       props.setRemoveFile((prev) => [...prev, props.urlDetail.attachment_id]);
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

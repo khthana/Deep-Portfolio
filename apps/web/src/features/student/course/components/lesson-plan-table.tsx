@@ -44,8 +44,6 @@ const LessonPlanTable = ({ action = false }: Props) => {
       lecture: lessonPlan?.course_materials?.lecture ?? null,
     }));
 
-    console.log("mapdata : ", mappedData);
-
     setData(mappedData);
   };
 

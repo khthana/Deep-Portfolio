@@ -1,7 +1,5 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import type { ResponseWrapper } from "../../../../types/global-type";
-import { getCourseById } from "../../../../services/course-service.service";
-import type { CourseDetail } from "../../../../types/course-type.type";
 import {
   acceptInvite,
   validateInvite,

@@ -1,7 +1,6 @@
 import {
   CheckOutlined,
   CloseOutlined,
-  DeleteOutlined,
 } from "@ant-design/icons";
 import { Input } from "antd";
 import { useState, type Dispatch, type SetStateAction } from "react";

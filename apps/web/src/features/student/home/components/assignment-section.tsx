@@ -8,7 +8,7 @@ import {
 } from "../types/home-type";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../../../stores/stores";
-import { fetchAllClasswork, fetchStudentDetail } from "../stores/home-action";
+import { fetchAllClasswork } from "../stores/home-action";
 import { useEffect } from "react";
 import {
   checkIsToday,

@@ -1,4 +1,4 @@
-import { Form, Input, Select, DatePicker, message, Upload, Image } from "antd";
+import { Form, Input, Select, DatePicker, Upload, Image } from "antd";
 import type { ValidateErrorEntity } from "rc-field-form/lib/interface";
 import { useState } from "react";
 import type { UploadFile } from "antd";
@@ -181,10 +181,7 @@ const CreateExperienceForm = ({ messageApi }: CreateExperienceFormProps) => {
             options={programOptions}
             size="large"
             value={programType}
-            onChange={(value: ProgramTypeValue) => {
-              console.log("Program Type changed to:", value);
-              setProgramType(value);
-            }}
+            onChange={(value: ProgramTypeValue) => setProgramType(value)}
           />
         </Form.Item>
         {programType === "COOP" && (

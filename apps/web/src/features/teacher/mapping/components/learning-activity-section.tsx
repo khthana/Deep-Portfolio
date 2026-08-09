@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import Button from "../../../../components/button/button";
 import LearningActivityCard from "./learning-activity-card";
-import { Select } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../../../stores/stores";
 import type { Options } from "../../../../types/global-type";

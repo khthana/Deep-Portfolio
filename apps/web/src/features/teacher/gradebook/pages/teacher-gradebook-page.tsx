@@ -11,7 +11,6 @@ import {
   fetchGradebookPerActivity,
   fetchGradebookPerStudent,
 } from "../stores/teacher-gradebook-action";
-import type { StudentActivityStatusDB } from "../../../../types/activity-type.type";
 import type {
   AssignmentHeaderColumnType,
   GradebookPerActivityDataType,

@@ -1,8 +1,7 @@
 import { generatePath, useParams } from "react-router-dom";
-import TeacherBreadcrumb from "../../../../../components/breadcrumb/teacher-breadcrumb";
 import BackButton from "../../../../../components/button/back-button";
 import { paths } from "../../../../../routes/paths.config";
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import PageLayout from "../../../../../components/container/page-layout";
 import WhiteContainer from "../../../../../components/container/white-container";
 import type { AppDispatch } from "../../../../../stores/stores";
@@ -25,7 +24,7 @@ const ActivityEvaluation = () => {
   const [classworkData, setClassworkData] =
     useState<GetStudentActivityDetailResp>();
   const [fileSrc, setFileSrc] = useState<string | null>(null);
-  const [isBookmark, setIsBookmark] = useState<boolean>(false);
+  const [isBookmark] = useState<boolean>(false);
 
   // const handleAddBookmark = async () => {
   //   try {

@@ -330,19 +330,6 @@ const StudentSideBar = () => {
   const activeMenuKey = getActiveMenuKey(currentPath);
   const activeSubMenuKey = getActiveSubMenuKey(currentPath);
 
-  // handle when select submenu and refresh
-  // useEffect(() => {
-  //   if (activeSubMenuKey) {
-  //     dispatch(homeSliceAction.setIsShowSubMenu(true));
-  //   }
-  // }, [currentPath]);
-
-  // useEffect(() => {
-  //   console.log("menu : ", activeMenuKey);
-  //   console.log("submenu : ", activeSubMenuKey);
-  //   console.log("open : ", homeSlice.isShowSubmenu);
-  // }, [activeMenuKey, activeSubMenuKey]);
-
   useEffect(() => {
     handleFetchCourse();
     handleFetchStudentDetail();

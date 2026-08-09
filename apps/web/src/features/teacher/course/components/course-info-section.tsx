@@ -3,7 +3,7 @@ import type { AppDispatch, RootState } from "../../../../stores/stores";
 import WhiteContainer from "../../../../components/container/white-container";
 import { useState } from "react";
 import Button from "../../../../components/button/button";
-import { Form, message, Select } from "antd";
+import { Form, message } from "antd";
 import CourseInfoForm from "./course-info-form";
 import { postCreateCourseSectionSchedule } from "../stores/teacher-course-action";
 import type { CreateCourseSectionScheduleReq } from "../types/course-type.type";
@@ -57,8 +57,7 @@ const CourseInfoSection = () => {
         setIsEditing(false);
         messageApi.success("บันทึกข้อมูลสำเร็จ");
       }
-      console.log("submit req :", resp);
-    } catch (error) {
+    } catch {
       messageApi.error("บันทึกข้อมูลไม่สำเร็จ");
     }
   };

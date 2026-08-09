@@ -1,5 +1,4 @@
-import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
-import { Popconfirm } from "antd";
+
 import type { DataType } from "./student-table";
 
 type Props = {

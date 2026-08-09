@@ -3,7 +3,6 @@ import {
   Form,
   Input,
   Checkbox,
-  message,
   Upload,
   Image,
   DatePicker,

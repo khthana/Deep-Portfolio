@@ -13,7 +13,6 @@ import { Header } from "../../components/e-portfolio-template/theme-modern-blue/
 import { Footer } from "../../components/e-portfolio-template/theme-modern-blue/footer";
 import { ImageSlider } from "../../components/common/image-slider";
 import { getPortfolioActivityById } from "../../../../../services/portfolio-activity.service";
-import { BACKEND_API_URL } from "../../../../../lib/axios";
 import { getFile } from "../../../../../utils/get-file";
 import { MOCK_PORTFOLIO_DATA } from "../../data/mock-portfolio-data";
 

@@ -5,7 +5,6 @@ import {
 } from "../../../../constants/date";
 import { ClassworkStatus } from "../../course/types/course-type";
 import { formatDateToTimeString } from "../../../../utils/convert-time";
-import { useEffect } from "react";
 
 type Props = {
   upcomingEvent: UpcomingEvent;

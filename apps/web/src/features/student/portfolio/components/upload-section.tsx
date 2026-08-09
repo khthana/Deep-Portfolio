@@ -3,8 +3,9 @@ import { AttachmentType } from "../../../teacher/announcement/types/announement-
 
 type Props = {
   title?: string;
-  onUploadFile: () => void;
-  onUploadImage: () => void;
+  /** Both optional for the same reason `UploadButton.onUpload` is. */
+  onUploadFile?: () => void;
+  onUploadImage?: () => void;
 };
 
 const UploadSection = (props: Props) => {

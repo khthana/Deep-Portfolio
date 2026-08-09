@@ -3,6 +3,7 @@ import { Alert, Spin } from "antd";
 import { useNavigate } from "react-router-dom";
 import { axiosInstance } from "../../../../lib/axios";
 import { endpoints } from "../../../../configs/endpoints.config";
+import { env } from "../../../../configs/env";
 import { paths } from "../../../../routes/paths.config";
 
 /**
@@ -17,7 +18,7 @@ import { paths } from "../../../../routes/paths.config";
 
 const GSI_SRC = "https://accounts.google.com/gsi/client";
 
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const CLIENT_ID = env.GOOGLE_CLIENT_ID;
 
 /** The slice of the Google Identity Services API this page uses. */
 interface GoogleCredentialResponse {

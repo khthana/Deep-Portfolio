@@ -6,7 +6,6 @@ import CreateActivitySection from "../components/create-activity-section";
 import PageLayout from "../../../../components/container/page-layout";
 import type { AppDispatch } from "../../../../stores/stores";
 import { useDispatch } from "react-redux";
-import { fetchStudentActivityDetail } from "../../../student/course/stores/course-action";
 import { useEffect, useState } from "react";
 import { fetchActivity } from "../stores/teacher-activity-action";
 import type { GetActivityDetailResp } from "../../../../types/activity-type.type";
@@ -30,7 +29,9 @@ const TeacherEditActivityPage = () => {
       ).unwrap();
 
       setActivityDetail(data);
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {

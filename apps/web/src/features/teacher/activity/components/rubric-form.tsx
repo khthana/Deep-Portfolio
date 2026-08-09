@@ -150,7 +150,6 @@ const RubricForm = (props: Props) => {
         }))
         .sort((a: any, b: any) => b.level_no - a.level_no),
     }));
-    console.log("mappedRubrics : ", mappedRubrics);
 
     const maxScore = Math.max(...mappedRubrics.map((r) => r.levels.length));
     const newScores = Array.from({ length: maxScore }, (_, i) => maxScore - i);

@@ -24,7 +24,9 @@ const TeacherMappingPage = () => {
       if (!homeSlice.selectedCourse) return;
 
       await dispatch(fetchCLO(homeSlice.selectedCourse.section_id)).unwrap();
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {

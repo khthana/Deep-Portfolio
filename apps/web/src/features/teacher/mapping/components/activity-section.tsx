@@ -35,7 +35,9 @@ const ActivitySection = (props: Props) => {
       if (data) {
         setOptions(data);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {

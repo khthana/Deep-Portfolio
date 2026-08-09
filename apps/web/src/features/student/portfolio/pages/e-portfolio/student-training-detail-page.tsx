@@ -1,12 +1,10 @@
 import React from "react";
-import { BACKEND_API_URL } from "../../../../../lib/axios";
 import { getFile } from "../../../../../utils/get-file";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeftOutlined,
   FilePdfOutlined,
   PlayCircleOutlined,
-  PictureOutlined,
   LinkOutlined,
   FileOutlined,
 } from "@ant-design/icons";

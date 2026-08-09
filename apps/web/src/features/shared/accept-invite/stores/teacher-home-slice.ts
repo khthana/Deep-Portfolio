@@ -1,6 +1,5 @@
-import type { PayloadAction } from "@reduxjs/toolkit";
+
 import { createSlice } from "@reduxjs/toolkit";
-import type { CourseDetail } from "../../../../types/course-type.type";
 import { postAcceptInvite, postValidateInvite } from "./teacher-home-action";
 
 type GroupSlice = {

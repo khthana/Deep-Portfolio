@@ -1,5 +1,5 @@
-import { Form, Upload, type UploadFile, type UploadProps } from "antd";
-import type { RcFile, UploadChangeParam } from "antd/es/upload";
+import { Upload, type UploadFile, type UploadProps } from "antd";
+import type { UploadChangeParam } from "antd/es/upload";
 import Button from "../../../../components/button/button";
 import { AttachmentType } from "../../../../types/attachment-type.type";
 

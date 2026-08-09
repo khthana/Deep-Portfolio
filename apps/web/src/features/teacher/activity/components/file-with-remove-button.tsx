@@ -4,10 +4,7 @@ import {
   PictureOutlined,
 } from "@ant-design/icons";
 import type { FileDetail } from "../../../../types/attachment-type.type";
-import type { AppDispatch } from "../../../../stores/stores";
-import { useDispatch } from "react-redux";
-import { message, Popconfirm, type FormInstance } from "antd";
-import type { MessageInstance } from "antd/es/message/interface";
+import { Popconfirm } from "antd";
 import type { Dispatch, SetStateAction } from "react";
 import { getFile } from "../../../../utils/get-file";
 
@@ -29,7 +26,9 @@ const FileWithRemoveButton = (props: Props) => {
         prev.filter((file) => file !== props.fileDetail),
       );
       props.setRemoveFile((prev) => [...prev, props.fileDetail.attachment_id]);
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

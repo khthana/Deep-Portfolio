@@ -3,10 +3,6 @@ import { useEffect, useState } from "react";
 import EPortfolioColumn from "./e-portfolio-column";
 import EditableCell from "../../../../../components/input/table/editable-cell";
 import WhiteContainer from "../../../../../components/container/white-container";
-import {
-  MOCK_PORTFOLIO_CONFIG_1,
-  MOCK_PORTFOLIO_CONFIG_2,
-} from "../../data/mock-portfolio-data";
 import { useNavigate } from "react-router-dom";
 import { paths } from "../../../../../routes/paths.config";
 import {
@@ -135,7 +131,11 @@ const EPortfolioTable = () => {
         setEditingKey("");
       }
     } catch (errInfo) {
-      console.log("Validate Failed:", errInfo);
+      // The row failed antd's own validation, which has already marked the
+      // offending cell. Nothing more to tell the user; kept as an error rather
+      // than dropped so a validator that throws for some other reason is not
+      // swallowed silently.
+      console.error("Validate Failed:", errInfo);
     }
   };
 

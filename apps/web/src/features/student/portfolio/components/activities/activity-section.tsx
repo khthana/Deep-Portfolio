@@ -68,7 +68,6 @@ const ActivitySection = () => {
       {contextHolder}
       <SectionLayout
         title="กิจกรรม"
-        onClick={() => console.log}
         href={paths.student.portfolio.activities.new}
       >
         {data && data.length > 0 ? (

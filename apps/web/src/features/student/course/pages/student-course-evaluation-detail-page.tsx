@@ -3,7 +3,7 @@ import ActivityEvaluation from "../components/evaluation/activity-evalution";
 import LearningActivityEvaluation from "../components/evaluation/learning-activity-evalution";
 
 const StudentCourseEvaluationDetailPage = () => {
-  const { secId, category, workId } = useParams();
+  const { category } = useParams();
 
   return (
     <div>

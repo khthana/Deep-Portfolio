@@ -59,7 +59,7 @@ const CreateAnnouncementSection = () => {
           navigate(path);
         }, 500);
       }
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถสร้างประกาศ กรุณาลองใหม่อีกครั้ง");
     }
   };

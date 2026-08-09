@@ -1,4 +1,4 @@
-import { message, Table, type TableProps } from "antd";
+import { Table, type TableProps } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../../../stores/stores";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
@@ -35,8 +35,6 @@ const SharedRubricDetailTable = (props: Props) => {
   const dispatch = useDispatch<AppDispatch>();
   const homeSlice = useSelector((state: RootState) => state.teacherHome);
 
-  const [messageApi, contextHolder] = message.useMessage();
-
   const [data, setData] = useState<DataType[]>([]);
 
   const handleFetchData = async () => {
@@ -58,7 +56,9 @@ const SharedRubricDetailTable = (props: Props) => {
       }));
 
       setData(mappedData);
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const columns = [

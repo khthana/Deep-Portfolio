@@ -2,10 +2,8 @@ import { useState, useEffect } from "react";
 import { getFile } from "../../../../utils/get-file";
 import type {
   PortfolioData,
-  Work,
 } from "../components/e-portfolio-template/types";
 import { axiosInstance } from "../../../../lib/axios";
-import { endpoints } from "../../../../configs/endpoints.config";
 import { mapPersonalInfo, formatBuddhistYear, mapEducationLevel } from "./portfolio-mapper";
 
 export interface UsePublicPortfolioResult {

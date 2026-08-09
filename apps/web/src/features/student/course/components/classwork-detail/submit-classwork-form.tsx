@@ -1,11 +1,11 @@
-import { Dropdown, Popconfirm, type UploadFile } from "antd";
+import { Popconfirm, type UploadFile } from "antd";
 import Button from "../../../../../components/button/button";
 import type { UploadChangeParam } from "antd/es/upload";
 import type { AttachmentDetailItem } from "../../../../teacher/announcement/types/announement-type";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../../../stores/stores";
 import { AttachmentType } from "../../../../../types/attachment-type.type";
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { type Dispatch, type SetStateAction } from "react";
 import type { MessageInstance } from "antd/es/message/interface";
 import UploadClassworkButton from "../../../../../components/button/upload-classwork-button";
 

@@ -8,11 +8,9 @@ import type { activityType } from "../types/activity-type.type";
 import {
   deleteActivity,
   fetchAllActivity,
-  getValidateActivityCLOMapping,
 } from "../stores/teacher-activity-action";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import WhiteContainer from "../../../../components/container/white-container";
-import { removeActivity } from "../services/activity-service.service";
 
 export type DataType = {
   key: string;
@@ -73,7 +71,7 @@ const ActivityTable = () => {
       handleFetchData();
 
       messageApi.success("ลบเรียบร้อย");
-    } catch (error) {
+    } catch {
       messageApi.error("ไม่สามารถลบได้ กรุณาลองใหม่อีกครั้ง");
     }
   };

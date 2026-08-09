@@ -40,7 +40,7 @@ const PersonalDetailsEditModal = ({
 
   useEffect(() => {
     if (isOpen && initialData.user) {
-      const { user, portfolioPersonal } = initialData;
+      const { portfolioPersonal } = initialData;
       form.setFieldsValue({
         nationality: portfolioPersonal?.nationality,
         race: portfolioPersonal?.race,

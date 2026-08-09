@@ -6,7 +6,6 @@ import type { UserResp } from "../../../../../types/user-type.type";
 import type { PortfolioPersonalResp } from "../../../../../types/portfolio-personal-type.type";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
-import { useEffect } from "react";
 
 dayjs.locale("th");
 
@@ -23,7 +22,8 @@ const PersonalDetailsSection = ({
   imageUrl,
   onEdit,
 }: PersonalDetailsSectionProps) => {
-  const { title_th, first_name_th, last_name_th, first_name_en, last_name_en } = user || {};
+  const { first_name_th, last_name_th, first_name_en, last_name_en } =
+    user || {};
   const fullNameTh = first_name_th && last_name_th ? `${first_name_th} ${last_name_th}` : "-";
   const fullNameEn = first_name_en && last_name_en ? `${first_name_en} ${last_name_en}` : "-";
 
@@ -34,11 +34,6 @@ const PersonalDetailsSection = ({
         return `${d.format("D MMMM")} ${buddhistYear} (${dayjs().diff(portfolioPersonal.date_of_birth, "year")} ปี)`;
       })()
     : "-";
-
-  useEffect(() => {
-    console.log("user : ", user);
-    console.log("portfolioPersonal : ", portfolioPersonal);
-  }, [user, portfolioPersonal]);
 
   return (
     <WhiteContainer>

@@ -3,8 +3,8 @@ import TeacherBreadcrumb from "../../../../components/breadcrumb/teacher-breadcr
 import BackButton from "../../../../components/button/back-button";
 import PageLayout from "../../../../components/container/page-layout";
 import { paths } from "../../../../routes/paths.config";
-import type { AppDispatch, RootState } from "../../../../stores/stores";
-import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch } from "../../../../stores/stores";
+import { useDispatch } from "react-redux";
 import {
   fetchStudentLearningActivityDetail,
   patchBookmarkStudentLearningActivity,
@@ -60,7 +60,9 @@ const TeacherGradingLearningActivityPage = () => {
         // handleFetchStudentActivityDetail();
         setIsBookmark(resp.data.is_bookmark);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handlePreviewFile = (src: string) => {

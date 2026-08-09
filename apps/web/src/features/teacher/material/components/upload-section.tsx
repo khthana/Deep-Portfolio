@@ -1,15 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Button from "../../../../components/button/button";
 import UploadButton from "../../../../components/input/upload-button";
 import PreviewListFile from "../../announcement/components/preview-list-file";
-import UploadLinkForm from "../../announcement/components/upload-link-form";
 import {
   AttachmentType,
   type AttachmentDetailItem,
 } from "../../announcement/types/announement-type";
 import {
   Form,
-  message,
   Upload,
   type FormInstance,
   type UploadFile,
@@ -44,7 +42,6 @@ const UploadSection = (props: Props) => {
     if (file.status !== "done" || type === AttachmentType.LINK) return;
 
     const currentValue = props.form.getFieldValue("attachments") || [];
-    console.log("currentValue : ", currentValue);
 
     setPreviewAllFiles((prev: AttachmentDetailItem[]) => {
       return [
@@ -61,7 +58,6 @@ const UploadSection = (props: Props) => {
       attachmentType: type,
       attachmentItems: info.file,
     };
-    console.log("newData : ", newData);
 
     props.form.setFieldValue("attachments", [...currentValue, newData]);
   };
@@ -69,7 +65,6 @@ const UploadSection = (props: Props) => {
   const handleOnUploadUrl = (title: string, url: string) => {
     const currentValue = props.form.getFieldValue("attachments") || [];
 
-    console.log("currentValue : ", currentValue);
     setPreviewAllFiles((prev: AttachmentDetailItem[]) => {
       const linkItem = {
         title: title,

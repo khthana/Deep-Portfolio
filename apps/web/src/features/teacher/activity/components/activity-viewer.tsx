@@ -41,10 +41,6 @@ const ActivityViewer = (props: Props) => {
     }
   }, [isPdf]);
 
-  useEffect(() => {
-    console.log("src : ", props.src);
-  }, [props.src]);
-
   return (
     <div className="h-full w-full relative bg-black overflow-hidden">
       <div className="flex flex-col h-full w-full">

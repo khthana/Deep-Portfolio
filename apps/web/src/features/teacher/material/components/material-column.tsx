@@ -12,8 +12,6 @@ import FileWithRemoveButton from "./file-with-remove-button";
 import UrlWithRemoveButton from "./url-with-remove-button";
 import type { MessageInstance } from "antd/es/message/interface";
 import { getFile } from "../../../../utils/get-file";
-import { useSelector } from "react-redux";
-import type { RootState } from "../../../../stores/stores";
 
 type Props = {
   isLoading: boolean;

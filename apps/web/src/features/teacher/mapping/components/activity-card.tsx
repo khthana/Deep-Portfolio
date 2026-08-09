@@ -13,7 +13,7 @@ const ActivityCard = (props: Props) => {
   const levels = () => {
     if (!props.activity.level_no) return [];
 
-    let level_no = [];
+    const level_no = [];
     let index = props.activity.level_no;
     while (index > 0) {
       level_no.push(index);

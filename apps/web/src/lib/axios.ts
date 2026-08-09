@@ -1,6 +1,8 @@
 import axios from "axios";
+import { env } from "../configs/env";
+import { singleFlight } from "../utils/single-flight";
 
-export const BACKEND_API_URL = import.meta.env.VITE_BACKEND_URL;
+export const BACKEND_API_URL = env.BACKEND_URL;
 
 export const axiosInstance = axios.create({
   baseURL: BACKEND_API_URL,
@@ -10,7 +12,33 @@ export const axiosInstance = axios.create({
   },
 });
 
-let isRefreshing = false;
+/**
+ * One refresh at a time, shared by everybody who needs it.
+ *
+ * A page load fires several requests at once, so an expired access token comes
+ * back as a burst of 401s rather than a single one. Every request in that burst
+ * waits on the same attempt: the API rotates the refresh token on each use, so
+ * two refreshes racing means the second spends a token the first has already
+ * replaced, and the session ends on a request that should have renewed it.
+ *
+ * This used to be a `isRefreshing` boolean, and a request that found it set was
+ * rejected outright — the first 401 of a burst renewed the session and the rest
+ * failed anyway, which is what put a loaded page back on the login screen.
+ */
+const refreshSession = singleFlight(async () => {
+  try {
+    await axiosInstance.post("/auth/refresh");
+  } catch (err) {
+    // Once per failed attempt rather than once per waiting request: the
+    // assignment does not navigate on the spot, so waiters checking the
+    // pathname for themselves would each still see the old one.
+    if (window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
+
+    throw err;
+  }
+});
 
 axiosInstance.interceptors.response.use(
   (response) => response,
@@ -31,29 +59,11 @@ axiosInstance.interceptors.response.use(
       !originalRequest._retry &&
       !isAuthRoute
     ) {
-      if (isRefreshing) {
-        return Promise.reject(error);
-      }
-
       originalRequest._retry = true;
-      isRefreshing = true;
 
-      try {
-        await axiosInstance.post("/auth/refresh");
+      await refreshSession();
 
-        isRefreshing = false;
-
-        return axiosInstance(originalRequest);
-      } catch (err) {
-        isRefreshing = false;
-
-        // redirect login แค่ครั้งเดียว
-        if (window.location.pathname !== "/login") {
-          window.location.href = "/login";
-        }
-
-        return Promise.reject(err);
-      }
+      return axiosInstance(originalRequest);
     }
 
     return Promise.reject(error);
