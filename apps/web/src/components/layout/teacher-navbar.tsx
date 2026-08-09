@@ -1,4 +1,3 @@
-
 import { useAuth } from "../../hooks/use-auth";
 import TeacherInfoDropdown from "./teacher-info-dropdown";
 

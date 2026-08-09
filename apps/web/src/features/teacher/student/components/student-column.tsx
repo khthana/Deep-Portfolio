@@ -1,4 +1,3 @@
-
 import type { DataType } from "./student-table";
 
 type Props = {

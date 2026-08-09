@@ -10,9 +10,7 @@ import {
   postCourseMaterial,
 } from "../stores/teacher-material-action";
 import type { AttachmentDetailResp } from "../../../../types/attachment-type.type";
-import {
-  type AttachmentDetailItem,
-} from "../../announcement/types/announement-type";
+import { type AttachmentDetailItem } from "../../announcement/types/announement-type";
 
 export type DataType = {
   key: string;
@@ -43,9 +41,6 @@ const MaterialTable = () => {
 
   const [data, setData] = useState<DataType[]>([]);
   const [editingKey, setEditingKey] = useState("");
-  // Only the setter is used here: the list itself is held by `MaterialColumn`,
-  // which is handed this setter to fill in.
-  const [, setAttachmentItems] = useState<AttachmentItemsType[]>([]);
 
   const isEditing = (record: DataType) => record.key === editingKey;
 
@@ -189,7 +184,6 @@ const MaterialTable = () => {
     handleCancel,
     handleFetchData,
     form,
-    setAttachmentItems,
     messageInstance: messageApi,
   });
 

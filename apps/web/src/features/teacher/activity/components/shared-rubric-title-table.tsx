@@ -1,7 +1,7 @@
 import { Table, type TableProps } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../../../stores/stores";
-import { useEffect, useState,} from "react";
+import { useEffect, useState } from "react";
 import EditableCell from "../../../../components/input/table/editable-cell";
 import { fetchSharedRubric } from "../stores/teacher-activity-action";
 

@@ -1,4 +1,4 @@
-import { Breadcrumb,} from "antd";
+import { Breadcrumb } from "antd";
 import PageLayout from "../../../../components/container/page-layout";
 import EvaluationTable from "../components/evaluation/evaluation-table";
 

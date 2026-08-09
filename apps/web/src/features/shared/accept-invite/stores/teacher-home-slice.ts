@@ -1,4 +1,3 @@
-
 import { createSlice } from "@reduxjs/toolkit";
 import { postAcceptInvite, postValidateInvite } from "./teacher-home-action";
 

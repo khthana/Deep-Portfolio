@@ -1,4 +1,3 @@
-
 import StatusChip from "./status-chip";
 import ActivityFileCard from "./activity-file-card";
 import { useEffect, useState } from "react";

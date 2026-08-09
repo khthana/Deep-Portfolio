@@ -7,7 +7,6 @@ import type { AttachmentItemsType, DataType } from "./material-table";
 import UploadSection from "./upload-section";
 import type { AttachmentDetailResp } from "../../../../types/attachment-type.type";
 import { Spin, type FormInstance } from "antd";
-import type { Dispatch, SetStateAction } from "react";
 import FileWithRemoveButton from "./file-with-remove-button";
 import UrlWithRemoveButton from "./url-with-remove-button";
 import type { MessageInstance } from "antd/es/message/interface";
@@ -22,7 +21,6 @@ type Props = {
   handleCancel: () => void;
   handleFetchData: () => void;
   form: FormInstance<{ attachments: AttachmentItemsType[] }>;
-  setAttachmentItems: Dispatch<SetStateAction<AttachmentItemsType[]>>;
   messageInstance: MessageInstance;
 };
 

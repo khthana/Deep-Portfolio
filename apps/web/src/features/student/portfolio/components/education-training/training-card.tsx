@@ -11,7 +11,7 @@ type Props = {
 };
 
 const TrainingCard = (props: Props) => {
-  const isImage =(filename: string | null) => {
+  const isImage = (filename: string | null) => {
     if (!filename) return false;
     const ext = filename.split(".").pop()?.toLowerCase();
     return ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext || "");

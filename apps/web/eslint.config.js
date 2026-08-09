@@ -33,7 +33,9 @@ export default tseslint.config([
           // their libraries chose — antd's `render: (value, record, index)`,
           // redux-toolkit's `(state, action)`, antd Upload's
           // `{ file, onSuccess, onError }` — and a parameter before one that is
-          // used cannot be dropped. What is left to report would be noise.
+          // used cannot be dropped. The default, "after-used", still reports 92
+          // of them; silencing those means prefixing 92 parameters with `_`
+          // across files that have no test cover (D8), for no defect caught.
           args: 'none',
           // An unused local or import is still an error: that one is real, and
           // deleting it is safe.

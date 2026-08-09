@@ -1,5 +1,8 @@
 /**
- * The single place this app reads `import.meta.env`.
+ * Where this app reads the `VITE_*` variables it needs. One other site reads
+ * `import.meta.env` directly — `utils/get-file.ts`, for a `NODE_ENV` Vite never
+ * defines; that read is pinned by a test and explained there, and is not a
+ * second place to add variables.
  *
  * Vite does not read these at runtime — it substitutes the literal each
  * `import.meta.env.VITE_*` had when the bundle was built, and anything not
