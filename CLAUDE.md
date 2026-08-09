@@ -35,10 +35,14 @@ mostly correctness work on top of it.
   behaviour that was already there — see the testing rules below.
 
 Open work is in the issue tracker: the README rewrite (#24) and the defects
-filed while testing (#25–#31, #33–#35). Request validation (#20), frontend
-hygiene (#21), the TC-01..TC-75 traceability table (#22) and the master-data
-importer (#23) have landed on `main`; their issues are still open awaiting a
-manual close.
+filed while testing (#25–#31, #33–#35). Everything else from the breakdown of
+#1 is closed, #20–#23 included.
+
+**The database has real data in it.** One faculty, 14 departments, 3
+programmes, 65 subjects and 18 teachers went in through the importer on
+2026-08-09. The CSV files are in `data/`, which is gitignored because they
+hold real people — never commit them, and never quote a name or an address
+out of them into a commit message, an issue or a test.
 
 [`docs/tc-traceability.md`](docs/tc-traceability.md) maps all 75 manual test
 cases from the thesis onto the automated tests that cover them — read it before

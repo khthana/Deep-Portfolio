@@ -44,14 +44,12 @@ Run `gh issue view <number> --comments`.
   Its canonical source is `docs/spec-refactor-redeploy.md`; the issue is a copy kept
   for tracking. Edit the file first, then sync the issue — never only the issue.
 - **#2–#24 — the 23 tickets that break #1 down.** Every one names `#1` as its parent
-  and carries `ready-for-agent`, except #23 (importer), which is `needs-info` until
-  the project owner supplies a sample data file. Blocking edges use GitHub's native
-  issue dependencies, so the frontier query below is the authoritative "what can I
+  and carries `ready-for-agent`. Blocking edges use GitHub's native issue
+  dependencies, so the frontier query below is the authoritative "what can I
   pick up next" — don't infer readiness from the issue number.
-  **#2–#19 are closed.** #20 (request validation), #21 (frontend hygiene) and #22
-  (TC traceability table) have all landed on `main`, but their issues stay open
-  until someone closes them by hand. What is genuinely left of the breakdown is
-  #23 (importer) and #24 (README).
+  **#2–#23 are closed.** The only one left is #24 (README). #23 (importer) was
+  `needs-info` until the project owner handed over the real data on 2026-08-09;
+  that label is gone and the ticket is done.
 - Issues #12–#18 (the endpoint test batches) were deliberately chained one after
   another even though they are technically independent. They all edit the same test
   factory files, so running them in parallel would have conflicted. All are closed

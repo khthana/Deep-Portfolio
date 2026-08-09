@@ -49,6 +49,11 @@ desktop.ini
 # Local scratch
 *.local
 
+# Master data files for the CLI importer (docs/importer.md).
+# These hold the institution's real people — names, emails, phone numbers — and
+# must never enter git history. Keep them on the machine that runs the import.
+data/
+
 # Source thesis document (46 MB binary).
 # Its content is now extracted into docs/database-schema.md, docs/test-cases.md
 # and docs/requirements.md, and the .docx itself has been removed from the
