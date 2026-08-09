@@ -15,6 +15,7 @@
 | ---- | ------- |
 | [`spec-refactor-redeploy.md`](docs/spec-refactor-redeploy.md) | แผนงานหลัก ข้อตกลงและเหตุผลของทุกการตัดสินใจ (D1–D13, T1–T7) |
 | [`database-schema.md`](docs/database-schema.md) | data dictionary ของทั้ง 72 ตาราง — ดูความหมายของคอลัมน์ที่นี่ ไม่ต้องเปิดไฟล์ Word |
+| [`importer.md`](docs/importer.md) | วิธีนำเข้า master data 28 ตารางด้วยคำสั่ง `import` — รูปแบบไฟล์ คีย์ของแต่ละตาราง และข้อความผิดพลาด |
 | [`requirements.md`](docs/requirements.md) | ความต้องการที่สกัดจากปริญญานิพนธ์ |
 | [`test-cases.md`](docs/test-cases.md) | กรณีทดสอบด้วยมือ TC-01–TC-75 จากเอกสาร ใช้เป็น checklist ความครอบคลุม |
 | [`tc-traceability.md`](docs/tc-traceability.md) | เทียบ TC-01–TC-75 กับ automated test ที่มีจริง ว่าข้อไหนครอบแล้ว ครอบบางส่วน หรือครอบไม่ได้ และเพราะอะไร |

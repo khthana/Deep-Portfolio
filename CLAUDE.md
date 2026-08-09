@@ -26,15 +26,19 @@ mostly correctness work on top of it.
 - **The database is standalone** — 72 tables from one baseline migration.
   `apps/api/prisma/schema.prisma` is the source of truth for the schema,
   including where it disagrees with the thesis document.
-- **Tests**: `npm test` at the root runs both workspaces. 690 API cases over
-  38 files, 390 web cases over 22 files. Both were written against the
+- **Master data goes in through a CLI**, not the UI — 28 tables have no write
+  path anywhere in the API. `npm run import --workspace @deep-portfolio/api --
+  ./data` reads a directory of CSV files; see
+  [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
+- **Tests**: `npm test` at the root runs both workspaces. 775 API cases over
+  39 files, 400 web cases over 24 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
-Open work is in the issue tracker: the master-data importer (#23, waiting on a
-file format), the README rewrite (#24), and the defects filed while testing
-(#25–#31, #33–#35). Request validation (#20), frontend hygiene (#21) and the
-TC-01..TC-75 traceability table (#22) have landed on `main`; their issues are
-still open awaiting a manual close.
+Open work is in the issue tracker: the README rewrite (#24) and the defects
+filed while testing (#25–#31, #33–#35). Request validation (#20), frontend
+hygiene (#21), the TC-01..TC-75 traceability table (#22) and the master-data
+importer (#23) have landed on `main`; their issues are still open awaiting a
+manual close.
 
 [`docs/tc-traceability.md`](docs/tc-traceability.md) maps all 75 manual test
 cases from the thesis onto the automated tests that cover them — read it before
