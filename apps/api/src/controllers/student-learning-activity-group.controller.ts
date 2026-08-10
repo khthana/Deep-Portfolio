@@ -3,6 +3,7 @@ import StudentLearningActivityGroupService from "../services/student-learning-ac
 import { sessionUserId } from "../middlewares/auth.middleware";
 import { successResponse } from "../utils/response";
 import { validated } from "../validation/validate";
+import { groupParams } from "../validation/student-activity-group.schema";
 import {
   createStudentLearningActivityGroupBody,
   studentLearningActivityGroupInSecQuery,
@@ -50,6 +51,23 @@ export default class StudentLearningActivityGroupController {
         );
 
       successResponse(res, group, "Update group successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteStudentLearningActivityGroup(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { group_id } = validated(req, groupParams);
+      await this.studentLearningActivityGroupService.deleteStudentLearningActivityGroup(
+        group_id,
+      );
+
+      successResponse(res, null, "Delete group successfully");
     } catch (err) {
       next(err);
     }

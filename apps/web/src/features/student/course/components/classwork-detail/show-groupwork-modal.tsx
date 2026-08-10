@@ -21,6 +21,7 @@ import {
   patchStudentActivityGroup,
   patchStudentLearningActivityGroup,
 } from "../../stores/course-action";
+import { isGroupLeader } from "../../utils/is-group-leader";
 
 type SelectedMembersType = {
   studentName: string;
@@ -42,6 +43,12 @@ const ShowGroupworkModal = (props: Props) => {
   const [messageApi, contextHolder] = message.useMessage();
 
   const courseSlice = useSelector((state: RootState) => state.studentCourse);
+  const homeSlice = useSelector((state: RootState) => state.home);
+
+  const isLeader = isGroupLeader(
+    props.studentGroupWork?.members,
+    homeSlice.studentId,
+  );
 
   const [memberOptions, setMemberOptions] = useState<Options[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<SelectedMembersType[]>(
@@ -213,14 +220,16 @@ const ShowGroupworkModal = (props: Props) => {
         <div className="flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <div className="body-bold-3">สมาชิกในกลุ่ม</div>
-            {!isEditing && props.classworkDetail.status !== "GRADED" && (
-              <div
-                className="text-secondary-blue underline caption-regular cursor-pointer"
-                onClick={() => setIsEditing(true)}
-              >
-                แก้ไข
-              </div>
-            )}
+            {!isEditing &&
+              isLeader &&
+              props.classworkDetail.status !== "GRADED" && (
+                <div
+                  className="text-secondary-blue underline caption-regular cursor-pointer"
+                  onClick={() => setIsEditing(true)}
+                >
+                  แก้ไข
+                </div>
+              )}
           </div>
 
           {selectedMembers.length > 0 &&

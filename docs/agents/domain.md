@@ -15,9 +15,10 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 `CONTEXT.md` does not exist yet in this repo. `docs/adr/` does, and holds the
 decisions taken after the refactor. All of them so far are about who may act on
 what: `0001-portfolio-access.md` (a student's own rows),
-`0002-section-access.md` (a teacher's own sections) and
-`0003-enrolment-access.md` (a student's own sections). Read all three before
-adding an authorisation check anywhere.
+`0002-section-access.md` (a teacher's own sections),
+`0003-enrolment-access.md` (a student's own sections) and
+`0004-group-leader.md` (a group's own leader). Read all four before adding an
+authorisation check anywhere.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

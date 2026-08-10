@@ -236,6 +236,16 @@ export default class StudentActivityGroupService {
     return { group_id: result.group_id };
   }
 
+  /**
+   * Disbands a group (#27). The member rows go with it through the cascade the
+   * schema already declares; the submission rows do not, because the work each
+   * student did is theirs and not the group's — the same as when the leader
+   * drops one member out of the list.
+   */
+  async deleteStudentActivityGroup(group_id: number) {
+    await prisma.student_activity_group.delete({ where: { id: group_id } });
+  }
+
   async getStudentsWithoutGroup(
     section_id: number,
     activity_id: number,

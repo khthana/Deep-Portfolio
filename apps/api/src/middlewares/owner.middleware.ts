@@ -8,7 +8,7 @@ import { errorResponse } from "../utils/response";
  * give.
  *
  * A role says what kind of user is asking. It does not say whose data this is,
- * and that is the question these middlewares answer. Three rules live here, one
+ * and that is the question these middlewares answer. Four rules live here, one
  * per ADR:
  *
  * - `requireSelf` / `requireOwnEntry` — the portfolio group's rule. Every row
@@ -21,8 +21,11 @@ import { errorResponse } from "../utils/response";
  * - `requireEnrolledSection` — the other half of the same question, from the
  *   student's side: a student acts on the sections they are enrolled in.
  *   See docs/adr/0003-enrolment-access.md and issue #26.
+ * - `requireGroupLeader` — inside a group, the membership is the leader's to
+ *   change and nobody else's.
+ *   See docs/adr/0004-group-leader.md and issue #27.
  *
- * All four assume a session middleware ran first: they read the session
+ * All five assume a session middleware ran first: they read the session
  * through `sessionUserId`, which throws rather than answering 401, because a
  * route that reached here without a session is a wiring mistake and not a
  * caller's.
@@ -31,7 +34,8 @@ import { errorResponse } from "../utils/response";
  * something that is not there is a different question with a different answer,
  * and the controller already gives it; folding the two together would turn
  * every 404 in that group into a 403 and hide the difference from the caller.
- * The two section ones are the other way round, and `sectionRule` says why.
+ * The two section ones and the group one are the other way round, and
+ * `sectionRule` says why.
  */
 
 /**
@@ -167,6 +171,91 @@ export const requireEnrolledSection = sectionRule(async (sectionId, userId) => {
 
   return enrolled !== null;
 });
+
+/**
+ * Shown when a member of a group reaches for something only its leader may do.
+ * Same sentence for a group that does not exist, for the reason
+ * `requireGroupLeader` gives.
+ *
+ * "แก้ไขกลุ่ม" covers disbanding it as well as rewriting the list: both are
+ * changes to the group, and telling the two refusals apart would only tell the
+ * caller which endpoint they hit, which they already know.
+ */
+export const NOT_GROUP_LEADER = "เฉพาะหัวหน้ากลุ่มเท่านั้นที่แก้ไขกลุ่มได้";
+
+/** Finds the student who leads a group, or null when the group has no leader —
+ *  which includes the group not being there at all. */
+type GroupLeaderLookup = (
+  groupId: number,
+) => Promise<{ student_id: string } | null>;
+
+/**
+ * The request names a group and the signed-in student must be its LEADER (#27).
+ *
+ *     router.patch("/", requireRole("STUDENT"),
+ *                  validate({ body: updateStudentActivityGroupBody }),
+ *                  requireGroupLeader(groupLeader.activity, "body"),
+ *                  controller.update);
+ *
+ * Being in the group is not enough. The whole membership arrives on each write,
+ * so a member who could write it could put themselves in charge, drop the
+ * leader, or empty the group — the group is a thing one student owns and the
+ * rest are invited to, and this is what says so.
+ *
+ * A group nobody leads and a group that is not there both answer `403`, the
+ * same way the section rules do and for the same reason: group ids are small
+ * integers, and a caller who could tell the two apart could count the groups of
+ * a class they have nothing to do with.
+ *
+ * After `validate`, so a request that names no group is a `400`.
+ *
+ * Shaped like `sectionRule` and deliberately not folded into it. That one asks
+ * "does this pair belong together" of two tables that answer it two ways; this
+ * one asks the group who leads it and compares. Merging them would mean a rule
+ * parameterised by field name, message and predicate — four knobs for three call
+ * sites, where the reader of any one of them has to reassemble what it does.
+ */
+export function requireGroupLeader(
+  find: GroupLeaderLookup,
+  location: "params" | "body",
+): (req: Request, res: Response, next: NextFunction) => void {
+  return async (req, res, next) => {
+    const session = sessionUserId(req);
+    const named = (req[location] as Record<string, unknown> | undefined)
+      ?.group_id;
+    const groupId = Number(named);
+
+    try {
+      const leader = Number.isSafeInteger(groupId) ? await find(groupId) : null;
+
+      if (leader?.student_id !== session) {
+        return errorResponse(res, 403, NOT_GROUP_LEADER);
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+/**
+ * Where each kind of group keeps its leader — the two parallel tables the
+ * students' group endpoints address.
+ */
+export const groupLeader = {
+  activity: (groupId: number) =>
+    prisma.student_activity_group_member.findFirst({
+      where: { group_id: groupId, role: "LEADER" },
+      select: { student_id: true },
+    }),
+
+  learningActivity: (groupId: number) =>
+    prisma.student_learning_activity_group_member.findFirst({
+      where: { group_id: groupId, role: "LEADER" },
+      select: { student_id: true },
+    }),
+} satisfies Record<string, GroupLeaderLookup>;
 
 /** Finds who a row belongs to, or null when there is no such row. */
 type OwnerLookup = (id: string) => Promise<{ user_id: string } | null>;

@@ -1,23 +1,24 @@
 import { z } from "zod";
 import { id } from "./fields";
-import { groupMember } from "./student-activity-group.schema";
+import { memberList } from "./student-activity-group.schema";
 
 /**
- * `/student-learning-activity-group` — the same five endpoints as
+ * `/student-learning-activity-group` — the same six endpoints as
  * `/student-activity-group`, over classroom work instead of graded work.
  *
- * The member list and its roles are literally the same shape, so `groupMember`
- * is shared; only the id naming the work differs.
+ * The member list, its roles and the rules it has to satisfy are literally the
+ * same, so `memberList` is shared; only the id naming the work differs. The
+ * path parameter `DELETE` takes is shared too, as `groupParams`.
  */
 
 export const createStudentLearningActivityGroupBody = z.object({
   learning_activity_id: id,
-  members: z.array(groupMember),
+  members: memberList,
 });
 
 export const updateStudentLearningActivityGroupBody = z.object({
   group_id: id,
-  members: z.array(groupMember),
+  members: memberList,
 });
 
 export const studentLearningActivityGroupQuery = z.object({

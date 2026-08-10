@@ -1,10 +1,15 @@
 import { Router } from "express";
 import StudentActivityGroupController from "../controllers/student-activity-group.controller";
 import { requireRole } from "../middlewares/auth.middleware";
-import { requireEnrolledSection } from "../middlewares/owner.middleware";
+import {
+  groupLeader,
+  requireEnrolledSection,
+  requireGroupLeader,
+} from "../middlewares/owner.middleware";
 import { validate } from "../validation/validate";
 import {
   createStudentActivityGroupBody,
+  groupParams,
   studentActivityGroupInSecQuery,
   studentActivityGroupQuery,
   studentsWithoutGroupQuery,
@@ -14,11 +19,25 @@ import {
 const studentActivityGroupRouter = Router();
 const studentActivityGroupController = new StudentActivityGroupController();
 
+// The two writes rewrite the whole membership, so both are the leader's to make
+// and nobody else's (#27). After validate, so a body that names no group is a
+// 400 rather than a 403.
 studentActivityGroupRouter.patch(
   "/",
   requireRole("STUDENT"),
   validate({ body: updateStudentActivityGroupBody }),
+  requireGroupLeader(groupLeader.activity, "body"),
   studentActivityGroupController.updateStudentActivityGroup.bind(
+    studentActivityGroupController,
+  ),
+);
+
+studentActivityGroupRouter.delete(
+  "/:group_id",
+  requireRole("STUDENT"),
+  validate({ params: groupParams }),
+  requireGroupLeader(groupLeader.activity, "params"),
+  studentActivityGroupController.deleteStudentActivityGroup.bind(
     studentActivityGroupController,
   ),
 );

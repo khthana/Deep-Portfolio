@@ -5,6 +5,7 @@ import { successResponse } from "../utils/response";
 import { validated } from "../validation/validate";
 import {
   createStudentActivityGroupBody,
+  groupParams,
   studentActivityGroupInSecQuery,
   studentActivityGroupQuery,
   studentsWithoutGroupQuery,
@@ -45,6 +46,23 @@ export default class StudentActivityGroupController {
         await this.studentActivityGroupService.updateStudentActivityGroup(body);
 
       successResponse(res, group, "Create group successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteStudentActivityGroup(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { group_id } = validated(req, groupParams);
+      await this.studentActivityGroupService.deleteStudentActivityGroup(
+        group_id,
+      );
+
+      successResponse(res, null, "Delete group successfully");
     } catch (err) {
       next(err);
     }

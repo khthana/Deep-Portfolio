@@ -260,6 +260,16 @@ export default class StudentLearningActivityGroupService {
     return { group_id: result.group_id };
   }
 
+  /**
+   * Disbands a group (#27) — the twin of the activity side, cascade and all:
+   * the member rows go, the submission rows stay with the students.
+   */
+  async deleteStudentLearningActivityGroup(group_id: number) {
+    await prisma.student_learning_activity_group.delete({
+      where: { id: group_id },
+    });
+  }
+
   async getStudentsWithoutGroup(
     section_id: number,
     learning_activity_id: number,

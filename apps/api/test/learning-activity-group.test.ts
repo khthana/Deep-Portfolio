@@ -209,6 +209,84 @@ describe("POST /student-learning-activity-group", () => {
     ).toBe(0);
   });
 
+  it("answers 400 for an empty member list", async () => {
+    const { learningActivity, students } = await classWithStudents(1);
+
+    const response = await request(app)
+      .post("/student-learning-activity-group")
+      .set("Cookie", sessionCookie({ userId: students[0].student_id }))
+      .send({ learning_activity_id: learningActivity.id, members: [] });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "members",
+        location: "body",
+        message: "ต้องมีอย่างน้อย 1 รายการ",
+      },
+    ]);
+    expect(
+      await prisma.student_learning_activity_group.count({
+        where: { learning_activity_id: learningActivity.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("answers 400 for a member list with nobody leading it", async () => {
+    const { learningActivity, students } = await classWithStudents(1);
+
+    const response = await request(app)
+      .post("/student-learning-activity-group")
+      .set("Cookie", sessionCookie({ userId: students[0].student_id }))
+      .send({
+        learning_activity_id: learningActivity.id,
+        members: [{ student_id: students[0].student_id, role: "MEMBER" }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "members",
+        location: "body",
+        message: "ต้องมีหัวหน้ากลุ่มหนึ่งคน",
+      },
+    ]);
+    expect(
+      await prisma.student_learning_activity_group.count({
+        where: { learning_activity_id: learningActivity.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("answers 400 for a member list with two leaders", async () => {
+    const { learningActivity, students } = await classWithStudents(2);
+
+    const response = await request(app)
+      .post("/student-learning-activity-group")
+      .set("Cookie", sessionCookie({ userId: students[0].student_id }))
+      .send({
+        learning_activity_id: learningActivity.id,
+        members: students.map((student) => ({
+          student_id: student.student_id,
+          role: "LEADER",
+        })),
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "members",
+        location: "body",
+        message: "ต้องมีหัวหน้ากลุ่มหนึ่งคน",
+      },
+    ]);
+    expect(
+      await prisma.student_learning_activity_group.count({
+        where: { learning_activity_id: learningActivity.id },
+      }),
+    ).toBe(0);
+  });
+
   it("refuses a member who is not a student in this system", async () => {
     const { learningActivity, students } = await classWithStudents(1);
 
@@ -325,10 +403,14 @@ describe("PATCH /student-learning-activity-group", () => {
 
   it("refuses a request with no session", async () => {
     const group = await createLearningActivityGroup();
+    const leader = group.student_learning_activity_group_member[0];
 
     const response = await request(app)
       .patch("/student-learning-activity-group")
-      .send({ group_id: group.id, members: [] });
+      .send({
+        group_id: group.id,
+        members: [{ student_id: leader.student_id, role: "LEADER" }],
+      });
 
     expect(response.status).toBe(401);
     expect(
@@ -340,12 +422,16 @@ describe("PATCH /student-learning-activity-group", () => {
 
   it("refuses a teacher", async () => {
     const group = await createLearningActivityGroup();
+    const leader = group.student_learning_activity_group_member[0];
     const teacher = await createTeacher();
 
     const response = await request(app)
       .patch("/student-learning-activity-group")
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
-      .send({ group_id: group.id, members: [] });
+      .send({
+        group_id: group.id,
+        members: [{ student_id: leader.student_id, role: "LEADER" }],
+      });
 
     expect(response.status).toBe(403);
     expect(
@@ -355,22 +441,60 @@ describe("PATCH /student-learning-activity-group", () => {
     ).toBe(2);
   });
 
-  it("refuses a group that does not exist", async () => {
+  it("refuses a member who is not the leader", async () => {
+    // Accepted, not merely invited — the policy ADR-0004 turned down would have
+    // let this member through.
+    const group = await createLearningActivityGroup({
+      members: [{}, { status: "ACCEPT" }],
+    });
+    const [leader, member] = group.student_learning_activity_group_member;
+
+    const response = await request(app)
+      .patch("/student-learning-activity-group")
+      .set("Cookie", sessionCookie({ userId: member.student_id }))
+      .send({
+        group_id: group.id,
+        members: [{ student_id: member.student_id, role: "LEADER" }],
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "เฉพาะหัวหน้ากลุ่มเท่านั้นที่แก้ไขกลุ่มได้",
+    });
+    expect(
+      await prisma.student_learning_activity_group_member.findMany({
+        where: { group_id: group.id },
+        select: { student_id: true },
+        orderBy: { id: "asc" },
+      }),
+    ).toEqual([
+      { student_id: leader.student_id },
+      { student_id: member.student_id },
+    ]);
+  });
+
+  it("refuses a group that does not exist in the same words", async () => {
+    // Same reasoning as on the activity side: a separate answer for "no such
+    // group" would let a caller count the groups by walking the ids.
     const student = await createStudent();
 
     const response = await request(app)
       .patch("/student-learning-activity-group")
       .set("Cookie", sessionCookie({ userId: student.student_id }))
-      .send({ group_id: 999_999, members: [] });
+      .send({
+        group_id: 999_999,
+        members: [{ student_id: student.student_id, role: "LEADER" }],
+      });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "เฉพาะหัวหน้ากลุ่มเท่านั้นที่แก้ไขกลุ่มได้",
+    });
   });
 
-  it("empties the group when handed an empty member list", async () => {
-    // Recorded, not endorsed, and identical on both sides: the members are
-    // deleted first and then re-created from the list, so [] leaves the group
-    // with nobody in it and no way back through the API. There is no LEADER
-    // check either, so any member can do it. #27 refuses both.
+  it("refuses an empty member list and leaves the group standing", async () => {
     const group = await createLearningActivityGroup();
     const leader = group.student_learning_activity_group_member[0];
 
@@ -379,12 +503,163 @@ describe("PATCH /student-learning-activity-group", () => {
       .set("Cookie", sessionCookie({ userId: leader.student_id }))
       .send({ group_id: group.id, members: [] });
 
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "members",
+        location: "body",
+        message: "ต้องมีอย่างน้อย 1 รายการ",
+      },
+    ]);
+    expect(
+      await prisma.student_learning_activity_group_member.count({
+        where: { group_id: group.id },
+      }),
+    ).toBe(2);
+  });
+
+  it("refuses a member list with nobody leading it", async () => {
+    const group = await createLearningActivityGroup();
+    const leader = group.student_learning_activity_group_member[0];
+
+    const response = await request(app)
+      .patch("/student-learning-activity-group")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .send({
+        group_id: group.id,
+        members: [{ student_id: leader.student_id, role: "MEMBER" }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "members",
+        location: "body",
+        message: "ต้องมีหัวหน้ากลุ่มหนึ่งคน",
+      },
+    ]);
+    expect(
+      await prisma.student_learning_activity_group_member.findFirstOrThrow({
+        where: { group_id: group.id, student_id: leader.student_id },
+      }),
+    ).toMatchObject({ role: "LEADER" });
+  });
+});
+
+describe("DELETE /student-learning-activity-group/:group_id", () => {
+  it("disbands the group and leaves everyone's submission behind", async () => {
+    const { learningActivity, students } = await classWithStudents(2);
+    const [leader, member] = students;
+    const group = await createLearningActivityGroup({
+      learning_activity_id: learningActivity.id,
+      members: [
+        { student_id: leader.student_id },
+        { student_id: member.student_id },
+      ],
+    });
+
+    const response = await request(app)
+      .delete(`/student-learning-activity-group/${group.id}`)
+      .set("Cookie", sessionCookie({ userId: leader.student_id }));
+
     expect(response.status).toBe(200);
+    expect(
+      await prisma.student_learning_activity_group.findUnique({
+        where: { id: group.id },
+      }),
+    ).toBeNull();
     expect(
       await prisma.student_learning_activity_group_member.count({
         where: { group_id: group.id },
       }),
     ).toBe(0);
+    expect(
+      await prisma.student_learning_activity.count({
+        where: { learning_activity_id: learningActivity.id },
+      }),
+    ).toBe(2);
+  });
+
+  it("refuses a member who is not the leader", async () => {
+    const group = await createLearningActivityGroup();
+    const member = group.student_learning_activity_group_member[1];
+
+    const response = await request(app)
+      .delete(`/student-learning-activity-group/${group.id}`)
+      .set("Cookie", sessionCookie({ userId: member.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "เฉพาะหัวหน้ากลุ่มเท่านั้นที่แก้ไขกลุ่มได้",
+    });
+    expect(
+      await prisma.student_learning_activity_group.findUnique({
+        where: { id: group.id },
+      }),
+    ).not.toBeNull();
+  });
+
+  it("refuses a group that does not exist in the same words", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/student-learning-activity-group/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "เฉพาะหัวหน้ากลุ่มเท่านั้นที่แก้ไขกลุ่มได้",
+    });
+  });
+
+  it("refuses a request with no session", async () => {
+    const group = await createLearningActivityGroup();
+
+    const response = await request(app).delete(
+      `/student-learning-activity-group/${group.id}`,
+    );
+
+    expect(response.status).toBe(401);
+    expect(
+      await prisma.student_learning_activity_group.findUnique({
+        where: { id: group.id },
+      }),
+    ).not.toBeNull();
+  });
+
+  it("refuses a teacher", async () => {
+    const group = await createLearningActivityGroup();
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .delete(`/student-learning-activity-group/${group.id}`)
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
+    });
+    expect(
+      await prisma.student_learning_activity_group.findUnique({
+        where: { id: group.id },
+      }),
+    ).not.toBeNull();
+  });
+
+  it("answers 400 for a group id that is not a number", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/student-learning-activity-group/not-a-group")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "group_id", location: "params", message: "ต้องเป็นตัวเลข" },
+    ]);
   });
 });
 
