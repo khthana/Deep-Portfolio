@@ -26,9 +26,13 @@ import { listStoredObjects } from "./helpers/storage";
  *   the same quirk; see the closing notes in BEHAVIOR-CHANGES.md.
  *
  * Authorisation is the same everywhere in the group since #31 — a session, and
- * your own rows — and portfolio-education.test.ts carries those cases in full.
- * The one case kept here is the session for an account that is gone, which
- * used to reach Postgres and come back as a 500.
+ * your own rows. T5 asks every endpoint behind the middleware for its own
+ * refusal, so each one here carries a 401, and every one that can name a row
+ * or a user other than the caller's carries a 403 as well. The rule and the
+ * reasoning are in docs/adr/0001-portfolio-access.md, and the shared shapes are
+ * spelled out in portfolio-education.test.ts. The case peculiar to this file is
+ * the session for an account that is gone, which used to reach Postgres and
+ * come back as a 500.
  */
 
 const PDF = Buffer.from("%PDF-1.4 example");
@@ -124,6 +128,33 @@ describe("GET /portfolio-award", () => {
     ]);
   });
 
+  it("refuses a request with no session", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-award")
+      .query({ user_id: student.student_id });
+
+    expect(response.status).toBe(401);
+  });
+
+  it("refuses a student asking for somebody else's prizes", async () => {
+    const owner = await createStudent();
+    const stranger = await createStudent();
+    await createPortfolioAward({ user_id: owner.student_id });
+
+    const response = await request(app)
+      .get("/portfolio-award")
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .query({ user_id: owner.student_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
   it("refuses a request that names no user", async () => {
     const student = await createStudent();
 
@@ -157,6 +188,25 @@ describe("GET /portfolio-award/:id", () => {
       name: "การแข่งขันตัวอย่าง",
       award: "รางวัลรองชนะเลิศ",
     });
+  });
+
+  it("refuses a request with no session", async () => {
+    const entry = await createPortfolioAward();
+
+    const response = await request(app).get(`/portfolio-award/${entry.id}`);
+
+    expect(response.status).toBe(401);
+  });
+
+  it("refuses another student's prize", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioAward();
+
+    const response = await request(app)
+      .get(`/portfolio-award/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
   });
 
   it("answers 400 for an id that is not a number", async () => {
@@ -416,6 +466,23 @@ describe("PUT /portfolio-award/:id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses a request with no session, and changes nothing", async () => {
+    const entry = await createPortfolioAward({ name: "การแข่งขันเดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio-award/${entry.id}`)
+      .send({ name: "การแข่งขันใหม่" });
+
+    expect(response.status).toBe(401);
+    expect(
+      (
+        await prisma.portfolio_award.findUniqueOrThrow({
+          where: { id: entry.id },
+        })
+      ).name,
+    ).toBe("การแข่งขันเดิม");
+  });
+
   it("refuses another student's prize, and changes nothing", async () => {
     const stranger = await createStudent();
     const entry = await createPortfolioAward({ name: "การแข่งขันเดิม" });
@@ -493,6 +560,31 @@ describe("DELETE /portfolio-award/:id", () => {
         where: { award_id: doomed.id },
       }),
     ).toHaveLength(0);
+  });
+
+  it("refuses a request with no session, and deletes nothing", async () => {
+    const entry = await createPortfolioAward();
+
+    const response = await request(app).delete(`/portfolio-award/${entry.id}`);
+
+    expect(response.status).toBe(401);
+    expect(
+      await prisma.portfolio_award.findUnique({ where: { id: entry.id } }),
+    ).not.toBeNull();
+  });
+
+  it("refuses another student's prize, and deletes nothing", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioAward();
+
+    const response = await request(app)
+      .delete(`/portfolio-award/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(
+      await prisma.portfolio_award.findUnique({ where: { id: entry.id } }),
+    ).not.toBeNull();
   });
 
   it("answers 400 for an id that is not a number", async () => {

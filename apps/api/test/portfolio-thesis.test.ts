@@ -24,7 +24,11 @@ import { listStoredObjects } from "./helpers/storage";
  * of which the controller has to convert out of multipart's strings.
  *
  * Authorisation is the same everywhere in the group since #31 — a session, and
- * your own rows — and portfolio-education.test.ts carries those cases in full.
+ * your own rows. T5 wants a refusal on every endpoint behind the middleware, so
+ * each one here carries a 401, and every one that can name a row or a user
+ * other than the caller's carries a 403 as well; the rule is in
+ * docs/adr/0001-portfolio-access.md and the shapes are spelled out in
+ * portfolio-education.test.ts.
  */
 
 const PDF = Buffer.from("%PDF-1.4 example");
@@ -121,6 +125,33 @@ describe("GET /portfolio-thesis", () => {
     ]);
   });
 
+  it("refuses a request with no session", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-thesis")
+      .query({ user_id: student.student_id });
+
+    expect(response.status).toBe(401);
+  });
+
+  it("refuses a student asking for somebody else's projects", async () => {
+    const owner = await createStudent();
+    const stranger = await createStudent();
+    await createPortfolioThesis({ user_id: owner.student_id });
+
+    const response = await request(app)
+      .get("/portfolio-thesis")
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .query({ user_id: owner.student_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
   it("refuses a request that names no user", async () => {
     const student = await createStudent();
 
@@ -154,6 +185,14 @@ describe("GET /portfolio-thesis/:id", () => {
       name: "ปริญญานิพนธ์ตัวอย่าง",
       repository: "https://example.test/repo",
     });
+  });
+
+  it("refuses a request with no session", async () => {
+    const entry = await createPortfolioThesis();
+
+    const response = await request(app).get(`/portfolio-thesis/${entry.id}`);
+
+    expect(response.status).toBe(401);
   });
 
   it("refuses another student's project", async () => {
@@ -366,6 +405,23 @@ describe("PUT /portfolio-thesis/:id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses a request with no session, and changes nothing", async () => {
+    const entry = await createPortfolioThesis({ name: "ปริญญานิพนธ์เดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio-thesis/${entry.id}`)
+      .field("name", "ปริญญานิพนธ์ใหม่");
+
+    expect(response.status).toBe(401);
+    expect(
+      (
+        await prisma.portfolio_thesis.findUniqueOrThrow({
+          where: { id: entry.id },
+        })
+      ).name,
+    ).toBe("ปริญญานิพนธ์เดิม");
+  });
+
   it("refuses another student's project, and changes nothing", async () => {
     const stranger = await createStudent();
     const entry = await createPortfolioThesis({ name: "ปริญญานิพนธ์เดิม" });
@@ -443,6 +499,31 @@ describe("DELETE /portfolio-thesis/:id", () => {
         where: { thesis_id: doomed.id },
       }),
     ).toHaveLength(0);
+  });
+
+  it("refuses a request with no session, and deletes nothing", async () => {
+    const entry = await createPortfolioThesis();
+
+    const response = await request(app).delete(`/portfolio-thesis/${entry.id}`);
+
+    expect(response.status).toBe(401);
+    expect(
+      await prisma.portfolio_thesis.findUnique({ where: { id: entry.id } }),
+    ).not.toBeNull();
+  });
+
+  it("refuses another student's project, and deletes nothing", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioThesis();
+
+    const response = await request(app)
+      .delete(`/portfolio-thesis/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(
+      await prisma.portfolio_thesis.findUnique({ where: { id: entry.id } }),
+    ).not.toBeNull();
   });
 
   it("answers 400 for an id that is not a number", async () => {

@@ -29,10 +29,13 @@ import { listStoredObjects } from "./helpers/storage";
  * is here is one of each, plus everything that is particular to this endpoint.
  *
  * Authorisation is the same everywhere in the group since #31 — a session, and
- * your own rows — so portfolio-education.test.ts carries those cases in full
- * too. What is here is the pair this endpoint can get wrong on its own: a
- * refused upload must leave the bucket alone, and a refused write must leave
- * the entry alone.
+ * your own rows. T5 wants a refusal on every endpoint behind the middleware, so
+ * each one here carries a 401, and every one that can name a row or a user
+ * other than the caller's carries a 403 as well; the rule is in
+ * docs/adr/0001-portfolio-access.md and the shapes are spelled out in
+ * portfolio-education.test.ts. The pair this endpoint can get wrong on its own
+ * is that a refused upload must leave the bucket alone, and a refused write
+ * must leave the entry alone.
  */
 
 const PDF = Buffer.from("%PDF-1.4 example\n");
@@ -135,6 +138,33 @@ describe("GET /portfolio-training", () => {
     ]);
   });
 
+  it("refuses a request with no session", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-training")
+      .query({ user_id: student.student_id });
+
+    expect(response.status).toBe(401);
+  });
+
+  it("refuses a student asking for somebody else's training", async () => {
+    const owner = await createStudent();
+    const stranger = await createStudent();
+    await createPortfolioTraining({ user_id: owner.student_id });
+
+    const response = await request(app)
+      .get("/portfolio-training")
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .query({ user_id: owner.student_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
   it("refuses a request that names no user", async () => {
     const student = await createStudent();
 
@@ -185,6 +215,25 @@ describe("GET /portfolio-training/:id", () => {
         file_size: 512,
       },
     ]);
+  });
+
+  it("refuses a request with no session", async () => {
+    const entry = await createPortfolioTraining();
+
+    const response = await request(app).get(`/portfolio-training/${entry.id}`);
+
+    expect(response.status).toBe(401);
+  });
+
+  it("refuses another student's entry", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioTraining();
+
+    const response = await request(app)
+      .get(`/portfolio-training/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
   });
 
   it("answers 404 for an id that belongs to no entry", async () => {
@@ -396,6 +445,23 @@ describe("PUT /portfolio-training/:id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses a request with no session, and changes nothing", async () => {
+    const entry = await createPortfolioTraining({ name: "ชื่อเดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio-training/${entry.id}`)
+      .send({ name: "ชื่อใหม่" });
+
+    expect(response.status).toBe(401);
+    expect(
+      (
+        await prisma.portfolio_training.findUniqueOrThrow({
+          where: { id: entry.id },
+        })
+      ).name,
+    ).toBe("ชื่อเดิม");
+  });
+
   it("refuses another student's entry, and changes nothing", async () => {
     const stranger = await createStudent();
     const entry = await createPortfolioTraining({ name: "ชื่อเดิม" });
@@ -493,6 +559,19 @@ describe("DELETE /portfolio-training/:id", () => {
     ).not.toBeNull();
     expect(
       await prisma.portfolio_training.findUnique({ where: { id: kept.id } }),
+    ).not.toBeNull();
+  });
+
+  it("refuses a request with no session, and deletes nothing", async () => {
+    const entry = await createPortfolioTraining();
+
+    const response = await request(app).delete(
+      `/portfolio-training/${entry.id}`,
+    );
+
+    expect(response.status).toBe(401);
+    expect(
+      await prisma.portfolio_training.findUnique({ where: { id: entry.id } }),
     ).not.toBeNull();
   });
 

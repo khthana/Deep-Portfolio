@@ -405,6 +405,27 @@ describe("PUT /portfolio-personal/:user_id", () => {
     expect(response.body.data.date_of_birth).toBeNull();
   });
 
+  it("refuses a request with no session, and changes nothing", async () => {
+    const student = await createStudent();
+    await createPortfolioPersonal({
+      user_id: student.student_id,
+      nationality: "ไทย",
+    });
+
+    const response = await request(app)
+      .put(`/portfolio-personal/${student.student_id}`)
+      .field("nationality", "ลาว");
+
+    expect(response.status).toBe(401);
+    expect(
+      (
+        await prisma.portfolio_personal.findUniqueOrThrow({
+          where: { user_id: student.student_id },
+        })
+      ).nationality,
+    ).toBe("ไทย");
+  });
+
   it("refuses another student's details, and changes nothing", async () => {
     const owner = await createStudent();
     const stranger = await createStudent();
@@ -543,6 +564,22 @@ describe("DELETE /portfolio-personal/:user_id", () => {
     ).toBeNull();
     expect(
       await prisma.users.findUnique({ where: { user_id: student.student_id } }),
+    ).not.toBeNull();
+  });
+
+  it("refuses a request with no session, and deletes nothing", async () => {
+    const student = await createStudent();
+    await createPortfolioPersonal({ user_id: student.student_id });
+
+    const response = await request(app).delete(
+      `/portfolio-personal/${student.student_id}`,
+    );
+
+    expect(response.status).toBe(401);
+    expect(
+      await prisma.portfolio_personal.findUnique({
+        where: { user_id: student.student_id },
+      }),
     ).not.toBeNull();
   });
 

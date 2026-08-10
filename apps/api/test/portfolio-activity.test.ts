@@ -24,7 +24,11 @@ import { listStoredObjects } from "./helpers/storage";
  * what keeps a blank date field from reaching Prisma as an Invalid Date.
  *
  * Authorisation is the same everywhere in the group since #31 — a session, and
- * your own rows — and portfolio-education.test.ts carries those cases in full.
+ * your own rows. T5 wants a refusal on every endpoint behind the middleware, so
+ * each one here carries a 401, and every one that can name a row or a user
+ * other than the caller's carries a 403 as well; the rule is in
+ * docs/adr/0001-portfolio-access.md and the shapes are spelled out in
+ * portfolio-education.test.ts.
  */
 
 const PDF = Buffer.from("%PDF-1.4 example");
@@ -119,6 +123,33 @@ describe("GET /portfolio-activity", () => {
     ]);
   });
 
+  it("refuses a request with no session", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-activity")
+      .query({ user_id: student.student_id });
+
+    expect(response.status).toBe(401);
+  });
+
+  it("refuses a student asking for somebody else's activities", async () => {
+    const owner = await createStudent();
+    const stranger = await createStudent();
+    await createPortfolioActivity({ user_id: owner.student_id });
+
+    const response = await request(app)
+      .get("/portfolio-activity")
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .query({ user_id: owner.student_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
   it("refuses a request that names no user", async () => {
     const student = await createStudent();
 
@@ -152,6 +183,25 @@ describe("GET /portfolio-activity/:id", () => {
       name: "ค่ายอาสาตัวอย่าง",
       role: "ประธานค่าย",
     });
+  });
+
+  it("refuses a request with no session", async () => {
+    const entry = await createPortfolioActivity();
+
+    const response = await request(app).get(`/portfolio-activity/${entry.id}`);
+
+    expect(response.status).toBe(401);
+  });
+
+  it("refuses another student's activity", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioActivity();
+
+    const response = await request(app)
+      .get(`/portfolio-activity/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
   });
 
   it("answers 400 for an id that is not a number", async () => {
@@ -370,6 +420,23 @@ describe("PUT /portfolio-activity/:id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses a request with no session, and changes nothing", async () => {
+    const entry = await createPortfolioActivity({ name: "ค่ายอาสาเดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio-activity/${entry.id}`)
+      .field("name", "ค่ายอาสาใหม่");
+
+    expect(response.status).toBe(401);
+    expect(
+      (
+        await prisma.portfolio_activities.findUniqueOrThrow({
+          where: { id: entry.id },
+        })
+      ).name,
+    ).toBe("ค่ายอาสาเดิม");
+  });
+
   it("refuses another student's activity, and changes nothing", async () => {
     const stranger = await createStudent();
     const entry = await createPortfolioActivity({ name: "ค่ายอาสาเดิม" });
@@ -449,6 +516,33 @@ describe("DELETE /portfolio-activity/:id", () => {
         where: { activity_id: doomed.id },
       }),
     ).toHaveLength(0);
+  });
+
+  it("refuses a request with no session, and deletes nothing", async () => {
+    const entry = await createPortfolioActivity();
+
+    const response = await request(app).delete(
+      `/portfolio-activity/${entry.id}`,
+    );
+
+    expect(response.status).toBe(401);
+    expect(
+      await prisma.portfolio_activities.findUnique({ where: { id: entry.id } }),
+    ).not.toBeNull();
+  });
+
+  it("refuses another student's activity, and deletes nothing", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioActivity();
+
+    const response = await request(app)
+      .delete(`/portfolio-activity/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(
+      await prisma.portfolio_activities.findUnique({ where: { id: entry.id } }),
+    ).not.toBeNull();
   });
 
   it("answers 400 for an id that is not a number", async () => {

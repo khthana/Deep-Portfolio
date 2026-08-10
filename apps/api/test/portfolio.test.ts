@@ -101,6 +101,16 @@ describe("GET /portfolio", () => {
     ]);
   });
 
+  it("refuses a request with no session", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio")
+      .query({ user_id: student.student_id });
+
+    expect(response.status).toBe(401);
+  });
+
   it("refuses a student asking for somebody else's list", async () => {
     // See BEHAVIOR-CHANGES.md. The query string was the only thing that decided
     // whose portfolios came back.
@@ -211,6 +221,14 @@ describe("GET /portfolio/:id", () => {
       templateName: null,
       selectedSkillIds: [],
     });
+  });
+
+  it("refuses a request with no session", async () => {
+    const portfolio = await createPortfolio();
+
+    const response = await request(app).get(`/portfolio/${portfolio.id}`);
+
+    expect(response.status).toBe(401);
   });
 
   it("refuses another student's portfolio", async () => {
@@ -452,6 +470,23 @@ describe("POST /portfolio/:id/generate-share-link", () => {
     ).toEqual(new Date(expiresAt));
   });
 
+  it("refuses a request with no session, and mints nothing", async () => {
+    const portfolio = await createPortfolio();
+
+    const response = await request(app)
+      .post(`/portfolio/${portfolio.id}/generate-share-link`)
+      .send({});
+
+    expect(response.status).toBe(401);
+    expect(
+      (
+        await prisma.portfolio.findUniqueOrThrow({
+          where: { id: portfolio.id },
+        })
+      ).public_share_token,
+    ).toBe(portfolio.public_share_token);
+  });
+
   it("refuses to publish another student's portfolio", async () => {
     // See BEHAVIOR-CHANGES.md. Anyone holding a portfolio id could mint a share
     // link for it and read the whole thing through the public route.
@@ -572,6 +607,27 @@ describe("POST /portfolio", () => {
         where: { skill_id: notChosen.id },
       }),
     ).toBe(0);
+  });
+
+  it("ties a skill the request names twice to the cover page once", async () => {
+    // See BEHAVIOR-CHANGES.md. portfolio_skill_mapping is keyed on the pair, so
+    // a repeated id used to be written twice and the insert died — a 500 that
+    // told the caller the server broke over a list it was allowed to send.
+    const student = await createStudent();
+    const skill = await createPortfolioSkill({ user_id: student.student_id });
+
+    const response = await request(app)
+      .post("/portfolio")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({ selectedSkillIds: [skill.id, skill.id] });
+
+    expect(response.status).toBe(201);
+    expect(response.body.data.selectedSkillIds).toEqual([skill.id]);
+    expect(
+      await prisma.portfolio_skill_mapping.count({
+        where: { portfolio_id: response.body.data.id },
+      }),
+    ).toBe(1);
   });
 
   it("refuses to put another student's skill on the cover page", async () => {
@@ -728,6 +784,23 @@ describe("PUT /portfolio/:id", () => {
     expect(response.body.data.selectedSkillIds).toEqual([skill.id]);
   });
 
+  it("refuses a request with no session, and changes nothing", async () => {
+    const portfolio = await createPortfolio({ portfolio_name: "ชื่อเดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio/${portfolio.id}`)
+      .send({ portfolio_name: "ชื่อใหม่" });
+
+    expect(response.status).toBe(401);
+    expect(
+      (
+        await prisma.portfolio.findUniqueOrThrow({
+          where: { id: portfolio.id },
+        })
+      ).portfolio_name,
+    ).toBe("ชื่อเดิม");
+  });
+
   it("refuses another student's portfolio, and changes nothing", async () => {
     const stranger = await createStudent();
     const portfolio = await createPortfolio({ portfolio_name: "ชื่อเดิม" });
@@ -780,6 +853,23 @@ describe("PATCH /portfolio/:id", () => {
       portfolioName: "ชื่อใหม่",
       about_me: "แนะนำตัวเดิม",
     });
+  });
+
+  it("refuses a request with no session, and changes nothing", async () => {
+    const portfolio = await createPortfolio({ portfolio_name: "ชื่อเดิม" });
+
+    const response = await request(app)
+      .patch(`/portfolio/${portfolio.id}`)
+      .send({ portfolio_name: "ชื่อใหม่" });
+
+    expect(response.status).toBe(401);
+    expect(
+      (
+        await prisma.portfolio.findUniqueOrThrow({
+          where: { id: portfolio.id },
+        })
+      ).portfolio_name,
+    ).toBe("ชื่อเดิม");
   });
 
   it("refuses another student's portfolio, and changes nothing", async () => {
@@ -848,6 +938,17 @@ describe("DELETE /portfolio/:id", () => {
     ).not.toBeNull();
     expect(
       await prisma.portfolio.findUnique({ where: { id: kept.id } }),
+    ).not.toBeNull();
+  });
+
+  it("refuses a request with no session, and deletes nothing", async () => {
+    const portfolio = await createPortfolio();
+
+    const response = await request(app).delete(`/portfolio/${portfolio.id}`);
+
+    expect(response.status).toBe(401);
+    expect(
+      await prisma.portfolio.findUnique({ where: { id: portfolio.id } }),
     ).not.toBeNull();
   });
 

@@ -20,8 +20,8 @@ import { errorResponse } from "../utils/response";
  *
  * Neither of them cares whether the row exists. A request for something that is
  * not there is a different question with a different answer, and the controller
- * already gives it (T5); folding the two together would turn every 404 in this
- * group into a 403 and hide the difference from the caller.
+ * already gives it; folding the two together would turn every 404 in this group
+ * into a 403 and hide the difference from the caller.
  */
 
 /**
@@ -44,15 +44,17 @@ export const NOT_OWNER = "คุณไม่มีสิทธิ์เข้า
  * value rather than the parsed one because `validated` is keyed by schema
  * object, and a middleware that had to be handed the route's schema to do this
  * would be one more thing every route could wire up wrongly.
+ *
+ * The field is always `user_id` — every route in the group spells it that way,
+ * and a parameter for a name nobody varies would be a second way to write the
+ * same thing.
  */
 export function requireSelf(
   location: "params" | "query",
-  field = "user_id",
 ): (req: Request, res: Response, next: NextFunction) => void {
   return (req, res, next) => {
-    const named = (req[location] as Record<string, unknown> | undefined)?.[
-      field
-    ];
+    const named = (req[location] as Record<string, unknown> | undefined)
+      ?.user_id;
 
     if (named !== sessionUserId(req)) {
       return errorResponse(res, 403, NOT_OWNER);

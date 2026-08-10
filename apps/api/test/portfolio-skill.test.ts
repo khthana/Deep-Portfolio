@@ -95,6 +95,33 @@ describe("GET /portfolio-skill", () => {
     ]);
   });
 
+  it("refuses a request with no session", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-skill")
+      .query({ user_id: student.student_id });
+
+    expect(response.status).toBe(401);
+  });
+
+  it("refuses a student asking for somebody else's skills", async () => {
+    const owner = await createStudent();
+    const stranger = await createStudent();
+    await createPortfolioSkill({ user_id: owner.student_id });
+
+    const response = await request(app)
+      .get("/portfolio-skill")
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .query({ user_id: owner.student_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
   it("refuses a request that names no user", async () => {
     const student = await createStudent();
 
@@ -190,6 +217,16 @@ describe("GET /portfolio-skill/works", () => {
     ).toEqual([mine.id]);
   });
 
+  it("refuses a request with no session", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-skill/works")
+      .query({ user_id: student.student_id });
+
+    expect(response.status).toBe(401);
+  });
+
   it("refuses a student asking for somebody else's work", async () => {
     const owner = await createStudent();
     const stranger = await createStudent();
@@ -236,6 +273,14 @@ describe("GET /portfolio-skill/:id", () => {
       name: "การเขียนโปรแกรม",
       mappings: [],
     });
+  });
+
+  it("refuses a request with no session", async () => {
+    const skill = await createPortfolioSkill();
+
+    const response = await request(app).get(`/portfolio-skill/${skill.id}`);
+
+    expect(response.status).toBe(401);
   });
 
   it("refuses another student's skill", async () => {
@@ -488,6 +533,23 @@ describe("PUT /portfolio-skill/:id", () => {
     );
   });
 
+  it("refuses a request with no session, and changes nothing", async () => {
+    const skill = await createPortfolioSkill({ name: "ชื่อเดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio-skill/${skill.id}`)
+      .send({ name: "ชื่อใหม่" });
+
+    expect(response.status).toBe(401);
+    expect(
+      (
+        await prisma.portfolio_skill.findUniqueOrThrow({
+          where: { id: skill.id },
+        })
+      ).name,
+    ).toBe("ชื่อเดิม");
+  });
+
   it("refuses another student's skill, and changes nothing", async () => {
     const stranger = await createStudent();
     const skill = await createPortfolioSkill({ name: "ชื่อเดิม" });
@@ -566,6 +628,17 @@ describe("DELETE /portfolio-skill/:id", () => {
     ).toBeNull();
   });
 
+  it("refuses a request with no session, and deletes nothing", async () => {
+    const skill = await createPortfolioSkill();
+
+    const response = await request(app).delete(`/portfolio-skill/${skill.id}`);
+
+    expect(response.status).toBe(401);
+    expect(
+      await prisma.portfolio_skill.findUnique({ where: { id: skill.id } }),
+    ).not.toBeNull();
+  });
+
   it("refuses another student's skill, and deletes nothing", async () => {
     const stranger = await createStudent();
     const skill = await createPortfolioSkill();
@@ -626,6 +699,16 @@ describe("GET /portfolio-skill/mapping/:id", () => {
       reflection: "ได้เรียนรู้การแบ่งงาน",
       portfolio_skill: { id: skill.id, name: "การเขียนโปรแกรม" },
     });
+  });
+
+  it("refuses a request with no session", async () => {
+    const mapping = await createPortfolioSkillActivityMapping();
+
+    const response = await request(app).get(
+      `/portfolio-skill/mapping/${mapping.id}`,
+    );
+
+    expect(response.status).toBe(401);
   });
 
   it("refuses a mapping hanging off another student's skill", async () => {
@@ -745,6 +828,35 @@ describe("POST /portfolio-skill/assign-work", () => {
         })
       ).map((m) => m.skill_id),
     ).toEqual([added.id]);
+  });
+
+  it("writes one mapping for a skill the request names twice", async () => {
+    // See BEHAVIOR-CHANGES.md. The ownership check used to compare the number
+    // of skills found against the length of the list as it arrived, so naming
+    // the same skill twice was refused with 403 — a refusal that said the
+    // skills were somebody else's when they were the caller's own.
+    const student = await createStudent();
+    const submission = await createSubmission({
+      student_id: student.student_id,
+    });
+    const skill = await createPortfolioSkill({ user_id: student.student_id });
+
+    const response = await request(app)
+      .post("/portfolio-skill/assign-work")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({
+        student_activity_id: submission.id,
+        skill_ids: [skill.id, skill.id],
+      });
+
+    expect(response.status).toBe(201);
+    expect(
+      (
+        await prisma.portfolio_skill_activity_mapping.findMany({
+          where: { student_activity_id: submission.id },
+        })
+      ).map((m) => m.skill_id),
+    ).toEqual([skill.id]);
   });
 
   it("accepts a submission id that names nothing", async () => {
@@ -901,6 +1013,21 @@ describe("DELETE /portfolio-skill/mapping/:id", () => {
     ).not.toBeNull();
     expect(
       await prisma.portfolio_skill.findUnique({ where: { id: skill.id } }),
+    ).not.toBeNull();
+  });
+
+  it("refuses a request with no session, and deletes nothing", async () => {
+    const mapping = await createPortfolioSkillActivityMapping();
+
+    const response = await request(app).delete(
+      `/portfolio-skill/mapping/${mapping.id}`,
+    );
+
+    expect(response.status).toBe(401);
+    expect(
+      await prisma.portfolio_skill_activity_mapping.findUnique({
+        where: { id: mapping.id },
+      }),
     ).not.toBeNull();
   });
 

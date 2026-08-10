@@ -22,7 +22,11 @@ import { listStoredObjects } from "./helpers/storage";
  * here is one success and one failure for each endpoint, plus the date.
  *
  * Authorisation is the same everywhere in the group since #31 — a session, and
- * your own rows — and portfolio-education.test.ts carries those cases in full.
+ * your own rows. T5 wants a refusal on every endpoint behind the middleware, so
+ * each one here carries a 401, and every one that can name a row or a user
+ * other than the caller's carries a 403 as well; the rule is in
+ * docs/adr/0001-portfolio-access.md and the shapes are spelled out in
+ * portfolio-education.test.ts.
  */
 
 const PDF = Buffer.from("%PDF-1.4 example\n");
@@ -83,6 +87,33 @@ describe("GET /portfolio-certificate", () => {
     ]);
   });
 
+  it("refuses a request with no session", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-certificate")
+      .query({ user_id: student.student_id });
+
+    expect(response.status).toBe(401);
+  });
+
+  it("refuses a student asking for somebody else's certificates", async () => {
+    const owner = await createStudent();
+    const stranger = await createStudent();
+    await createPortfolioCertificate({ user_id: owner.student_id });
+
+    const response = await request(app)
+      .get("/portfolio-certificate")
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .query({ user_id: owner.student_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
   it("refuses a request that names no user", async () => {
     const student = await createStudent();
 
@@ -129,6 +160,27 @@ describe("GET /portfolio-certificate/:id", () => {
         file_size: 1024,
       },
     ]);
+  });
+
+  it("refuses a request with no session", async () => {
+    const entry = await createPortfolioCertificate();
+
+    const response = await request(app).get(
+      `/portfolio-certificate/${entry.id}`,
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("refuses another student's certificate", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioCertificate();
+
+    const response = await request(app)
+      .get(`/portfolio-certificate/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
   });
 
   it("answers 404 for an id that belongs to no certificate", async () => {
@@ -272,6 +324,42 @@ describe("PUT /portfolio-certificate/:id", () => {
     expect(response.body.data.date).toBeNull();
   });
 
+  it("refuses a request with no session, and changes nothing", async () => {
+    const entry = await createPortfolioCertificate({ name: "ชื่อเดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio-certificate/${entry.id}`)
+      .send({ name: "ชื่อใหม่" });
+
+    expect(response.status).toBe(401);
+    expect(
+      (
+        await prisma.portfolio_certificate.findUniqueOrThrow({
+          where: { id: entry.id },
+        })
+      ).name,
+    ).toBe("ชื่อเดิม");
+  });
+
+  it("refuses another student's certificate, and changes nothing", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioCertificate({ name: "ชื่อเดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio-certificate/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .send({ name: "ชื่อใหม่" });
+
+    expect(response.status).toBe(403);
+    expect(
+      (
+        await prisma.portfolio_certificate.findUniqueOrThrow({
+          where: { id: entry.id },
+        })
+      ).name,
+    ).toBe("ชื่อเดิม");
+  });
+
   it("fails for a certificate that does not exist", async () => {
     const student = await createStudent();
 
@@ -316,6 +404,21 @@ describe("DELETE /portfolio-certificate/:id", () => {
     ).not.toBeNull();
     expect(
       await prisma.portfolio_certificate.findUnique({ where: { id: kept.id } }),
+    ).not.toBeNull();
+  });
+
+  it("refuses a request with no session, and deletes nothing", async () => {
+    const entry = await createPortfolioCertificate();
+
+    const response = await request(app).delete(
+      `/portfolio-certificate/${entry.id}`,
+    );
+
+    expect(response.status).toBe(401);
+    expect(
+      await prisma.portfolio_certificate.findUnique({
+        where: { id: entry.id },
+      }),
     ).not.toBeNull();
   });
 

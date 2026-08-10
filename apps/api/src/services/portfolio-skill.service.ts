@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import { HttpError } from "../utils/http-error";
 import {
@@ -8,6 +9,41 @@ import {
   PortfolioSkillResp,
   PortfolioWorkResp,
 } from "../models/portfolio-skill.model";
+
+/**
+ * A student may only tie their own skills to something — to a piece of work
+ * here, to a cover page in portfolio.service.ts.
+ *
+ * Skill ids arrive in the body, and an id says nothing about whose it is, so
+ * this is the one ownership question the middleware cannot answer: the row
+ * being written belongs to the caller either way, and it is the ids inside it
+ * that may not. Runs inside the caller's transaction, so there is no window
+ * between the check and the write (#31).
+ *
+ * Hands back the ids with duplicates removed, which is what the caller should
+ * write: naming the same skill twice is one tie, not two.
+ */
+export async function assertOwnSkills(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  skillIds: number[],
+): Promise<number[]> {
+  const wanted = [...new Set(skillIds)];
+
+  const owned = await tx.portfolio_skill.findMany({
+    where: { id: { in: wanted }, user_id: userId },
+    select: { id: true },
+  });
+
+  if (owned.length !== wanted.length) {
+    // A refusal, not a fault. Without a status the error handler reports this
+    // as a 500, which tells the caller the server broke when in fact it
+    // declined. Same shape as the expired share link in portfolio.service.ts.
+    throw new HttpError(403, "มีทักษะบางรายการที่ไม่ใช่ของผู้ใช้รายนี้");
+  }
+
+  return wanted;
+}
 
 const mapToMappingData = (skillId: number, m: SkillMappingReqBody) => ({
   skill_id: skillId,
@@ -234,19 +270,7 @@ export default class PortfolioSkillService {
     } = data;
 
     await prisma.$transaction(async (tx) => {
-      // Verify all skills belong to this user
-      const ownedSkills = await tx.portfolio_skill.findMany({
-        where: { id: { in: skill_ids }, user_id },
-        select: { id: true },
-      });
-
-      if (ownedSkills.length !== skill_ids.length) {
-        // A refusal, not a fault. Without a status the error handler reports
-        // this as a 500, which tells the caller the server broke when in fact
-        // it declined. Same shape as the expired share link in
-        // portfolio.service.ts.
-        throw new HttpError(403, "มีทักษะบางรายการที่ไม่ใช่ของผู้ใช้รายนี้");
-      }
+      const skillIds = await assertOwnSkills(tx, user_id, skill_ids);
 
       await tx.portfolio_skill_activity_mapping.deleteMany({
         where: {
@@ -256,9 +280,9 @@ export default class PortfolioSkillService {
       });
 
       // Create new mappings
-      if (skill_ids.length > 0) {
+      if (skillIds.length > 0) {
         await tx.portfolio_skill_activity_mapping.createMany({
-          data: skill_ids.map((skill_id) => ({
+          data: skillIds.map((skill_id) => ({
             skill_id,
             student_activity_id,
             repository: repository ?? null,
