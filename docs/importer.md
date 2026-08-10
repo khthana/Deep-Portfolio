@@ -19,11 +19,23 @@ npm run import --workspace @deep-portfolio/api -- ./data
 ถ้ามีอะไรผิดแม้แต่จุดเดียว **จะไม่เขียนอะไรลงฐานข้อมูลเลย** และรายงานว่าผิดที่ไฟล์ไหน
 บรรทัดไหน คอลัมน์ไหน — แก้แล้วสั่งใหม่ได้ทันที
 
-คำสั่งนี้อ่านค่า `DATABASE_URL` จาก environment เหมือนตัว API ถ้ารันด้วย Docker
-ให้เข้าไปสั่งในคอนเทนเนอร์ของ API และวางโฟลเดอร์ข้อมูลไว้ในที่ที่คอนเทนเนอร์เห็น
-สั่งจากเครื่อง host ตรง ๆ ก็ได้ แต่ `tsx` ไม่ได้โหลด `apps/api/.env` ให้เอง ต้องส่ง
-`DATABASE_URL` ไปกับคำสั่ง และเนื่องจาก `npm run --workspace` ย้าย cwd ไปที่
-`apps/api` ให้ใส่ path ของโฟลเดอร์ข้อมูลเป็น absolute path
+คำสั่งนี้ต้องการค่าเดียวคือ `DATABASE_URL` ซึ่งอ่านจาก `apps/api/.env` ให้เอง
+(ผ่าน `src/importer/load-env.ts`) — จงใจไม่เรียก `src/config/env.ts` ที่ตัว server ใช้
+เพราะโมดูลนั้นบังคับให้มีค่าครบทั้ง JWT secret, Google client id และ MinIO ซึ่งการนำเข้า
+ไฟล์ CSV ไม่ได้แตะเลยสักตัว ผู้ดูแลจึงไม่ต้องตั้งค่า Google sign-in ก่อนถึงจะนำเข้าข้อมูลได้
+
+**เรื่องพาธ** — `npm run --workspace` ย้าย cwd ไปที่ `apps/api` ให้ใส่พาธของโฟลเดอร์
+ข้อมูลเป็น absolute path (บน Git Bash ของ Windows ต้องนำหน้าด้วย `MSYS_NO_PATHCONV=1`
+ถ้าพาธขึ้นต้นด้วย `/` ไม่งั้นจะถูกแปลงเป็นพาธแบบ Windows ก่อนถึงโปรแกรม)
+
+**ถ้าขึ้นระบบด้วย Docker อย่างเดียว** จะไม่มี `node_modules` บนเครื่อง ให้ส่งไฟล์เข้าไป
+แล้วเรียกตัวที่ compile แล้วในคอนเทนเนอร์ — ต้องเป็น `node dist/importer/cli.js`
+ไม่ใช่ `npm run import` เพราะภาพของ API ไม่ได้ใส่ `src/` เข้าไปด้วย
+
+```
+docker compose cp ./data api:/tmp/data
+docker compose exec api node dist/importer/cli.js /tmp/data
+```
 
 > **ไฟล์ข้อมูลจริงของสถาบันอยู่ที่ `data/` ซึ่งถูก gitignore ไว้** เพราะมีชื่อ อีเมล
 > และเบอร์โทรของบุคลากรจริง — ห้าม commit และห้ามคัดลอกชื่อหรืออีเมลจากไฟล์เหล่านี้

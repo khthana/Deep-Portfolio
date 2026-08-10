@@ -1,3 +1,4 @@
+import "./load-env";
 import prisma from "../config/prisma";
 import { runImport, type ImportReport } from "./run";
 import type { ImportError } from "./rows";

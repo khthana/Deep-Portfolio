@@ -92,6 +92,14 @@ docker compose down -v         # หยุดแล้วลบ volume ทิ้
 docker compose up --build web  # build เว็บใหม่ (จำเป็นเมื่อแก้ VITE_BACKEND_URL)
 ```
 
+> **`docker compose down -v` ลบฐานข้อมูลของ *ทุก* checkout บนเครื่องนี้** —
+> `docker-compose.yml` ตั้ง `name: deep-portfolio` ไว้ตายตัว ชื่อ volume จึงเป็น
+> `deep-portfolio_db-data` เหมือนกันหมด ไม่ว่าจะ clone ไว้กี่ที่ สอง checkout บนเครื่อง
+> เดียวกันจึงใช้ฐานข้อมูลก้อนเดียวกันโดยไม่มีอะไรเตือน และสั่ง `down -v` ที่โฟลเดอร์ไหน
+> ก็ลบของอีกโฟลเดอร์ไปด้วย ถ้าต้องการ stack ที่แยกกันจริง ๆ ให้ตั้งชื่อ project ต่างหาก
+> ตอนสั่ง เช่น `COMPOSE_PROJECT_NAME=deep-portfolio-x docker compose up` แล้วเลื่อน
+> port ทุกตัวใน `.env` ด้วย ไม่งั้นชนกันที่ฝั่ง host
+
 > **stack นี้เป็นของ local เท่านั้น ยังเอาไป deploy จริงไม่ได้** — `NODE_ENV` ถูกตั้งเป็น
 > `development` โดยตั้งใจ เพราะ production จะตั้ง `secure: true` บน cookie ทำให้เก็บ
 > session บน `http://localhost` ไม่ได้ (ส่วนโดเมนของ cookie ไม่ hardcode แล้ว มาจาก
@@ -107,13 +115,27 @@ docker compose up --build web  # build เว็บใหม่ (จำเป็
 ต้องมี Node.js 22 ขึ้นไป
 
 ```bash
-npm install                    # ติดตั้ง dependency ของทุก workspace ในคำสั่งเดียว
+npm install                                # ติดตั้ง dependency ของทุก workspace ในคำสั่งเดียว
+cp .env.example .env                       # ของ compose — ยังต้องมี เพราะยังต้องยืม db กับ minio
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
+# --- เติมค่าใน .env ทั้งสามไฟล์ให้ครบก่อน แล้วค่อยไปต่อ (ดูย่อหน้าถัดไป) ---
+docker compose up -d db minio minio-init   # ยืมฐานข้อมูลกับ MinIO จาก stack มาใช้
+npm run db:migrate                         # สร้างตารางในฐานข้อมูลที่เพิ่งขึ้นมา
 npm run dev
 ```
 
-แล้วเติมค่าใน `.env` ทั้งสองไฟล์ให้ครบ ในไฟล์ `.env.example` มีคำอธิบายกำกับทุกตัวแปรว่า
+**อย่าข้ามบรรทัดกลาง ๆ** — วิธีนี้ไม่ผ่าน Docker เฉพาะตัว API กับเว็บเท่านั้น ยังต้องมี
+PostgreSQL กับ MinIO ให้ต่ออยู่ดี ซึ่งแปลว่ายังต้องมี `.env` ที่ root ให้ compose อ่าน
+(ถ้าไม่มี compose จะหยุดทันทีพร้อมบอกว่าขาดตัวแปรตัวไหน) และ `npm run dev` ที่ยิงใส่
+ฐานข้อมูลที่ยังไม่มีตารางจะพังตอนมี request แรกเข้ามา ไม่ใช่ตอนสตาร์ต
+
+ค่าใน `apps/api/.env.example` ตั้งมาให้ตรงกับกรณีนี้อยู่แล้ว (`localhost` ตามพอร์ตที่
+compose เปิดออกมา) ถ้าเลื่อน `DB_PORT` หรือ `MINIO_API_PORT` ใน `.env` ที่ root
+ต้องเลื่อน `DATABASE_URL` กับ `MINIO_PORT` / `MINIO_PUBLIC_HOST` ใน `apps/api/.env`
+ตามด้วย ทั้งสองไฟล์ไม่ได้อ่านค่าจากกันเอง
+
+เรื่องการเติมค่า: ในไฟล์ `.env.example` มีคำอธิบายกำกับทุกตัวแปรว่า
 ถูกอ่านที่ไหนและใส่ค่าอะไรได้บ้าง ตัวไหนจำเป็นตัวไหนไม่จำเป็น — ข้อที่พลาดกันบ่อยคือ
 `GOOGLE_CLIENT_ID` (ฝั่ง API) กับ `VITE_GOOGLE_CLIENT_ID` (ฝั่งเว็บ) **ต้องเป็นค่าเดียวกัน**
 ไม่อย่างนั้น token ที่เบราว์เซอร์ได้มาจะถูก API ปฏิเสธว่าออกให้คนอื่น
@@ -122,9 +144,6 @@ npm run dev
 ไฟล์ที่ root มีไว้ให้ docker compose อ่าน ส่วน `apps/api/.env` มีไว้ตอนรัน API บนเครื่องตรง ๆ
 ค่าเดียวกันต้องใส่ต่างกันด้วย เช่นฐานข้อมูลอยู่ที่ `db:5432` เมื่อมองจากใน compose network
 แต่อยู่ที่ `localhost:5432` เมื่อมองจาก host
-
-ยัง `docker compose up db minio minio-init` เพื่อยืม PostgreSQL กับ MinIO จาก stack มาใช้
-แล้วรันเฉพาะ API กับเว็บบนเครื่องได้ — ค่าใน `apps/api/.env.example` ตั้งมาให้ตรงกับกรณีนี้อยู่แล้ว
 
 ฝั่ง API มี `src/config/env.ts` เป็น **โมดูลเดียวที่อ่าน `process.env`** และตรวจค่าทั้งหมด
 ตอน startup ถ้าค่าจำเป็นขาด server จะล้มทันทีพร้อมบอกว่าขาดตัวไหนบ้าง แทนที่จะไปพังทีหลัง
@@ -251,6 +270,15 @@ PostgreSQL ไว้เองอยู่แล้ว service ของ Windows 
 `netstat -ano -p tcp | grep :5432` ถ้าเห็นสองบรรทัดคือโดนแล้ว แก้ด้วยการตั้ง `DB_PORT`
 ใน `.env` เป็นพอร์ตอื่น (เช่น 55433) แล้ว `docker compose up -d db` ใหม่
 
+**ถ้า migration ตอบว่า `P1013 ... invalid port number`** ไม่ได้แปลว่าพอร์ตผิด แต่แปลว่า
+**รหัสผ่านมีอักขระที่เป็นไวยากรณ์ของ URL** — `DATABASE_URL` ถูกประกอบเป็น
+`postgresql://user:password@db:5432/...` ถ้ารหัสผ่านมี `/` อยู่ ตัวแยก URL จะตัดจบส่วน
+authority ตรงนั้นแล้วอ่านที่เหลือเป็นพอร์ต ข้อความที่ได้จึงไม่พูดถึงรหัสผ่านเลย
+เจอบ่อยเพราะ `openssl rand -base64` มี `/` กับ `+` อยู่ในชุดอักขระ — ให้ใช้
+`openssl rand -hex 32` แทนสำหรับ `POSTGRES_PASSWORD` (ส่วน `JWT_SECRET` ใช้ base64 ได้
+เพราะไม่ได้อยู่ใน URL) แก้แล้วต้อง `docker compose down -v` ก่อน เพราะ Postgres
+ตั้งรหัสผ่านตอนสร้าง volume ครั้งแรกครั้งเดียว
+
 **ตรวจว่า schema กับฐานข้อมูลยังตรงกัน**
 
 ```bash
@@ -280,6 +308,20 @@ migration สร้างแต่ **ตารางเปล่า** ไม่�
 ```bash
 npm run import -w @deep-portfolio/api -- /path/to/data
 ```
+
+คำสั่งข้างบนเป็นของ**เครื่องที่ลง dependency ไว้แล้ว** (`npm install` + `apps/api/.env`
+ที่ชี้ `DATABASE_URL` มาที่ฐานข้อมูลตัวที่ต้องการ) ถ้าขึ้นระบบด้วย Docker อย่างเดียวจะไม่มี
+`node_modules` บนเครื่อง ให้ส่งไฟล์เข้าไปแล้วเรียกตัวที่ compile แล้วในคอนเทนเนอร์แทน
+
+```bash
+docker compose cp ./data api:/tmp/data
+docker compose exec api node dist/importer/cli.js /tmp/data
+```
+
+ต้องเป็น `node dist/importer/cli.js` ไม่ใช่ `npm run import` เพราะภาพของ API มีแต่ผลลัพธ์
+ที่ compile แล้ว ไม่ได้ใส่ `src/` เข้าไปด้วย ส่วน `npm run import` เรียก `tsx src/importer/cli.ts`
+ซึ่งหาไฟล์ไม่เจอในคอนเทนเนอร์ (บน Git Bash ของ Windows ต้องนำหน้าด้วย `MSYS_NO_PATHCONV=1`
+ด้วย ไม่งั้น `/tmp/data` จะถูกแปลงเป็นพาธแบบ Windows ก่อนถึงคอนเทนเนอร์)
 
 หนึ่งไฟล์ `.csv` ต่อหนึ่งตาราง ตั้งชื่อไฟล์ตามชื่อตาราง คำสั่งนี้ตรวจข้อมูลให้ครบก่อน
 แล้วค่อยเขียน ถ้าผิดจุดเดียวจะไม่เขียนอะไรเลยและบอกว่าผิดที่ไฟล์ไหนบรรทัดไหนคอลัมน์ไหน
