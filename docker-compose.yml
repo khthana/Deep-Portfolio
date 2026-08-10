@@ -150,10 +150,6 @@ services:
       # not stop the group being created or the server starting.
       EMAIL_USER: ${EMAIL_USER:-}
       EMAIL_PASS: ${EMAIL_PASS:-}
-    volumes:
-      # Attachments written by multer land on disk, not in MinIO. Without this
-      # they vanish with the container.
-      - api-uploads:/repo/apps/api/uploads
     healthcheck:
       # There is no /health route, so this borrows a real one. Any HTTP response
       # is a pass — /auth answers 401 without a session, and a 401 already
@@ -195,4 +191,3 @@ services:
 volumes:
   db-data:
   minio-data:
-  api-uploads:

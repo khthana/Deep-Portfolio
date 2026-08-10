@@ -1,44 +1,41 @@
-import express, { Router, type Response } from "express";
-import path from "path";
+import { Router, type Response } from "express";
 import { BUCKET_NAME, minioClient } from "../config/minio";
 import { validate, validated } from "../validation/validate";
-import {
-  filesQuery,
-  uploadParams,
-  uploadQuery,
-} from "../validation/files.schema";
+import { filesQuery } from "../validation/files.schema";
 import { errorResponse } from "../utils/response";
+import { assertSignedFileUrl } from "../utils/file-url";
 
 /**
- * File delivery. These three handlers used to sit inline in app.ts; the paths
- * are unchanged, and this router is mounted first so they keep resolving
- * before any of the feature routers.
+ * File delivery. This used to be three handlers — `/files`, `/uploads/:filename`
+ * and `express.static("uploads")` — and the two `uploads` ones served a
+ * directory nothing has written to since the hand-over: every route uploads
+ * through `middlewares/upload-minio.ts`, so the multer that wrote to disk was
+ * imported by nobody. They are gone rather than guarded (ADR-0006); the bucket
+ * is the only place files live.
+ *
+ * Still mounted before the feature routers, so `/files` keeps resolving first.
  */
 const filesRouter = Router();
 
 filesRouter.get(
-  "/uploads/:filename",
-  validate({ params: uploadParams, query: uploadQuery }),
-  (req, res) => {
-    const { filename } = validated(req, uploadParams);
-    const { title } = validated(req, uploadQuery);
-
-    res.download(path.resolve("uploads", filename), title ?? filename);
-  },
-);
-
-filesRouter.use("/uploads", express.static("uploads"));
-
-filesRouter.get(
   "/files",
   validate({ query: filesQuery }),
-  async (req, res: Response) => {
-    const { path: objectKey } = validated(req, filesQuery);
+  async (req, res: Response, next) => {
+    const query = validated(req, filesQuery);
 
     try {
-      const stream = await minioClient.getObject(BUCKET_NAME, objectKey);
+      assertSignedFileUrl(query);
+    } catch (err) {
+      // Forwarded rather than answered here: a refused signature is a 403 and
+      // an expired one a 410, and the catch below turns everything it sees into
+      // "the file is not there".
+      return next(err);
+    }
 
-      const stat = await minioClient.statObject(BUCKET_NAME, objectKey);
+    try {
+      const stream = await minioClient.getObject(BUCKET_NAME, query.path);
+
+      const stat = await minioClient.statObject(BUCKET_NAME, query.path);
       res.setHeader("Content-Type", stat.metaData["content-type"]);
       stream.pipe(res);
     } catch {

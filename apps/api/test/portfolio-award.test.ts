@@ -10,6 +10,7 @@ import {
 } from "./factories";
 import { sessionCookie } from "./helpers/session";
 import { listStoredObjects } from "./helpers/storage";
+import { signedFileKey, signedFileUrl } from "./helpers/file-url";
 
 /**
  * Prizes the student has won — /portfolio-award.
@@ -98,8 +99,8 @@ describe("GET /portfolio-award", () => {
     expect(response.body.data[0].attachments).toEqual([
       {
         attachment_id: file.attachment_id,
-        url: "portfolio-award/1-2-certificate.pdf",
-        file_path: "portfolio-award/1-2-certificate.pdf",
+        url: signedFileUrl("portfolio-award/1-2-certificate.pdf"),
+        file_path: signedFileUrl("portfolio-award/1-2-certificate.pdf"),
         original_filename: "certificate.pdf",
         file_size: 1024,
       },
@@ -318,7 +319,9 @@ describe("POST /portfolio-award", () => {
     expect(response.body.data.attachments).toHaveLength(1);
 
     const objects = await listStoredObjects("portfolio-award/");
-    expect(objects).toContain(response.body.data.attachments[0].file_path);
+    expect(objects).toContain(
+      signedFileKey(response.body.data.attachments[0].file_path),
+    );
   });
 
   it("refuses a request with no session", async () => {

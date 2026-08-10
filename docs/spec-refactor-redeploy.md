@@ -280,7 +280,7 @@ test อยู่ที่ `apps/api/test/auth.test.ts` (ไม่มี session
 
 `EMAIL_USER` / `EMAIL_PASS` **จงใจไม่บังคับ** เพราะการส่งอีเมลเชิญอยู่ใน try/catch อยู่แล้ว บัญชีเมลว่างต้องไม่ทำให้ server สตาร์ตไม่ขึ้น
 
-เสร็จเพิ่มใน **#7** — สองข้อล่างของรายการนี้ปิดแล้ว รหัสผ่าน MinIO มาจาก `.env` ที่ root ผ่าน `${MINIO_ROOT_USER:?...}` / `${MINIO_ROOT_PASSWORD:?...}` และ volume ทุกตัวเป็น named volume (`db-data`, `minio-data`, `api-uploads`) ไม่มี path ที่ผูกกับเครื่องใครเหลืออยู่
+เสร็จเพิ่มใน **#7** — สองข้อล่างของรายการนี้ปิดแล้ว รหัสผ่าน MinIO มาจาก `.env` ที่ root ผ่าน `${MINIO_ROOT_USER:?...}` / `${MINIO_ROOT_PASSWORD:?...}` และ volume ทุกตัวเป็น named volume (`db-data`, `minio-data`, `api-uploads`) ไม่มี path ที่ผูกกับเครื่องใครเหลืออยู่ — `api-uploads` ถูกลบทิ้งใน [#36](https://github.com/khthana/Deep-Portfolio/issues/36) พร้อมกับ route ที่เสิร์ฟมัน ไฟล์ทุกตัวอยู่ใน MinIO อย่างเดียว
 
 *(หมายเหตุความถูกต้อง: รหัสผ่านที่เขียนตรง ๆ กับ volume path ที่ชี้ home directory ของนักศึกษาคนเดิม ถูกถอดออกไปตั้งแต่รอบล้าง secret ก่อน push ครั้งแรก จึงไม่ปรากฏใน git history — ที่ #7 เพิ่มขึ้นมาคือย้ายไปอ่านจาก `.env` ที่ root พร้อม guard `:?` และทำ named volume ให้ครบทั้งสามตัว)*
 
@@ -320,7 +320,7 @@ port ฝั่ง host ทุกตัวเป็นตัวแปร (`WEB_PO
 
 **เกิดขึ้นจริงอีกครั้งตอนนำเข้าข้อมูลใน #23** และอาการหลอกกว่าที่คิด — เครื่องที่ใช้มี PostgreSQL ที่ติดตั้งบน Windows ตรง ๆ (ไม่ใช่ Docker) ฟังอยู่ที่ `0.0.0.0:5432` และชนะ port proxy ของ Docker การต่อไปที่ `localhost:5432` จึงไปถึง server คนละตัว แล้ว `prisma migrate deploy` ตอบ `P1000 Authentication failed against database server` ซึ่งอ่านเหมือนรหัสผ่านผิด ทั้งที่รหัสผ่านถูก วิธียืนยันคือนับจำนวน process ที่ถือ port นั้น (`netstat -ano -p tcp | grep :5432` เห็นสอง PID) ไม่ใช่ไล่แก้รหัสผ่าน ทางแก้คือตั้ง `DB_PORT` เป็นเลขอื่นใน `.env` ที่ root แล้วชี้ `DATABASE_URL` ใน `apps/api/.env` ตามไปด้วย — มีบันทึกไว้ใน [README](../README.md) ส่วนแก้ปัญหา
 
-**ผลตรวจสอบจริง** (ไม่ใช่แค่ `config` ผ่าน) — `docker compose up` จากศูนย์ขึ้นครบทั้ง 6 service, migration ลงครบได้ 73 ตาราง (72 + `_prisma_migrations`) กับ enum 17 ตัว, bucket ถูกสร้าง, API ต่อ MinIO ด้วย credential จริงแล้ว `bucketExists` เป็น true, เว็บเสิร์ฟ SPA fallback ได้ (`/login` → 200), CORS ตอบ origin ที่ derive มาถูกต้อง, volume `uploads` เขียนได้จาก user `node`, `down` แล้ว `up` ใหม่ข้อมูลอยู่ครบและ migration ขึ้น "No pending migrations", `down -v` แล้ว `up` ใหม่ migrate ใหม่จากศูนย์ได้
+**ผลตรวจสอบจริง** (ไม่ใช่แค่ `config` ผ่าน) — `docker compose up` จากศูนย์ขึ้นครบทั้ง 6 service, migration ลงครบได้ 73 ตาราง (72 + `_prisma_migrations`) กับ enum 17 ตัว, bucket ถูกสร้าง, API ต่อ MinIO ด้วย credential จริงแล้ว `bucketExists` เป็น true, เว็บเสิร์ฟ SPA fallback ได้ (`/login` → 200), CORS ตอบ origin ที่ derive มาถูกต้อง, volume `uploads` เขียนได้จาก user `node` (volume นี้ไม่มีแล้วตั้งแต่ #36), `down` แล้ว `up` ใหม่ข้อมูลอยู่ครบและ migration ขึ้น "No pending migrations", `down -v` แล้ว `up` ใหม่ migrate ใหม่จากศูนย์ได้
 
 **ที่ยังทำไม่ได้ในนี้** — ยัง login ไม่ได้ ทางเข้าเดียวที่โค้ดมีคือ SSO cookie ที่ระบบ DEEP Core เป็นคนออก ซึ่ง local ไม่มี stack นี้จึงพิสูจน์ได้ว่าทุก service ขึ้นครบและคุยกันได้ แต่ยังไม่ใช่การใช้งานจริงตั้งแต่หน้า login — ต้องรอ **#11**
 

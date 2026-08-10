@@ -10,6 +10,7 @@ import {
 } from "./factories";
 import { sessionCookie } from "./helpers/session";
 import { listStoredObjects } from "./helpers/storage";
+import { signedFileKey, signedFileUrl } from "./helpers/file-url";
 
 /**
  * Courses and workshops the student attended — /portfolio-training.
@@ -106,8 +107,8 @@ describe("GET /portfolio-training", () => {
     expect(response.body.data[0].attachments).toEqual([
       {
         attachment_id: file.attachment_id,
-        url: "portfolio-training/1-2-certificate.pdf",
-        file_path: "portfolio-training/1-2-certificate.pdf",
+        url: signedFileUrl("portfolio-training/1-2-certificate.pdf"),
+        file_path: signedFileUrl("portfolio-training/1-2-certificate.pdf"),
         original_filename: "certificate.pdf",
         file_size: 2048,
       },
@@ -209,8 +210,8 @@ describe("GET /portfolio-training/:id", () => {
     expect(response.body.data.attachments).toEqual([
       {
         attachment_id: file.attachment_id,
-        url: "portfolio-training/3-4-certificate.pdf",
-        file_path: "portfolio-training/3-4-certificate.pdf",
+        url: signedFileUrl("portfolio-training/3-4-certificate.pdf"),
+        file_path: signedFileUrl("portfolio-training/3-4-certificate.pdf"),
         original_filename: "certificate.pdf",
         file_size: 512,
       },
@@ -329,7 +330,7 @@ describe("POST /portfolio-training", () => {
 
     const objects = await listStoredObjects("portfolio-training/");
     for (const attachment of response.body.data.attachments) {
-      expect(objects).toContain(attachment.file_path);
+      expect(objects).toContain(signedFileKey(attachment.file_path));
     }
   });
 

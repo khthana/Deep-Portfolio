@@ -16,6 +16,7 @@ import {
   mapActivityToCLO,
 } from "./factories";
 import { sessionCookie } from "./helpers/session";
+import { signedFileUrl } from "./helpers/file-url";
 
 /**
  * Marking a submission — /student-activity.
@@ -705,8 +706,8 @@ describe("GET /student-activity/attachments", () => {
     expect(response.body.data).toEqual([
       {
         attachment_id: file.attachment_id,
-        url: "example/รายงาน.pdf",
-        file_path: "example/รายงาน.pdf",
+        url: signedFileUrl("example/รายงาน.pdf"),
+        file_path: signedFileUrl("example/รายงาน.pdf"),
         original_filename: "รายงาน.pdf",
         file_size: 2048,
       },

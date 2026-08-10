@@ -2,32 +2,23 @@ import { z } from "zod";
 import { optionalText, text } from "./fields";
 
 /**
- * `:filename` names one file inside the uploads directory, and nothing else.
+ * What `GET /files` is asked for: an object key, and the signature that says
+ * this API handed that key out (see src/utils/file-url.ts).
  *
- * Express matches the parameter against the still-encoded path, so a segment
- * cannot contain a literal `/` — but it is decoded before the handler sees it,
- * and `%2e%2e%2f` decodes to `../` after the match has already succeeded. The
- * name then goes to `path.resolve`, which resolves the traversal happily. The
- * check has to be on the decoded value, which is what this is.
- */
-const TRAVERSAL = /[/\\]|^\.\.?$/;
-
-export const uploadParams = z.object({
-  filename: text.refine((value) => !TRAVERSAL.test(value), {
-    error: "ต้องเป็นชื่อไฟล์ ไม่ใช่เส้นทาง",
-  }),
-});
-
-export const uploadQuery = z.object({
-  title: optionalText,
-});
-
-/**
- * The object key inside the bucket, which unlike the above is allowed to be a
- * path — objects are stored under prefixes such as `activity/…`. There is no
- * traversal to prevent: MinIO has no parent directory to escape into, and a key
- * that names nothing is the 404 this endpoint already answers.
+ * The key is allowed to be a path — objects are stored under prefixes such as
+ * `activity/…`. There is no traversal to prevent: MinIO has no parent directory
+ * to escape into, and a key that names nothing is the 404 this endpoint already
+ * answers. What used to make the key dangerous was that naming one was enough
+ * to be served it, which is now the signature's job.
+ *
+ * `exp` and `sig` are optional *here* and required by the route, which answers
+ * `403` when either is missing. They are the permission rather than part of the
+ * request's shape, so a request without them is refused, not corrected — the
+ * schema would otherwise turn the hole this endpoint was closing into a 400
+ * that reads like a typo.
  */
 export const filesQuery = z.object({
   path: text,
+  exp: optionalText,
+  sig: optionalText,
 });

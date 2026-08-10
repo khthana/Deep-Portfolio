@@ -10,6 +10,7 @@ import {
 } from "./factories";
 import { sessionCookie } from "./helpers/session";
 import { listStoredObjects } from "./helpers/storage";
+import { signedFileKey, signedFileUrl } from "./helpers/file-url";
 
 /**
  * Where the student worked — /portfolio-internship.
@@ -108,8 +109,8 @@ describe("GET /portfolio-internship", () => {
     expect(response.body.data[0].attachments).toEqual([
       {
         attachment_id: file.attachment_id,
-        url: "portfolio-internship/1-2-evaluation.pdf",
-        file_path: "portfolio-internship/1-2-evaluation.pdf",
+        url: signedFileUrl("portfolio-internship/1-2-evaluation.pdf"),
+        file_path: signedFileUrl("portfolio-internship/1-2-evaluation.pdf"),
         original_filename: "evaluation.pdf",
         file_size: 4096,
       },
@@ -326,7 +327,9 @@ describe("POST /portfolio-internship", () => {
     expect(stored.portfolio_internship_attachments).toHaveLength(1);
 
     const objects = await listStoredObjects("portfolio-internship/");
-    expect(objects).toContain(response.body.data.attachments[0].file_path);
+    expect(objects).toContain(
+      signedFileKey(response.body.data.attachments[0].file_path),
+    );
   });
 
   it("stores nothing in the bucket when there is no session", async () => {

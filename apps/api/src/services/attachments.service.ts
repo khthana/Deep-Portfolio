@@ -3,6 +3,7 @@ import prisma from "../config/prisma";
 import { FileDetail, URLDetail } from "../models/announcement.model";
 import { UploadAttachments } from "../models/attachments.model";
 import { formatFileType } from "../utils/format-file-type";
+import { signFileUrl } from "../utils/file-url";
 import MinIOService from "./upload.service";
 
 export default class AttachmentsService {
@@ -99,12 +100,16 @@ export default class AttachmentsService {
           uploaded_at: attachment.uploaded_at,
         });
       } else {
-        // const path = await this.uploadService.getFile(attachment.file_path!);
-
         files.push({
           attachment_id: attachment.attachment_id,
           title: attachment.title,
-          file_path: attachment.file_path!,
+          // Not the object key. This is the one place a stored file's address
+          // leaves the API, so it is the one place the permission to read it
+          // can be attached: what goes out is a signed, short-lived path to
+          // `GET /files`, and that route serves nothing else. Every caller of
+          // this method has already decided whether this request may see the
+          // record the attachment hangs off — see docs/adr/0006-file-access.md.
+          file_path: signFileUrl(attachment.file_path!),
           file_size: Number(attachment.file_size!),
           file_type: attachment.file_type!,
           original_filename: attachment.original_filename!,

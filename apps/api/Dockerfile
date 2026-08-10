@@ -50,10 +50,6 @@ COPY --from=build /repo/apps/api/dist apps/api/dist
 
 WORKDIR /repo/apps/api
 
-# multer writes to ./uploads relative to the working directory and does not
-# create it. Compose mounts a volume here; this keeps a plain `docker run` working.
-RUN mkdir -p uploads && chown node:node uploads
-
 USER node
 EXPOSE 4001
 

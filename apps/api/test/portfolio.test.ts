@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import request from "supertest";
 import app from "../src/app";
 import prisma from "../src/config/prisma";
+import { BUCKET_NAME, minioClient } from "../src/config/minio";
 import {
+  createFileAttachment,
   createPortfolio,
   createPortfolioCertificate,
   createPortfolioEducation,
@@ -13,6 +15,7 @@ import {
   createStudent,
 } from "./factories";
 import { sessionCookie } from "./helpers/session";
+import { signedFileKey } from "./helpers/file-url";
 
 /**
  * The e-Portfolio itself — /portfolio.
@@ -36,6 +39,8 @@ import { sessionCookie } from "./helpers/session";
  *   lookup, which is what it used to reach — Postgres rejected the comparison
  *   and the caller was told the server had failed. See BEHAVIOR-CHANGES.md.
  */
+
+const PDF = Buffer.from("%PDF-1.4 example\n");
 
 /** Well-formed uuids that no case creates a row for. */
 const UNUSED_ID = "11111111-1111-4111-8111-111111111111";
@@ -342,6 +347,43 @@ describe("GET /portfolio/public/:token", () => {
       response.body.data.certificateData.map((c: { name: string }) => c.name),
     ).toEqual(["ประกาศนียบัตรภาษาอังกฤษ"]);
     expect(response.body.data.realWorks).toEqual([]);
+  });
+
+  it("hands out files that open without a session either", async () => {
+    // The share link is meant to be readable by someone who has no account
+    // here, so the certificates and photos in it have to open for them too —
+    // otherwise sharing a portfolio shares the text of it and nothing else.
+    // Since ADR-0006 that is what the signature on the URL buys: /files asks
+    // who signed the link, not who is asking for it.
+    const student = await createStudent();
+    const token = "88888888-8888-4888-8888-888888888888";
+    await createPortfolio({
+      user_id: student.student_id,
+      public_share_token: token,
+    });
+    const objectKey = "portfolio-training/shared-certificate.pdf";
+    await minioClient.putObject(BUCKET_NAME, objectKey, PDF, undefined, {
+      "Content-Type": "application/pdf",
+    });
+    const certificate = await createFileAttachment({
+      original_filename: "certificate.pdf",
+      file_path: objectKey,
+    });
+    await createPortfolioTraining({
+      user_id: student.student_id,
+      attachment_ids: [certificate.attachment_id],
+    });
+
+    const shared = await request(app).get(`/portfolio/public/${token}`);
+
+    expect(shared.status).toBe(200);
+    const [attachment] = shared.body.data.trainingData[0].attachments;
+    expect(signedFileKey(attachment.file_path)).toBe(objectKey);
+
+    const file = await request(app).get(attachment.file_path);
+
+    expect(file.status).toBe(200);
+    expect(file.body).toEqual(PDF);
   });
 
   it("shows only the sections belonging to the portfolio's owner", async () => {

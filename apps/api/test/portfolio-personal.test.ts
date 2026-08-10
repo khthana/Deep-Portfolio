@@ -9,6 +9,7 @@ import {
 } from "./factories";
 import { sessionCookie } from "./helpers/session";
 import { listStoredObjects } from "./helpers/storage";
+import { signedFileUrl } from "./helpers/file-url";
 
 /**
  * Personal details — /portfolio-personal.
@@ -148,8 +149,8 @@ describe("GET /portfolio-personal/:user_id", () => {
 
     expect(response.body.data.attachments).toEqual({
       attachment_id: picture.attachment_id,
-      url: "portfolio-personal/1-2-profile.png",
-      file_path: "portfolio-personal/1-2-profile.png",
+      url: signedFileUrl("portfolio-personal/1-2-profile.png"),
+      file_path: signedFileUrl("portfolio-personal/1-2-profile.png"),
     });
   });
 
