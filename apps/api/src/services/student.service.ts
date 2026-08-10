@@ -18,7 +18,7 @@ import StudentActivityService from "./student-activity.service";
 import StudentLearningActivityService from "./student-learning-activity.service";
 import { CourseDetail } from "../models/course.model";
 import { sortByDate } from "../utils/sort-by-date";
-import { checkIsOverAnnouncementDate } from "../utils/check-announcement-date";
+import { isAnnounced } from "../utils/is-announced";
 import { GetStudentActivityDetailResp } from "../models/student-activity.model";
 import { GetLearningActivityDetailResp } from "../models/learning-activity.model";
 import { GetStudentLearningActivityDetailResp } from "../models/student-learning-activity.model";
@@ -125,9 +125,7 @@ export default class StudentService {
     // let `announced && {...}` decide — the unannounced entries stayed in the
     // array as the literal `false`, and only the cast made that typecheck.
     const calendarActivities: CalendarClassworkEvent[] = activities
-      .filter((c) =>
-        checkIsOverAnnouncementDate(c.activities.announcement_date),
-      )
+      .filter((c) => isAnnounced(c.activities.announcement_date))
       .map((c) => ({
         id: c.id,
         name: c.activities.activity_name,
@@ -141,9 +139,7 @@ export default class StudentService {
 
     const calendarLearningActivities: CalendarClassworkEvent[] =
       learningActivities
-        .filter((c) =>
-          checkIsOverAnnouncementDate(c.learning_activities.announcement_date),
-        )
+        .filter((c) => isAnnounced(c.learning_activities.announcement_date))
         .map((c) => ({
           id: c.id,
           name: c.learning_activities.learning_activity_name,

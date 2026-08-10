@@ -26,8 +26,8 @@ import { enrolledCourse, FAR_FUTURE, TERM } from "./helpers/classroom";
  * The rule that shapes most of these cases is the announcement date. A piece of
  * work the teacher has not announced yet is not the student's business, so it
  * is left out of the calendar until announcement_date has passed — see
- * `checkIsOverAnnouncementDate`. Work that was never given one stays hidden
- * forever, which is #15's note, not this ticket's.
+ * `isAnnounced`. Work that was never given one is on the calendar from the
+ * start, per ADR-0005.
  */
 
 describe("GET /student/calendar", () => {
@@ -156,17 +156,25 @@ describe("GET /student/calendar", () => {
     expect(response.body.data.learning_activities).toEqual([]);
   });
 
-  it("leaves out work that was never given an announcement date", async () => {
-    // Nothing announces it, so nothing ever reveals it — the student cannot
-    // see this piece of work in the calendar at all. #15 recorded that as a
-    // defect of the announcement rule rather than of the calendar.
+  it("keeps work that was never given an announcement date", async () => {
+    // Nothing withholds it, so it is on the calendar from the start
+    // (ADR-0005). It used to be the opposite — nothing announced it, so
+    // nothing ever revealed it, which #15 recorded as a defect of the
+    // announcement rule rather than of the calendar.
     const student = await createStudent();
     const course = await enrolledCourse(student.student_id);
 
     const activity = await createActivity({ section_id: course.section_id });
-    await createSubmission({
+    const submission = await createSubmission({
       student_id: student.student_id,
       activity_id: activity.id,
+    });
+    const learningActivity = await createLearningActivity({
+      section_id: course.section_id,
+    });
+    const learningSubmission = await createLearningSubmission({
+      student_id: student.student_id,
+      learning_activity_id: learningActivity.id,
     });
 
     const response = await request(app)
@@ -174,7 +182,12 @@ describe("GET /student/calendar", () => {
       .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query(TERM);
 
-    expect(response.body.data.activities).toEqual([]);
+    expect(response.body.data.activities).toHaveLength(1);
+    expect(response.body.data.activities[0].id).toBe(submission.id);
+    expect(response.body.data.learning_activities).toHaveLength(1);
+    expect(response.body.data.learning_activities[0].id).toBe(
+      learningSubmission.id,
+    );
   });
 
   it("leaves out a section nobody teaches, and its work with it", async () => {

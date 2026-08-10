@@ -13,12 +13,14 @@ How the engineering skills should consume this repo's domain documentation when 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
 
 `CONTEXT.md` does not exist yet in this repo. `docs/adr/` does, and holds the
-decisions taken after the refactor. All of them so far are about who may act on
+decisions taken after the refactor. Four of them are about who may act on
 what: `0001-portfolio-access.md` (a student's own rows),
 `0002-section-access.md` (a teacher's own sections),
 `0003-enrolment-access.md` (a student's own sections) and
 `0004-group-leader.md` (a group's own leader). Read all four before adding an
-authorisation check anywhere.
+authorisation check anywhere. The fifth, `0005-announcement-date.md`, is about
+when rather than who — a piece of work with no announcement date counts as
+announced, on every student-facing read.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

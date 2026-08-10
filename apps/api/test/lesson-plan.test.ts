@@ -674,8 +674,9 @@ describe("GET /lesson-plan/student", () => {
     ]);
   });
 
-  it("hides work with no announcement date at all", async () => {
-    // A null date counts as "not announced", not as "always announced".
+  it("shows work with no announcement date at all", async () => {
+    // A null date counts as "announced", not as "not announced yet"
+    // (ADR-0005) — the week shows the work rather than hiding it forever.
     const course = await createCourse();
     const week = await createLessonPlan({ section_id: course.section_id });
     await createActivity({
@@ -683,12 +684,20 @@ describe("GET /lesson-plan/student", () => {
       course_syllabus_id: week.id,
       activity_name: "การบ้านที่ไม่ได้ตั้งวันประกาศ",
     });
+    await createLearningActivity({
+      section_id: course.section_id,
+      course_syllabus_id: week.id,
+      learning_activity_name: "กิจกรรมที่ไม่ได้ตั้งวันประกาศ",
+    });
 
     const response = await request(app)
       .get("/lesson-plan/student")
       .query({ section_id: course.section_id });
 
-    expect(response.body.data[0].allActivities).toEqual([]);
+    expect(response.body.data[0].allActivities).toEqual([
+      "การบ้านที่ไม่ได้ตั้งวันประกาศ",
+      "กิจกรรมที่ไม่ได้ตั้งวันประกาศ",
+    ]);
   });
 
   it("includes the material attached to each week", async () => {

@@ -3,7 +3,7 @@ import {
   GetStudentEvaluationList,
   StudentEvaluationData,
 } from "../models/evaluation.model";
-import { checkIsOverAnnouncementDate } from "../utils/check-announcement-date";
+import { isAnnounced } from "../utils/is-announced";
 import { GradebookService } from "./gradebook.service";
 
 export default class EvaluationService {
@@ -61,7 +61,7 @@ export default class EvaluationService {
         // find always hits; this is the compiler's proof of it, not a case.
         if (!studentData) return null;
 
-        return checkIsOverAnnouncementDate(activity.announcement_date)
+        return isAnnounced(activity.announcement_date)
           ? {
               id: studentData.id,
               activity_id: activity.id,
@@ -98,9 +98,7 @@ export default class EvaluationService {
 
           if (!studentActivity) return null;
 
-          return checkIsOverAnnouncementDate(
-            studentActivity.activities.announcement_date,
-          )
+          return isAnnounced(studentActivity.activities.announcement_date)
             ? {
                 ...activity,
                 id: studentActivity.id,

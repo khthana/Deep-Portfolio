@@ -22,11 +22,10 @@ import { sessionCookie } from "./helpers/session";
  * point of the view is where you stand, not just what you got.
  *
  * Two gates decide what appears. The student must have a submission row for
- * the work, and the work's announcement date must have passed; a piece of work
- * with no announcement date at all never passes the second gate, which is the
- * behaviour the "never announced" case is about. The student is taken from the
- * session, never from the query, so there is nothing to pass to read someone
- * else's marks.
+ * the work, and the work's announcement date must have passed — or there must
+ * be no announcement date, which ADR-0005 reads as announced from the start.
+ * The student is taken from the session, never from the query, so there is
+ * nothing to pass to read someone else's marks.
  */
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -186,15 +185,13 @@ describe("GET /evaluation/list", () => {
     expect(response.body.data.evaluations).toEqual([]);
   });
 
-  it("hides work that was never given an announcement date", async () => {
-    // Recorded, not endorsed. An absent announcement date is read as "not
-    // announced yet" rather than "announced from the start", so a teacher who
-    // never filled the field in — it is optional everywhere else, and
-    // createActivity leaves it out — marks work the student is never shown.
-    // #29 decides what an absent date means.
+  it("shows work that was never given an announcement date", async () => {
+    // No date means announced, not withheld (ADR-0005). The field is optional
+    // everywhere it is written, so work a teacher never dated used to be work
+    // the student was never shown, however long ago it was marked.
     const { course, student } = await enrolledStudent();
     const activity = await createActivity({ section_id: course.section_id });
-    await createSubmission({
+    const submission = await createSubmission({
       activity_id: activity.id,
       student_id: student.student_id,
       status: "GRADED",
@@ -207,7 +204,9 @@ describe("GET /evaluation/list", () => {
       .query({ section_id: course.section_id });
 
     expect(response.status).toBe(200);
-    expect(response.body.data.evaluations).toEqual([]);
+    expect(response.body.data.evaluations).toMatchObject([
+      { id: submission.id, activity_id: activity.id, score: 7 },
+    ]);
   });
 
   it("leaves out work the student has no submission row for", async () => {

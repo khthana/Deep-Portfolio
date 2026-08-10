@@ -4,7 +4,7 @@ import {
   GetStudentLessonPlanWithMaterialResp,
   UpdateLessonPlanBody,
 } from "../models/lesson-plan.model";
-import { checkIsOverAnnouncementDate } from "../utils/check-announcement-date";
+import { isAnnounced } from "../utils/is-announced";
 import CourseMaterialService from "./course-material.service";
 
 export default class LessonPlanService {
@@ -93,11 +93,11 @@ export default class LessonPlanService {
         });
 
         const filteredActivities = activities.filter((activity) =>
-          checkIsOverAnnouncementDate(activity.announcement_date),
+          isAnnounced(activity.announcement_date),
         );
 
         const filteredLearningActivities = learningActivities.filter(
-          (activity) => checkIsOverAnnouncementDate(activity.announcement_date),
+          (activity) => isAnnounced(activity.announcement_date),
         );
 
         const allActivities = [

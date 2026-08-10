@@ -31,12 +31,12 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 920 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 922 API cases over
   39 files, 409 web cases over 26 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
 Open work is in the issue tracker: the README rewrite (#24) and the defects
-filed while testing (#25, #26, #27, #28, #29, #33–#37 — #26, #27 and #28 are
+filed while testing (#25, #26, #27, #28, #29, #33–#37 — #26 through #29 are
 implemented and only need closing). Everything else from the breakdown of #1 is
 closed, #20–#23 and #31 included.
 

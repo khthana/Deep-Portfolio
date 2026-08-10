@@ -326,6 +326,49 @@ describe("GET /student/classwork/list", () => {
     ]);
   });
 
+  it("lists both kinds of work that were never given an announcement date", async () => {
+    // The other side of ADR-0005, and the one place both twins are asked at
+    // once: this endpoint reads the activity list and the learning-activity
+    // list through the same gate, and a null date used to drop a row from
+    // either of them for good.
+    const student = await createStudent();
+    const course = await enrolledCourse(student.student_id);
+    const activity = await createActivity({
+      section_id: course.section_id,
+      activity_name: "การบ้านที่ไม่ได้ตั้งวันประกาศ",
+      deadline_date: FAR_FUTURE,
+    });
+    await createSubmission({
+      student_id: student.student_id,
+      activity_id: activity.id,
+    });
+    const learningActivity = await createLearningActivity({
+      section_id: course.section_id,
+      learning_activity_name: "กิจกรรมที่ไม่ได้ตั้งวันประกาศ",
+      deadline_date: FAR_FUTURE,
+    });
+    await createLearningSubmission({
+      student_id: student.student_id,
+      learning_activity_id: learningActivity.id,
+    });
+
+    const response = await request(app)
+      .get("/student/classwork/list")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(
+      response.body.data.other.flatMap(
+        (group: { classworks: { name: string }[] }) =>
+          group.classworks.map((classwork) => classwork.name),
+      ),
+    ).toEqual([
+      "การบ้านที่ไม่ได้ตั้งวันประกาศ",
+      "กิจกรรมที่ไม่ได้ตั้งวันประกาศ",
+    ]);
+  });
+
   it("files work with no score category under อื่น ๆ", async () => {
     const student = await createStudent();
     const course = await enrolledCourse(student.student_id);
@@ -504,6 +547,47 @@ describe("GET /student/all/classwork/list", () => {
     expect(
       response.body.data.upcoming.map((c: { name: string }) => c.name),
     ).toEqual(["งานที่ไม่มีกำหนดส่ง"]);
+  });
+
+  it("sorts work that was never given an announcement date like any other", async () => {
+    // The widest read of the five the announcement gate stands in front of —
+    // every section at once. A null date is announced (ADR-0005), so the work
+    // lands in the bucket its deadline puts it in rather than nowhere.
+    const student = await createStudent();
+    const course = await enrolledCourse(student.student_id);
+    const activity = await createActivity({
+      section_id: course.section_id,
+      activity_name: "การบ้านที่ไม่ได้ตั้งวันประกาศ",
+      deadline_date: FAR_FUTURE,
+    });
+    await createSubmission({
+      student_id: student.student_id,
+      activity_id: activity.id,
+      status: "NOT_SUBMITTED",
+    });
+    const learningActivity = await createLearningActivity({
+      section_id: course.section_id,
+      learning_activity_name: "กิจกรรมที่ไม่ได้ตั้งวันประกาศ",
+      deadline_date: FAR_FUTURE,
+    });
+    await createLearningSubmission({
+      student_id: student.student_id,
+      learning_activity_id: learningActivity.id,
+      status: "NOT_SUBMITTED",
+    });
+
+    const response = await request(app)
+      .get("/student/all/classwork/list")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query(TERM);
+
+    expect(response.status).toBe(200);
+    expect(
+      response.body.data.upcoming.map((c: { name: string }) => c.name),
+    ).toEqual([
+      "การบ้านที่ไม่ได้ตั้งวันประกาศ",
+      "กิจกรรมที่ไม่ได้ตั้งวันประกาศ",
+    ]);
   });
 
   it("returns four empty buckets for a student enrolled in nothing", async () => {

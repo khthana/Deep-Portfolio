@@ -10,7 +10,7 @@ import {
   GradeStudentActivityData,
   Submission,
 } from "../models/student-activity.model";
-import { checkIsOverAnnouncementDate } from "../utils/check-announcement-date";
+import { isAnnounced } from "../utils/is-announced";
 import ActivityService from "./activity.service";
 import AttachmentsService from "./attachments.service";
 
@@ -308,9 +308,7 @@ export default class StudentActivityService {
       }),
     );
 
-    return result.filter((activity) =>
-      checkIsOverAnnouncementDate(activity.announcement_date),
-    );
+    return result.filter((activity) => isAnnounced(activity.announcement_date));
   }
 
   private getDisplayStatus(status: string, deadline: Date | null): string {
@@ -379,9 +377,7 @@ export default class StudentActivityService {
       }),
     );
 
-    return result.filter((activity) =>
-      checkIsOverAnnouncementDate(activity.announcement_date),
-    );
+    return result.filter((activity) => isAnnounced(activity.announcement_date));
   }
 
   async gradeStudentActivity(data: GradeStudentActivityData) {
