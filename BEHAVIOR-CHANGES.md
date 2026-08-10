@@ -1304,7 +1304,8 @@ API ไม่มีทางรู้ว่าเกณฑ์ไหนคือ�
 | --- | --- |
 | **ของเดิม** | `rubric_details.weight` เป็น `Decimal(5,2)` และแถวจาก Prisma ถูกส่งต่อทั้งก้อน เกณฑ์ที่ถ่วงน้ำหนัก 2.5 จึงมาเป็น `"2.5"` |
 | **ของใหม่** | `number` หรือ `null` เมื่อยังไม่ได้ตั้งค่า (คอลัมน์เป็น nullable) |
-| **frontend** | ไม่ต้องแก้ — `features/teacher/activity/types/rubric-type.type.ts` ประกาศ `weight: number \| null` ไว้อยู่แล้ว และ `rubric-card.tsx` พิมพ์ค่าลงหน้าจอตรงๆ (`{weight}%`) สตริงกับตัวเลขจึงขึ้นเหมือนกัน การแก้ครั้งนี้ทำให้ของจริงตรงกับที่ประกาศไว้ |
+| **เหตุผล** | เป็นทางออกทางเดียวของคอลัมน์นี้ และ `SharedRubricDetailResp` ฝั่งเว็บประกาศ `weight: number \| null` ไว้อยู่แล้ว — ความไม่ตรงกันแบบนี้ยังไม่พังตอนแสดงผล แต่จะพังทันทีที่มีใครเอาไปบวกหรือเทียบ เหมือนที่ #15 ข้อ 3 เขียนไว้ |
+| **frontend** | ไม่ต้องแก้ — ผู้ใช้ค่านี้มีที่เดียวคือ `shared-rubric-detail-table.tsx` ซึ่งตอนคัดลอกเกณฑ์เข้าฟอร์มตั้ง `weight: 0` ทับอยู่แล้ว ไม่ได้อ่านค่าจาก API เลย (`rubric-card.tsx` ที่พิมพ์ `{weight}%` ใช้ `RubricDetail` จาก `types/activity-type.type.ts` ซึ่งเป็น `rubric_activity_mapping.weight` คนละคอลัมน์และเป็น `Int`) การแก้ครั้งนี้จึงทำให้ของจริงตรงกับที่ประกาศไว้ โดยไม่มีอะไรบนหน้าจอเปลี่ยน |
 
 ### 2. `POST /mapping/activity` คืน `score` เป็นตัวเลข
 
@@ -1312,6 +1313,7 @@ API ไม่มีทางรู้ว่าเกณฑ์ไหนคือ�
 | --- | --- |
 | **ของเดิม** | endpoint นี้ตอบด้วยแถว `activity_clo_mapping` ที่เพิ่งสร้าง ซึ่งมี `score` เป็น `Decimal(5,2)` ที่ service คิดเองจาก `score_number × weight ÷ 100` งาน 10 คะแนนที่ผูก CLO ด้วยน้ำหนัก 25% จึงตอบ `"2.5"` |
 | **ของใหม่** | `2.5` |
+| **เหตุผล** | ค่านี้ service คิดเองแล้วเขียนลงคอลัมน์ `Decimal` การส่งแถวที่เพิ่งสร้างกลับไปทั้งก้อนจึงพา `Decimal` ออกไปด้วยโดยไม่ตั้งใจ ไม่ใช่การตัดสินใจว่าจะให้เป็นสตริง |
 | **frontend** | ไม่ต้องแก้ — `teacher-mapping-action.ts` ประกาศ response ของ thunk นี้ว่า `{ id: number }` อ่านแค่ `id` แล้วโหลดรายการใหม่ ไม่มีใครอ่าน `score` จาก response นี้ |
 
 ### 3. `GET /activity/student/detail` คืนคะแนนและคะแนนรายเกณฑ์เป็นตัวเลข
@@ -1320,6 +1322,7 @@ API ไม่มีทางรู้ว่าเกณฑ์ไหนคือ�
 | --- | --- |
 | **ของเดิม** | `score`, `student_score` และ `calculated_score` ของทุกเกณฑ์ในอาร์เรย์ `student_activity_rubric_score` ออกไปเป็นสตริงทั้งหมด ทั้งที่ `GetStudentActivityDetail` ฝั่ง API ประกาศ `student_score: Prisma.Decimal` ส่วน type ฝั่งเว็บประกาศ `number` — สองฝั่งไม่ตรงกันเองอยู่แล้ว |
 | **ของใหม่** | ทั้งสามช่องเป็น `number` (`score` และ `student_score` ยังเป็น `null` ได้เมื่อยังไม่ถูกตรวจ) และ `GetStudentActivityDetail` ฝั่ง API เปลี่ยนเป็น `number` ตาม — type บอกสิ่งที่อยู่บน wire ไม่ใช่สิ่งที่ Prisma คืนมา |
+| **เหตุผล** | endpoint นี้เป็นหน้าที่อาจารย์ใช้ตรวจงานและนักศึกษาใช้ดูผล คะแนนรายเกณฑ์ทั้งชุดออกไปเป็นสตริงพร้อมกันทีเดียว และเป็นที่เดียวที่ type สองฝั่งขัดกันเอง — ฝั่ง API เขียน `Prisma.Decimal` ฝั่งเว็บเขียน `number` แปลว่าไม่มีใครเคยยึดสิ่งที่อยู่บน wire เป็นหลัก |
 | **ขอบเขต** | คำขอที่ไม่มีการส่งงานอยู่จริงยังตอบเหมือนเดิมทุกอย่าง คือมีแต่ `submitted_files` ไม่มีคีย์ `student_score` โผล่มาเป็น `null` |
 | **frontend** | ไม่ต้องแก้ที่ type — `src/types/student-activity-type.type.ts` เขียน `student_score: number \| null` และ `calculated_score: number` ไว้ตรงแล้ว ส่วนจุดแสดงผลดูข้อ 5 |
 
@@ -1329,6 +1332,7 @@ API ไม่มีทางรู้ว่าเกณฑ์ไหนคือ�
 | --- | --- |
 | **ของเดิม** | `GET /student/classwork/list` ตอบ `received_point` เป็นสตริง และ `GET /student/activities/list` กับ `GET /student/activities/details/:student_activity_id` ตอบ `score` เป็นสตริง |
 | **ของใหม่** | ทั้งสามที่เป็น `number` หรือ `null` เมื่อยังไม่มีคะแนน |
+| **เหตุผล** | คะแนนก้อนเดียวกันนี้ออกไปหลายทางตามหน้าที่นักศึกษาเปิด ถ้าแปลงบางทางไม่แปลงบางทาง ผู้เรียกจะเจอชนิดข้อมูลต่างกันจากคอลัมน์เดียวกัน ซึ่งแย่กว่าผิดเหมือนกันทั้งหมด |
 | **ขอบเขต** | `GET /all/classwork/list` และ `GET /student/calendar` ไม่ได้ `select` คะแนนมาตั้งแต่ต้น จึงไม่มีอะไรเปลี่ยน ส่วน `GET /portfolio/:id` ซึ่งเรียก service ตัวเดียวกันข้างใน อ่านแค่ชื่องานกับ feedback ไม่ได้ส่งคะแนนต่อออกไป |
 | **frontend** | type ประกาศ `number` ไว้ตรงแล้วทั้งคู่ (`features/student/course/types/course-type.ts`) จุดแสดงผลดูข้อ 5 |
 

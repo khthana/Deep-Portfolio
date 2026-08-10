@@ -214,9 +214,10 @@ export default class StudentActivityService {
 
     // The mark and every criterion's share of it are Decimal(5,2), and a Prisma
     // Decimal handed to res.json reaches the wire as a string (#33).
-    const marks = studentActivity && {
+    const submission = studentActivity && {
       ...studentActivity,
-      score: studentActivity.score !== null ? Number(studentActivity.score) : null,
+      score:
+        studentActivity.score !== null ? Number(studentActivity.score) : null,
       student_activity_rubric_score:
         studentActivity.student_activity_rubric_score.map((mark) => ({
           ...mark,
@@ -226,8 +227,8 @@ export default class StudentActivityService {
 
     return {
       ...activityDetail,
-      student_score: marks?.score,
-      ...marks,
+      student_score: submission?.score,
+      ...submission,
       submitted_files: attachments,
     } as GetStudentActivityDetailResp;
   }

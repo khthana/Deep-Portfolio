@@ -1157,6 +1157,10 @@ describe("GET /activity/student/detail", () => {
       .query({ student_activity_id: submission.id });
 
     expect(response.status).toBe(200);
+    // Both keys carry the student's mark: the response spreads the whole
+    // submission row in, so score arrives with it, and student_score is set
+    // from the same value. The activity's own full mark is score_number, which
+    // is what the callers read. That shape is not what #33 changed.
     expect(response.body.data.score).toBe(17.5);
     expect(response.body.data.student_score).toBe(17.5);
     expect(response.body.data.student_activity_rubric_score).toEqual([
