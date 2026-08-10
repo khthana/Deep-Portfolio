@@ -48,6 +48,18 @@ const rubricCriterion = z.object({
 });
 
 /**
+ * The same criterion on its way back in, carrying the id it was handed by
+ * GET /activity.
+ *
+ * The id is what tells an update which criterion a row is: with one, the row
+ * already exists and is written over; without one, it is new. It is optional
+ * because both are ordinary — a teacher adds a criterion as readily as they
+ * edit one — and absent on every criterion the whole rubric is written afresh,
+ * which is what every save did before #25.
+ */
+const updatableRubricCriterion = rubricCriterion.extend({ id: optionalId });
+
+/**
  * Multipart, so every field arrives as a string and the structured ones arrive
  * as JSON inside it.
  *
@@ -77,6 +89,7 @@ export const createActivityBody = z.object({
 
 export const updateActivityBody = createActivityBody.extend({
   activity_id: id,
+  rubric: jsonField(z.array(updatableRubricCriterion)),
   remove_attachment_ids: jsonField(z.array(id)).default([]),
 });
 
@@ -95,3 +108,4 @@ export const studentActivityDetailQuery = z.object({
 export type CreateActivityBody = z.infer<typeof createActivityBody>;
 export type UpdateActivityBody = z.infer<typeof updateActivityBody>;
 export type AddRubricDetail = z.infer<typeof rubricCriterion>;
+export type UpdatableRubricDetail = z.infer<typeof updatableRubricCriterion>;

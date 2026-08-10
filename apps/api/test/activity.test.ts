@@ -50,6 +50,57 @@ const RUBRIC = [
   },
 ];
 
+/**
+ * An activity whose one criterion has already been marked for one student —
+ * the state that makes an edit dangerous, and what the PUT cases below are
+ * about (#25).
+ *
+ * The criterion is given the same shape as `RUBRIC`, so sending `RUBRIC` back
+ * with its id is the edit form saying "this criterion is the one you gave me,
+ * unchanged".
+ *
+ * `save` is that form being submitted, with everything but the rubric left as
+ * it was — which is what each of the cases below varies.
+ */
+async function markedActivity(teacher_id: string, section_id: number) {
+  const activity = await createActivity({ section_id });
+  const rubric = await createActivityRubric({
+    activity_id: activity.id,
+    criteria: RUBRIC[0].criteria,
+    weight: RUBRIC[0].weight,
+    levels: RUBRIC[0].levels,
+  });
+  const levels = await prisma.rubric_levels.findMany({
+    where: { rubric_id: rubric.id },
+    orderBy: { level_no: "asc" },
+  });
+  const submission = await createSubmission({
+    activity_id: activity.id,
+    status: "GRADED",
+    score: 8,
+  });
+  const mark = await prisma.student_activity_rubric_score.create({
+    data: {
+      student_activity_id: submission.id,
+      rubric_activity_mapping_id: rubric.id,
+      rubric_level_id: levels[levels.length - 1].id,
+      calculated_score: 8,
+    },
+  });
+
+  const save = (rubric: unknown) =>
+    request(app)
+      .put("/activity")
+      .set("Cookie", sessionCookie({ userId: teacher_id }))
+      .field("activity_id", String(activity.id))
+      .field("section_id", String(section_id))
+      .field("activity_name", activity.activity_name)
+      .field("activity_type", "INDIVIDUAL")
+      .field("rubric", JSON.stringify(rubric));
+
+  return { activity, rubric, levels, submission, mark, save };
+}
+
 describe("POST /activity", () => {
   it("rejects a request with no session", async () => {
     const response = await request(app).post("/activity");
@@ -366,42 +417,263 @@ describe("PUT /activity", () => {
       score_number: 30,
     });
 
-    // Replaced, not merged: the old criterion is gone and its levels with it.
+    // A criterion sent without an id is a new one, so the old criterion is not
+    // among those the teacher kept: it goes, and its levels with it.
     expect(updated.rubric_activity_mapping).toHaveLength(1);
     expect(updated.rubric_activity_mapping[0].criteria).toBe("ความถูกต้อง");
+    expect(updated.rubric_activity_mapping[0].id).not.toBe(oldRubric.id);
     expect(
       await prisma.rubric_levels.count({ where: { rubric_id: oldRubric.id } }),
     ).toBe(0);
   });
 
-  it("throws away marks already given when the rubric is replaced", async () => {
-    // Recorded, not endorsed, and the worst of what this route does. The rubric
-    // is deleted and rewritten on every update, and student_activity_rubric_score
-    // has ON DELETE CASCADE behind it — so editing an activity's deadline, long
-    // after it was marked, silently deletes the marks. Fixing it means the
-    // frontend has to send back the rubric ids it was given instead of a fresh
-    // list, which is beyond this ticket; filed as #25.
+  it("keeps the marks already given when the rubric comes back untouched", async () => {
+    // The point of #25. The rubric used to be deleted and written again on
+    // every save, and student_activity_rubric_score cascades off it — so moving
+    // a deadline, long after the work was marked, silently deleted every mark.
+    // A criterion that comes back with the id it was given is the one already
+    // there, and is updated in place.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const { activity, rubric, levels, submission, mark, save } =
+      await markedActivity(teacher.user_id, course.section_id);
+
+    const response = await save([{ id: rubric.id, ...RUBRIC[0] }]).field(
+      "deadline_date",
+      "2026-12-31T00:00:00.000Z",
+    );
+
+    expect(response.status).toBe(200);
+    expect(
+      (await prisma.activities.findUniqueOrThrow({ where: { id: activity.id } }))
+        .deadline_date,
+    ).toEqual(new Date("2026-12-31T00:00:00.000Z"));
+
+    // Same criterion, same levels, same mark — ids and all, because grading
+    // writes the mark against the id of the criterion and of the level.
+    expect(
+      await prisma.rubric_activity_mapping.findMany({
+        where: { activity_id: activity.id },
+        select: { id: true },
+      }),
+    ).toEqual([{ id: rubric.id }]);
+    expect(
+      await prisma.rubric_levels.findMany({
+        where: { rubric_id: rubric.id },
+        orderBy: { level_no: "asc" },
+        select: { id: true },
+      }),
+    ).toEqual(levels.map((level) => ({ id: level.id })));
+    expect(
+      await prisma.student_activity_rubric_score.findUniqueOrThrow({
+        where: { id: mark.id },
+      }),
+    ).toMatchObject({
+      student_activity_id: submission.id,
+      rubric_activity_mapping_id: rubric.id,
+      rubric_level_id: levels[levels.length - 1].id,
+    });
+  });
+
+  it("rewrites a kept criterion in place, wording and weight alike", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const { rubric, levels, mark, save } = await markedActivity(
+      teacher.user_id,
+      course.section_id,
+    );
+
+    const response = await save([
+      {
+        id: rubric.id,
+        criteria: "ความถูกต้องของผลลัพธ์",
+        weight: 80,
+        levels: [
+          { level_no: 1, description: "ยังไม่ถูกต้อง" },
+          { level_no: 2, description: "ถูกต้องทุกกรณีทดสอบ" },
+        ],
+      },
+    ]);
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.rubric_activity_mapping.findUniqueOrThrow({
+        where: { id: rubric.id },
+      }),
+    ).toMatchObject({ criteria: "ความถูกต้องของผลลัพธ์", weight: 80 });
+    expect(
+      await prisma.rubric_levels.findUniqueOrThrow({
+        where: { id: levels[1].id },
+      }),
+    ).toMatchObject({ level_no: 2, description: "ถูกต้องทุกกรณีทดสอบ" });
+    expect(
+      await prisma.student_activity_rubric_score.count({
+        where: { id: mark.id },
+      }),
+    ).toBe(1);
+  });
+
+  it("adds a criterion without disturbing the one already marked", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const { activity, rubric, mark, save } = await markedActivity(
+      teacher.user_id,
+      course.section_id,
+    );
+
+    const response = await save([
+      { id: rubric.id, ...RUBRIC[0] },
+      {
+        criteria: "ความสะอาดของโค้ด",
+        weight: 40,
+        levels: [
+          { level_no: 1, description: "อ่านยาก" },
+          { level_no: 2, description: "อ่านง่าย" },
+        ],
+      },
+    ]);
+
+    expect(response.status).toBe(200);
+
+    const criteria = await prisma.rubric_activity_mapping.findMany({
+      where: { activity_id: activity.id },
+      orderBy: { id: "asc" },
+      include: { rubric_levels: true },
+    });
+    expect(criteria).toHaveLength(2);
+    expect(criteria[0].id).toBe(rubric.id);
+    expect(criteria[1].criteria).toBe("ความสะอาดของโค้ด");
+    expect(criteria[1].rubric_levels).toHaveLength(2);
+    expect(
+      await prisma.student_activity_rubric_score.count({
+        where: { id: mark.id },
+      }),
+    ).toBe(1);
+  });
+
+  it("drops the marks of a criterion the teacher deleted, and only those", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const { activity, rubric, submission, mark, save } = await markedActivity(
+      teacher.user_id,
+      course.section_id,
+    );
+    const dropped = await createActivityRubric({
+      activity_id: activity.id,
+      criteria: "ความสะอาดของโค้ด",
+      levels: RUBRIC[0].levels,
+    });
+    const droppedLevel = await prisma.rubric_levels.findFirstOrThrow({
+      where: { rubric_id: dropped.id },
+    });
+    const droppedMark = await prisma.student_activity_rubric_score.create({
+      data: {
+        student_activity_id: submission.id,
+        rubric_activity_mapping_id: dropped.id,
+        rubric_level_id: droppedLevel.id,
+        calculated_score: 4,
+      },
+    });
+
+    const response = await save([{ id: rubric.id, ...RUBRIC[0] }]);
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.rubric_activity_mapping.findMany({
+        where: { activity_id: activity.id },
+        select: { id: true },
+      }),
+    ).toEqual([{ id: rubric.id }]);
+
+    // A criterion nobody is marked against any more takes its marks with it —
+    // that much of the old cascade is what deleting a criterion means.
+    expect(
+      await prisma.student_activity_rubric_score.count({
+        where: { id: droppedMark.id },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.student_activity_rubric_score.count({
+        where: { id: mark.id },
+      }),
+    ).toBe(1);
+  });
+
+  it("drops a mark given at a level the teacher deleted", async () => {
+    // The level the student was marked at is gone, so the mark has nothing left
+    // to mean. The criterion stays, and so do the marks given at the levels the
+    // teacher kept.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const { rubric, levels, mark, save } = await markedActivity(
+      teacher.user_id,
+      course.section_id,
+    );
+
+    const response = await save([
+      {
+        id: rubric.id,
+        criteria: RUBRIC[0].criteria,
+        weight: RUBRIC[0].weight,
+        levels: [{ level_no: 1, description: "ยังไม่ถูกต้อง" }],
+      },
+    ]);
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.rubric_levels.findMany({
+        where: { rubric_id: rubric.id },
+        select: { id: true },
+      }),
+    ).toEqual([{ id: levels[0].id }]);
+    expect(
+      await prisma.student_activity_rubric_score.count({
+        where: { id: mark.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("pins: a mark stays on its level_no when the form renumbers the levels", async () => {
+    // Levels are matched on level_no, and level_no is a position rather than an
+    // identity: deleting a column in the edit form renumbers the ones under it.
+    // So a mark keeps the number it was given while the wording on that number
+    // moves down a level, and the mark comes to say something the teacher never
+    // said. Pinned, not fixed — the form has no level ids to send back, and
+    // giving it some changes what GET /activity returns.
     const teacher = await createTeacher();
     const course = await createCourse({ teacher_id: teacher.user_id });
     const activity = await createActivity({ section_id: course.section_id });
-    const rubric = await createActivityRubric({ activity_id: activity.id });
-    const level = await prisma.rubric_levels.findFirstOrThrow({
-      where: { rubric_id: rubric.id },
+    const criterion = await createActivityRubric({
+      activity_id: activity.id,
+      criteria: RUBRIC[0].criteria,
+      weight: RUBRIC[0].weight,
+      levels: [
+        { level_no: 1, description: "ยังไม่ถูกต้อง" },
+        { level_no: 2, description: "ถูกต้องบางส่วน" },
+        { level_no: 3, description: "ถูกต้องครบถ้วน" },
+      ],
+    });
+    const levels = await prisma.rubric_levels.findMany({
+      where: { rubric_id: criterion.id },
+      orderBy: { level_no: "asc" },
     });
     const submission = await createSubmission({
       activity_id: activity.id,
       status: "GRADED",
-      score: 8,
+      score: 5,
     });
-    await prisma.student_activity_rubric_score.create({
+    const mark = await prisma.student_activity_rubric_score.create({
       data: {
         student_activity_id: submission.id,
-        rubric_activity_mapping_id: rubric.id,
-        rubric_level_id: level.id,
-        calculated_score: 8,
+        rubric_activity_mapping_id: criterion.id,
+        rubric_level_id: levels[1].id,
+        calculated_score: 5,
       },
     });
 
+    // The teacher deletes the middle column of three. The form renumbers what
+    // is left, so the top level comes back as level 2 — the number the mark
+    // sits on.
     const response = await request(app)
       .put("/activity")
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
@@ -409,22 +681,116 @@ describe("PUT /activity", () => {
       .field("section_id", String(course.section_id))
       .field("activity_name", activity.activity_name)
       .field("activity_type", "INDIVIDUAL")
-      .field("rubric", JSON.stringify(RUBRIC));
+      .field(
+        "rubric",
+        JSON.stringify([
+          {
+            id: criterion.id,
+            criteria: RUBRIC[0].criteria,
+            weight: RUBRIC[0].weight,
+            levels: [
+              { level_no: 1, description: "ยังไม่ถูกต้อง" },
+              { level_no: 2, description: "ถูกต้องครบถ้วน" },
+            ],
+          },
+        ]),
+      );
 
     expect(response.status).toBe(200);
     expect(
       await prisma.student_activity_rubric_score.count({
-        where: { student_activity_id: submission.id },
+        where: { id: mark.id },
       }),
-    ).toBe(0);
+    ).toBe(1);
+    expect(
+      await prisma.rubric_levels.findUniqueOrThrow({
+        where: { id: levels[1].id },
+      }),
+    ).toMatchObject({ level_no: 2, description: "ถูกต้องครบถ้วน" });
+  });
 
-    // The total on the submission is left behind, so the student still shows a
-    // score that nothing in the database now explains.
-    const kept = await prisma.student_activity.findUniqueOrThrow({
-      where: { id: submission.id },
+  it("answers 400 for the same criterion sent twice", async () => {
+    // Both entries would be written onto the one row, last one winning, and the
+    // teacher would come away with one criterion fewer than the form showed
+    // them — with nothing to say so.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const { rubric, mark, save } = await markedActivity(
+      teacher.user_id,
+      course.section_id,
+    );
+
+    const response = await save([
+      { id: rubric.id, ...RUBRIC[0] },
+      {
+        id: rubric.id,
+        criteria: "ความสะอาดของโค้ด",
+        weight: 100,
+        levels: RUBRIC[0].levels,
+      },
+    ]);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "มีเกณฑ์เดียวกันถูกส่งมาซ้ำ",
     });
-    expect(kept.status).toBe("GRADED");
-    expect(Number(kept.score)).toBe(8);
+    expect(
+      await prisma.rubric_activity_mapping.findUniqueOrThrow({
+        where: { id: rubric.id },
+      }),
+    ).toMatchObject({ criteria: RUBRIC[0].criteria });
+    expect(
+      await prisma.student_activity_rubric_score.count({
+        where: { id: mark.id },
+      }),
+    ).toBe(1);
+  });
+
+  it("answers 400 for a criterion that belongs to another activity", async () => {
+    // An id is all the endpoint has to go on, and it says nothing about which
+    // activity it came from. Writing to it unchecked would let one activity's
+    // save rewrite another's rubric.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const activity = await createActivity({
+      section_id: course.section_id,
+      activity_name: "ชื่อเดิม",
+    });
+    const elsewhere = await createActivityRubric({ criteria: "ของกิจกรรมอื่น" });
+    const before = await listStoredObjects(ACTIVITY_PREFIX);
+
+    const response = await request(app)
+      .put("/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("activity_id", String(activity.id))
+      .field("section_id", String(course.section_id))
+      .field("activity_name", "ชื่อใหม่")
+      .field("activity_type", "INDIVIDUAL")
+      .field("rubric", JSON.stringify([{ id: elsewhere.id, ...RUBRIC[0] }]))
+      .attach("files", PDF, "brief.pdf");
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "มีเกณฑ์บางรายการที่ไม่ใช่ของกิจกรรมนี้",
+    });
+
+    // Refused before anything is written, uploads included: those do not go
+    // through the transaction, so a file put away here would stay put away.
+    expect(await listStoredObjects(ACTIVITY_PREFIX)).toEqual(before);
+    expect(
+      (await prisma.activities.findUniqueOrThrow({ where: { id: activity.id } }))
+        .activity_name,
+    ).toBe("ชื่อเดิม");
+    expect(
+      await prisma.rubric_activity_mapping.findUniqueOrThrow({
+        where: { id: elsewhere.id },
+      }),
+    ).toMatchObject({
+      activity_id: elsewhere.activity_id,
+      criteria: "ของกิจกรรมอื่น",
+    });
   });
 
   it("fails for an activity that does not exist", async () => {

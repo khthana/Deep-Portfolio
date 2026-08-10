@@ -30,6 +30,10 @@ export type CreateRubricFormType = {
 };
 
 export type RubricDetailForm = {
+  /** `rubric_activity_mapping.id`, on a criterion the edit form was given. A
+   *  criterion the teacher added here has none until it is saved — see
+   *  `utils/rubric-payload.ts` for why it has to travel back (#25). */
+  id?: number;
   criteria: string;
   weight: number;
   levels: RubricLevel[];

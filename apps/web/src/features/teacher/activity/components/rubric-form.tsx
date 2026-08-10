@@ -141,6 +141,9 @@ const RubricForm = (props: Props) => {
     if (!props.rubricDatail) return;
 
     const mappedRubrics = (props.rubricDatail || []).map((r) => ({
+      // Carried through the form untouched so that saving hands it back — it is
+      // what stops PUT /activity rewriting the rubric from scratch (#25).
+      id: r.id,
       criteria: r.criteria,
       weight: r.weight ?? 0,
       levels: (r.rubric_levels || [])

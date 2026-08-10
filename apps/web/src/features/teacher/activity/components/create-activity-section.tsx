@@ -22,6 +22,7 @@ import {
   appendPrimitive,
 } from "../../../../utils/append-form-data";
 import type { GetActivityDetailResp } from "../../../../types/activity-type.type";
+import { toRubricPayload } from "../utils/rubric-payload";
 import dayjs from "dayjs";
 
 type Props = {
@@ -132,13 +133,10 @@ const CreateActivitySection = (props: Props) => {
       JSON.stringify(rubricValues.expected_level),
     );
 
-    const cleanedRubrics = rubricValues.rubrics.map((rubric) => ({
-      criteria: rubric.criteria,
-      weight: rubric.weight,
-      levels: rubric.levels,
-    }));
-
-    formData.append("rubric", JSON.stringify(cleanedRubrics));
+    formData.append(
+      "rubric",
+      JSON.stringify(toRubricPayload(rubricValues.rubrics)),
+    );
 
     return formData;
   };
@@ -174,13 +172,10 @@ const CreateActivitySection = (props: Props) => {
     );
     formData.append("remove_attachment_ids", JSON.stringify(removeFile));
 
-    const cleanedRubrics = rubricValues.rubrics.map((rubric) => ({
-      criteria: rubric.criteria,
-      weight: rubric.weight,
-      levels: rubric.levels,
-    }));
-
-    formData.append("rubric", JSON.stringify(cleanedRubrics));
+    formData.append(
+      "rubric",
+      JSON.stringify(toRubricPayload(rubricValues.rubrics)),
+    );
 
     return formData;
   };
