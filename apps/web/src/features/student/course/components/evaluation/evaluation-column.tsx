@@ -1,5 +1,6 @@
 import { generatePath, useParams } from "react-router-dom";
 import { paths } from "../../../../../routes/paths.config";
+import { formatScore } from "../../../../../utils/format-score";
 import type { DataType } from "./evaluation-table";
 import {
   classworkCategoryLabel,
@@ -48,11 +49,16 @@ const EvaluationColumn = () => {
       align: "center",
       width: 140,
     },
+    // The score columns go through formatScore, which dashes a null and prints
+    // a 0. `text ? text : "-"` dashed both, so a student who scored 0 was shown
+    // the same cell as one who has not been marked — and since #28 the class
+    // statistics arrive as null until the marking starts, which is the same
+    // difference one column to the left.
     {
       title: "คะแนนที่ได้",
       dataIndex: "score",
       key: "score",
-      render: (text: number) => <div>{text ? text : "-"}</div>,
+      render: (text: number | null) => <div>{formatScore(text)}</div>,
       align: "center",
       width: 112,
     },
@@ -60,7 +66,7 @@ const EvaluationColumn = () => {
       title: "คะแนนเต็ม",
       dataIndex: "full_score",
       key: "full_score",
-      render: (text: number) => <div>{text ? text : "-"}</div>,
+      render: (text: number | null) => <div>{formatScore(text)}</div>,
       align: "center",
       width: 112,
     },
@@ -69,7 +75,7 @@ const EvaluationColumn = () => {
       title: "max",
       dataIndex: "max_score",
       key: "max_score",
-      render: (text: number) => <div>{text ? text : "-"}</div>,
+      render: (text: number | null) => <div>{formatScore(text)}</div>,
       align: "center",
       width: 112,
     },
@@ -77,7 +83,7 @@ const EvaluationColumn = () => {
       title: "min",
       dataIndex: "min_score",
       key: "min_score",
-      render: (text: number) => <div>{text ? text : "-"}</div>,
+      render: (text: number | null) => <div>{formatScore(text)}</div>,
       align: "center",
       width: 112,
     },
@@ -85,7 +91,7 @@ const EvaluationColumn = () => {
       title: "mean",
       dataIndex: "mean_score",
       key: "mean_score",
-      render: (text: number) => <div>{text ? text : "-"}</div>,
+      render: (text: number | null) => <div>{formatScore(text)}</div>,
       align: "center",
       width: 112,
     },

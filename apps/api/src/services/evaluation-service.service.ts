@@ -47,64 +47,76 @@ export default class EvaluationService {
 
     // console.log("activities : ", activities);
 
-    const learningActivityResults = learningActivities.map((activity) => {
-      const studentData = activity.student_learning_activity.find(
-        (data) => data.student_id === student_id,
-      );
+    // Annotated rather than cast: `as StudentEvaluationData` told the compiler
+    // the row had every field of the type when it has five, which is how the
+    // type came to disagree with the wire (#28). The annotation checks the same
+    // shape from the other side, so a missing field is an error here.
+    const learningActivityResults = learningActivities.map(
+      (activity): StudentEvaluationData | null => {
+        const studentData = activity.student_learning_activity.find(
+          (data) => data.student_id === student_id,
+        );
 
-      return checkIsOverAnnouncementDate(activity.announcement_date)
-        ? ({
-            id: studentData?.id,
-            activity_id: activity.id,
-            activity_name: activity.learning_activity_name,
-            status: studentData?.status,
-            type: "learning_activity",
-          } as StudentEvaluationData)
-        : null;
-    });
+        // The query only asks for activities this student has a row on, so the
+        // find always hits; this is the compiler's proof of it, not a case.
+        if (!studentData) return null;
+
+        return checkIsOverAnnouncementDate(activity.announcement_date)
+          ? {
+              id: studentData.id,
+              activity_id: activity.id,
+              activity_name: activity.learning_activity_name,
+              status: studentData.status,
+              type: "learning_activity",
+            }
+          : null;
+      },
+    );
 
     const activityResults = await Promise.all(
-      activities.activities.map(async (activity) => {
-        const studentActivity = await prisma.student_activity.findFirst({
-          where: {
-            student_id,
-            activities: {
-              id: activity.activity_id,
-            },
-          },
-          select: {
-            id: true,
-            score: true,
-            status: true,
-
-            activities: {
-              select: {
-                announcement_date: true,
+      activities.activities.map(
+        async (activity): Promise<StudentEvaluationData | null> => {
+          const studentActivity = await prisma.student_activity.findFirst({
+            where: {
+              student_id,
+              activities: {
+                id: activity.activity_id,
               },
             },
-          },
-        });
+            select: {
+              id: true,
+              score: true,
+              status: true,
 
-        if (!studentActivity) return null;
+              activities: {
+                select: {
+                  announcement_date: true,
+                },
+              },
+            },
+          });
 
-        return checkIsOverAnnouncementDate(
-          studentActivity.activities.announcement_date,
-        )
-          ? ({
-              ...activity,
-              id: studentActivity.id,
-              // A Decimal serialises to a JSON string, and both this response
-              // type and the frontend's copy of it say number — so convert it
-              // here rather than let the two disagree with the wire.
-              score:
-                studentActivity.score !== null
-                  ? Number(studentActivity.score)
-                  : null,
-              status: studentActivity.status,
-              type: "activity",
-            } as StudentEvaluationData)
-          : null;
-      }),
+          if (!studentActivity) return null;
+
+          return checkIsOverAnnouncementDate(
+            studentActivity.activities.announcement_date,
+          )
+            ? {
+                ...activity,
+                id: studentActivity.id,
+                // A Decimal serialises to a JSON string, and both this response
+                // type and the frontend's copy of it say number — so convert it
+                // here rather than let the two disagree with the wire.
+                score:
+                  studentActivity.score !== null
+                    ? Number(studentActivity.score)
+                    : null,
+                status: studentActivity.status,
+                type: "activity",
+              }
+            : null;
+        },
+      ),
     );
 
     return {

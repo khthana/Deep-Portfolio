@@ -160,16 +160,21 @@ export class GradebookService {
         .map((sa) => (sa.score !== null ? Number(sa.score) : null))
         .filter((score): score is number => score !== null);
 
+      // No marks, no statistics. These three used to fall back to 0, which is
+      // also a mark a class can get, so work nobody had looked at yet and work
+      // everybody failed came back identical (#28). null says there is nothing
+      // to compute; the counts below still answer, because a submission waiting
+      // to be marked is a fact either way.
       const fullScore = Number(activity.score_number);
-      const maxScore = scores.length > 0 ? Math.max(...scores) : 0;
-      const minScore = scores.length > 0 ? Math.min(...scores) : 0;
+      const maxScore = scores.length > 0 ? Math.max(...scores) : null;
+      const minScore = scores.length > 0 ? Math.min(...scores) : null;
       const meanScore =
         scores.length > 0
           ? Math.round(
               scores.reduce((total, score) => total + toHundredths(score), 0) /
                 scores.length,
             ) / 100
-          : 0;
+          : null;
 
       const submittedCount = activity.student_activity.filter(
         (sa) =>

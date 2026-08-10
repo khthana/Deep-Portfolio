@@ -95,6 +95,40 @@ describe("GET /evaluation/list", () => {
     ]);
   });
 
+  it("leaves the class spread empty until somebody has been marked", async () => {
+    // The statistics come from the teacher's view, so #28 arrives here too: a
+    // student whose work is announced but not yet marked used to be shown a
+    // class max, min and mean of 0, which reads as everyone scoring nothing.
+    const { course, student } = await enrolledStudent();
+    const activity = await createActivity({
+      section_id: course.section_id,
+      score_number: 20,
+      announcement_date: announced(),
+    });
+    await createSubmission({
+      activity_id: activity.id,
+      student_id: student.student_id,
+      status: "SUBMITTED",
+    });
+
+    const response = await request(app)
+      .get("/evaluation/list")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.evaluations[0]).toMatchObject({
+      full_score: 20,
+      max_score: null,
+      min_score: null,
+      mean_score: null,
+      submitted_count: 1,
+      graded_count: 0,
+      score: null,
+      status: "SUBMITTED",
+    });
+  });
+
   it("shows each student their own mark", async () => {
     const { course, student } = await enrolledStudent();
     const classmate = await createStudent();

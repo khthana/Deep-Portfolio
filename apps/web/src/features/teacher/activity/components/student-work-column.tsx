@@ -3,6 +3,7 @@ import {
 } from "../types/activity-type.type";
 import { generatePath, useParams } from "react-router-dom";
 import { paths } from "../../../../routes/paths.config";
+import { formatScore } from "../../../../utils/format-score";
 import type { DataType } from "../pages/teacher-activity-detail-page";
 import StatusChip from "./status-chip";
 
@@ -84,7 +85,9 @@ const StudentWorkColumn = (props: Props) => {
       dataIndex: "score",
       key: "score",
       align: "center",
-      render: (text: number | null) => <div>{text ? text : "-"}</div>,
+      // Through formatScore for the reason #28 gives: a mark of 0 is a mark,
+      // and `text ? text : "-"` showed it as the dash that means unmarked.
+      render: (text: number | null) => <div>{formatScore(text)}</div>,
       width: 100,
       // editable: true,
     },

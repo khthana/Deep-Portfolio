@@ -1,3 +1,4 @@
+import { formatScore } from "../../../../utils/format-score";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 
 // type Props = {
@@ -67,10 +68,14 @@ const AssignmentGradebookColumn = () => [
     align: "center",
     width: 120,
   },
+  // The three statistics arrive as null while nobody in the section has been
+  // marked, so they are rendered rather than left to antd, which would print an
+  // empty cell (#28). A marked 0 still shows as 0.
   {
     title: "Max",
     dataIndex: "max",
     key: "max",
+    render: (text: number | null) => <div>{formatScore(text)}</div>,
     align: "center",
     width: 120,
 
@@ -81,6 +86,7 @@ const AssignmentGradebookColumn = () => [
     title: "Min",
     dataIndex: "min",
     key: "min",
+    render: (text: number | null) => <div>{formatScore(text)}</div>,
     align: "center",
     width: 120,
 
@@ -90,6 +96,7 @@ const AssignmentGradebookColumn = () => [
     title: "Mean",
     dataIndex: "mean",
     key: "mean",
+    render: (text: number | null) => <div>{formatScore(text)}</div>,
     align: "center",
     width: 120,
 

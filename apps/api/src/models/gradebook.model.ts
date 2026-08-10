@@ -35,9 +35,11 @@ export type ActivityData = {
   activity_name: string;
   deadline_date: Date | null;
   full_score: number;
-  max_score: number;
-  mean_score: number;
-  min_score: number;
+  /** null when nobody in the section has been marked yet — there is no
+   *  highest, lowest or average of no marks, and 0 is a mark (#28). */
+  max_score: number | null;
+  mean_score: number | null;
+  min_score: number | null;
   submitted_count: number;
   not_submitted_count: number;
   graded_count: number;

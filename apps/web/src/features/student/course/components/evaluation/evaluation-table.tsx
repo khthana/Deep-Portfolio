@@ -55,11 +55,14 @@ const EvaluationTable = () => {
       key: classwork.activity_id.toString(),
       no: dataIndex + 1,
       title: classwork.activity_name,
-      score: classwork.score,
-      full_score: classwork.full_score,
-      max_score: classwork.max_score,
-      min_score: classwork.min_score,
-      mean_score: classwork.mean_score,
+      // Classroom work has no score column at all, so the API sends no such
+      // keys for it; an activity nobody has been marked for sends them as
+      // null. The table draws a dash either way, so flatten the two here.
+      score: classwork.score ?? null,
+      full_score: classwork.full_score ?? null,
+      max_score: classwork.max_score ?? null,
+      min_score: classwork.min_score ?? null,
+      mean_score: classwork.mean_score ?? null,
       category: classwork.type,
       status: classwork.status,
       id: classwork.id,

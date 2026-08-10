@@ -488,12 +488,11 @@ describe("GET /gradebook/per-activity", () => {
     expect(response.body.data.activities[0].mean_score).toBe(1.01);
   });
 
-  it("reports zero rather than nothing for work nobody has a mark for", async () => {
-    // Recorded, not endorsed. max, min and mean all fall back to 0 when no one
-    // has been marked, so an activity the whole class scored 0 on and one the
-    // teacher has not opened yet are told apart only by graded_count. #28
-    // reports null for a statistic there is nothing to compute — a change of
-    // type, which is why it is not made here.
+  it("reports nothing, not zero, for work nobody has a mark for", async () => {
+    // There is no highest, lowest or average mark in a class where nobody has
+    // been marked, and 0 said there was one (#28). The counts still answer,
+    // because a submission that is waiting to be marked is a fact about the
+    // class either way.
     const { course, activity, students, teacher } = await classWithStudents(
       1,
       20,
@@ -511,10 +510,42 @@ describe("GET /gradebook/per-activity", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data.activities[0]).toMatchObject({
+      max_score: null,
+      min_score: null,
+      mean_score: null,
+      submitted_count: 1,
+      graded_count: 0,
+    });
+  });
+
+  it("still reports zero for a class that was marked and scored zero", async () => {
+    // The other half of the same point: 0 now means the marks are in and they
+    // were 0, which is what nothing to compute used to be indistinguishable
+    // from.
+    const { course, activity, students, teacher } = await classWithStudents(
+      2,
+      20,
+    );
+    for (const student of students) {
+      await createSubmission({
+        activity_id: activity.id,
+        student_id: student.student_id,
+        status: "GRADED",
+        score: 0,
+      });
+    }
+
+    const response = await request(app)
+      .get("/gradebook/per-activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.activities[0]).toMatchObject({
       max_score: 0,
       min_score: 0,
       mean_score: 0,
-      graded_count: 0,
+      graded_count: 2,
     });
   });
 

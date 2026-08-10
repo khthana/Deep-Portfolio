@@ -267,22 +267,29 @@ export type GetStudentEvaluationListResp = {
   evaluations: StudentEvaluationData[];
 };
 
+/**
+ * One row of the evaluation list. An activity row carries the student's mark
+ * and the class statistics; a classroom-work row carries neither, and the API
+ * leaves those keys out of the response rather than sending them as null —
+ * hence the `?`. A statistic that is present but `null` means something else:
+ * the activity exists and nobody has been marked for it yet (#28).
+ */
 export type StudentEvaluationData = {
   id: number;
   activity_id: number;
   activity_name: string;
-  deadline_date: Date | null;
-  full_score: number | null;
-  max_score: number | null;
-  mean_score: number | null;
-  min_score: number | null;
-  submitted_count: number | null;
-  not_submitted_count: number | null;
-  graded_count: number | null;
-
-  score: number | null;
-  status: string;
   type: ClassworkCategory;
+  status: string;
+
+  deadline_date?: Date | null;
+  full_score?: number | null;
+  max_score?: number | null;
+  mean_score?: number | null;
+  min_score?: number | null;
+  submitted_count?: number | null;
+  not_submitted_count?: number | null;
+  graded_count?: number | null;
+  score?: number | null;
 };
 
 //------------------------------------
