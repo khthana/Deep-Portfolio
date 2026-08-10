@@ -4,24 +4,31 @@ import { sessionUserId } from "./auth.middleware";
 import { errorResponse } from "../utils/response";
 
 /**
- * Row-level ownership for the portfolio group — the second half of the answer
- * `requireRole` cannot give.
+ * Row-level ownership — the second half of the answer `requireRole` cannot
+ * give.
  *
  * A role says what kind of user is asking. It does not say whose data this is,
- * and in this group that is the only question worth asking: every row carries a
- * user_id, and the rule is the same for all 56 endpoints — the acting user is
- * the session's, never whoever the request says. See
- * docs/adr/0001-portfolio-access.md and issue #31.
+ * and that is the question these middlewares answer. Two rules live here, one
+ * per ADR:
  *
- * Both middlewares below assume `requireUser` ran first: they read the session
+ * - `requireSelf` / `requireOwnEntry` — the portfolio group's rule. Every row
+ *   carries a user_id, and for all 56 endpoints the acting user is the
+ *   session's, never whoever the request says.
+ *   See docs/adr/0001-portfolio-access.md and issue #31.
+ * - `requireOwnSection` — the teaching rule. A teacher acts on the sections
+ *   they teach and no others.
+ *   See docs/adr/0002-section-access.md and issue #30.
+ *
+ * All three assume a session middleware ran first: they read the session
  * through `sessionUserId`, which throws rather than answering 401, because a
  * route that reached here without a session is a wiring mistake and not a
  * caller's.
  *
- * Neither of them cares whether the row exists. A request for something that is
- * not there is a different question with a different answer, and the controller
- * already gives it; folding the two together would turn every 404 in this group
- * into a 403 and hide the difference from the caller.
+ * The two portfolio ones do not care whether the row exists. A request for
+ * something that is not there is a different question with a different answer,
+ * and the controller already gives it; folding the two together would turn
+ * every 404 in that group into a 403 and hide the difference from the caller.
+ * `requireOwnSection` is the other way round, and says why below.
  */
 
 /**
@@ -61,6 +68,61 @@ export function requireSelf(
     }
 
     next();
+  };
+}
+
+/**
+ * Shown when a teacher reaches for a section they do not teach. Says "กลุ่มเรียน"
+ * because that is what the interface calls a section everywhere the user can
+ * see one.
+ */
+export const NOT_MY_SECTION = "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของกลุ่มเรียนนี้";
+
+/**
+ * The request names a section — `?section_id=` or a `section_id` field — and
+ * the signed-in teacher must be one of the section's teachers.
+ *
+ *     router.get("/per-student", requireRole("TEACHER"),
+ *                validate({ query: gradebookQuery }),
+ *                requireOwnSection("query"), controller.perStudent);
+ *
+ * Runs after `validate` for the same reason `requireSelf` does: a request whose
+ * section_id is missing or malformed is a malformed request, and `400` tells
+ * the caller more than `403` would. By the time this runs the field is there
+ * and is a number, so the coercion below cannot fail — it is here because the
+ * raw value is still a string, and reading the raw value keeps the schema out
+ * of the middleware's arguments.
+ *
+ * A section nobody teaches, and a section that does not exist at all, both come
+ * back as `403` rather than as an empty answer or a `404`. That is deliberate,
+ * and it is where this rule parts company with the portfolio one above: section
+ * ids are small integers, so a caller who could tell "no such section" from
+ * "not yours" could walk the range and map the whole institution's teaching
+ * from the outside.
+ */
+export function requireOwnSection(location: "query" | "body") {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const session = sessionUserId(req);
+    const named = (req[location] as Record<string, unknown> | undefined)
+      ?.section_id;
+    const sectionId = Number(named);
+
+    try {
+      const teaches = Number.isSafeInteger(sectionId)
+        ? await prisma.course_sections_teacher.findFirst({
+            where: { section_id: sectionId, user_id: session },
+            select: { id: true },
+          })
+        : null;
+
+      if (!teaches) {
+        return errorResponse(res, 403, NOT_MY_SECTION);
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
   };
 }
 

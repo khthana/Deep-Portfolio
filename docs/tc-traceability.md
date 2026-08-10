@@ -88,7 +88,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
-| TC-15 | สร้างประกาศพร้อมไฟล์ รูปภาพ และลิงก์ | ครอบคลุมแล้ว | `announcement.test.ts` — `POST /announcement` "posts to the section and answers with the new id", "uploads the attached files and links them to the announcement", "posts to every section of the course when all_section is set" | |
+| TC-15 | สร้างประกาศพร้อมไฟล์ รูปภาพ และลิงก์ | ครอบคลุมแล้ว | `announcement.test.ts` — `POST /announcement` "posts to the section and answers with the new id", "uploads the attached files and links them to the announcement", "posts to every section of the course the teacher teaches when all_section is set" | ตั้งแต่ [#30](https://github.com/khthana/Deep-Portfolio/issues/30) "ทุกกลุ่มเรียน" หมายถึงทุกกลุ่มเรียนของรายวิชานั้น**ที่ผู้โพสต์สอน** ดู [ADR-0002](adr/0002-section-access.md) |
 | TC-16 | สร้างประกาศโดยกรอกข้อมูลไม่ครบ | ครอบคลุมบางส่วน | `announcement.test.ts` — `POST /announcement` "answers 400 when the request leaves out all_section", "answers 400 for content that is not JSON, and uploads nothing" | ตามกติกาข้อ 2 และยังขาดอีกครึ่ง — `createAnnouncementBody` บังคับ `title` ด้วย แต่ case ที่มีอยู่ยิงเข้าคนละฟิลด์กับที่ TC บรรยาย → [#35](https://github.com/khthana/Deep-Portfolio/issues/35) |
 | TC-17 | ดูประกาศและดาวน์โหลดไฟล์แนบ | ครอบคลุมแล้ว | `announcement.test.ts` — `GET /announcement` "returns the section's announcements, newest first", "splits each announcement's attachments into files and links"; `GET /announcement/:id/attachments` "returns the announcement's files and links"; `app.test.ts` — `GET /files` "returns the object when it exists in the bucket" | การอ่านไฟล์ออกจาก MinIO จริงยืนยันที่ `GET /files` ซึ่งเป็น endpoint กลางไม่ผูกกับประกาศ — case ของมันอัปโหลดไฟล์ของตัวเองไปทดสอบ ไม่ใช่ไฟล์แนบของประกาศ ส่วนที่ผูกไฟล์เข้ากับประกาศยืนยันที่ `GET /announcement/:id/attachments` |
 
@@ -143,7 +143,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
-| TC-40 | ดูสมุดคะแนน | ครอบคลุมแล้ว | `gradebook.test.ts` — `GET /gradebook/per-student` "reports each student's marks, counts and total", "counts a submission handed in after the deadline as late", "adds marks of 10 and 10.01 up to exactly 20.01"; `GET /gradebook/per-activity` "reports the spread of the class across each piece of work", "rounds the mean to the two decimal places a score is stored with" | ครอบทั้งสองมุมมองของสมุดคะแนน รวมถึงการปัดเศษที่ pin ไว้ใน [#28](https://github.com/khthana/Deep-Portfolio/issues/28) และ [#30](https://github.com/khthana/Deep-Portfolio/issues/30) |
+| TC-40 | ดูสมุดคะแนน | ครอบคลุมแล้ว | `gradebook.test.ts` — `GET /gradebook/per-student` "reports each student's marks, counts and total", "counts a submission handed in after the deadline as late", "adds marks of 10 and 10.01 up to exactly 20.01"; `GET /gradebook/per-activity` "reports the spread of the class across each piece of work", "rounds the mean to the two decimal places a score is stored with" | ครอบทั้งสองมุมมองของสมุดคะแนน รวมถึงการปัดเศษที่ pin ไว้ใน [#28](https://github.com/khthana/Deep-Portfolio/issues/28) ส่วนการตรวจว่าอาจารย์สอนกลุ่มเรียนนั้นจริง ปิดแล้วใน [#30](https://github.com/khthana/Deep-Portfolio/issues/30) — case "refuses a teacher who does not teach the section" ทั้งสอง endpoint ดู [ADR-0002](adr/0002-section-access.md) |
 
 ### ข้อมูลนักศึกษา
 

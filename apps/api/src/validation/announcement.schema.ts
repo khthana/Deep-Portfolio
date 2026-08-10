@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { uploadUrl } from "./attachments.schema";
-import { bool, id, jsonField, jsonValue, text, userId } from "./fields";
+import { bool, id, jsonField, jsonValue, text } from "./fields";
 
 /** `/announcement` — the section's noticeboard. */
 
@@ -24,11 +24,12 @@ export const createAnnouncementBody = z.object({
   // is a literal null — which is what `jsonValue` already excludes.
   content: jsonField(jsonValue),
   /**
-   * Required, unlike the `created_by` on a CLO: `announcements.created_by` is
-   * NOT NULL with no default, so a post without one was never stored — it
-   * reached Postgres and came back as a 500.
+   * No `created_by`. `announcements.created_by` is NOT NULL, so a post has to
+   * carry an author, but the author is the teacher who is posting — the
+   * controller reads it off the session. A field here would be a second answer
+   * to a question the session has already answered, and the caller would win
+   * it (#30, ADR-0002).
    */
-  created_by: userId,
   section_id: id,
   urls: jsonField(z.array(uploadUrl)).default([]),
   all_section: bool,

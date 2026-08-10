@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { sessionUserId } from "../middlewares/auth.middleware";
 import { uploadedFiles } from "../utils/uploaded-files";
 import AnnouncementService from "../services/announcement.service";
 import { successResponse } from "../utils/response";
@@ -24,6 +25,7 @@ export default class AnnouncementController {
       const announcement = await this.announcementService.createAnnouncement({
         ...body,
         files,
+        created_by: sessionUserId(req),
       });
 
       successResponse(

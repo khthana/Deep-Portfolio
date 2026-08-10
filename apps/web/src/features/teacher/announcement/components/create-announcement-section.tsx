@@ -71,7 +71,9 @@ const CreateAnnouncementSection = () => {
 
     formData.append("title", announcementValues.title);
     formData.append("content", JSON.stringify(announcementValues.detail));
-    formData.append("created_by", homeSlice.selectedCourse.teacher_id);
+    // No created_by: the API takes the author from the session. This used to
+    // send the section's teacher_id, which is the wrong person as soon as a
+    // course has more than one teacher.
     formData.append("all_section", JSON.stringify(allSection));
     formData.append(
       "section_id",

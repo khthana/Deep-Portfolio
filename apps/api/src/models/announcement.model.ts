@@ -2,11 +2,13 @@ import { $Enums, Prisma } from "@prisma/client";
 import type { CreateAnnouncementBody } from "../validation/announcement.schema";
 
 /**
- * What the service is given: the validated body, plus the files multer put on
- * the request. Those two arrive by different routes and only meet here.
+ * What the service is given: the validated body, the files multer put on the
+ * request, and the author — which comes from the session rather than from the
+ * body (#30). All three arrive by different routes and only meet here.
  */
 export type CreateAnnouncementReqBody = CreateAnnouncementBody & {
   files: Express.Multer.File[];
+  created_by: string;
 };
 
 export type UploadFileDetail = {

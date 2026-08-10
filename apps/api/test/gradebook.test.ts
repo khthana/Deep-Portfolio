@@ -18,8 +18,9 @@ import { sessionCookie } from "./helpers/session";
  * running total and a punctuality count; `/per-activity` is a row per piece of
  * work with the spread of the class across it. Both take a section and nothing
  * else, and both are for the teacher — which is why the caller of every case
- * here is one. Which teacher may see which section is still nobody's job to
- * decide, and is #30.
+ * here is one, and since #30 one who teaches the section they are asking about.
+ * A teacher who does not gets 403; the rule is in
+ * docs/adr/0002-section-access.md.
  *
  * Scores are Decimal(5,2) in the database — whole numbers of hundredths — and
  * ordinary doubles by the time they are added up, which is why the service does
@@ -31,8 +32,8 @@ import { sessionCookie } from "./helpers/session";
 
 /** A section with `count` students enrolled, one activity, and its teacher. */
 async function classWithStudents(count: number, score_number: number) {
-  const course = await createCourse();
   const teacher = await createTeacher();
+  const course = await createCourse({ teacher_id: teacher.user_id });
   const students = [];
   for (let index = 0; index < count; index++) {
     const student = await createStudent();
@@ -115,8 +116,8 @@ describe("GET /gradebook/per-student", () => {
 
   it("counts a submission handed in after the deadline as late", async () => {
     const deadline = new Date("2026-03-01T00:00:00Z");
-    const course = await createCourse();
     const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
     const student = await createStudent();
     await enrolStudent(course.section_id, student.student_id);
     const activity = await createActivity({
@@ -147,8 +148,8 @@ describe("GET /gradebook/per-student", () => {
     // the same work handed in at the same moment was late until the teacher
     // opened it and on time afterwards. Punctuality is a fact about the dates.
     const deadline = new Date("2026-03-01T00:00:00Z");
-    const course = await createCourse();
     const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
     const student = await createStudent();
     await enrolStudent(course.section_id, student.student_id);
     const activity = await createActivity({
@@ -204,8 +205,8 @@ describe("GET /gradebook/per-student", () => {
     // whole thing used to reach the caller. The total is accumulated in
     // hundredths now, where 1000 + 1001 is exactly 2001 and there is no error
     // to discard afterwards.
-    const course = await createCourse();
     const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
     const student = await createStudent();
     await enrolStudent(course.section_id, student.student_id);
     for (const score of [10, 10.01]) {
@@ -251,8 +252,8 @@ describe("GET /gradebook/per-student", () => {
   });
 
   it("returns an empty student list for a section with nobody in it", async () => {
-    const course = await createCourse();
     const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
 
     const response = await request(app)
       .get("/gradebook/per-student")
@@ -294,6 +295,44 @@ describe("GET /gradebook/per-student", () => {
     expect(response.body).toEqual({
       success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
+    });
+  });
+
+  it("refuses a teacher who does not teach the section", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const colleague = await createTeacher();
+    const student = await createStudent();
+    await enrolStudent(course.section_id, student.student_id);
+
+    const response = await request(app)
+      .get("/gradebook/per-student")
+      .set("Cookie", sessionCookie({ userId: colleague.user_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของกลุ่มเรียนนี้",
+    });
+  });
+
+  it("refuses a section that does not exist in the same words", async () => {
+    // Not a 404. Section ids are small integers, so an answer that told the
+    // caller a section exists but is not theirs would map the institution's
+    // teaching one id at a time.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .get("/gradebook/per-student")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .query({ section_id: course.section_id + 100000 });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของกลุ่มเรียนนี้",
     });
   });
 
@@ -480,8 +519,8 @@ describe("GET /gradebook/per-activity", () => {
   });
 
   it("returns an empty activity list for a section with no work set", async () => {
-    const course = await createCourse();
     const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
 
     const response = await request(app)
       .get("/gradebook/per-activity")
@@ -523,6 +562,24 @@ describe("GET /gradebook/per-activity", () => {
     expect(response.body).toEqual({
       success: false,
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
+    });
+  });
+
+  it("refuses a teacher who does not teach the section", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const colleague = await createTeacher();
+    await createActivity({ section_id: course.section_id });
+
+    const response = await request(app)
+      .get("/gradebook/per-activity")
+      .set("Cookie", sessionCookie({ userId: colleague.user_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของกลุ่มเรียนนี้",
     });
   });
 

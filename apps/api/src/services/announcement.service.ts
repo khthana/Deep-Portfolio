@@ -26,15 +26,31 @@ export default class AnnouncementService {
       let targetSectionIds = [data.section_id];
 
       if (data.all_section) {
-        const section = await tx.course_sections_teacher.findFirst({
+        // "Every section" means every section of this course that this teacher
+        // teaches — not every section of the course. The fan-out used to read
+        // course_sections_teacher for *any* teacher of the named section and
+        // then post to all the course's sections, which handed a teacher of
+        // one section the noticeboard of a colleague's (#30, ADR-0002).
+        const named = await tx.course_sections.findUnique({
           where: { section_id: data.section_id },
+          select: { semester_course_id: true },
         });
 
-        if (section) {
-          const sectionInSameCourse = await tx.course_sections.findMany({
-            where: { semester_course_id: section.semester_course_id },
+        if (named) {
+          const mine = await tx.course_sections_teacher.findMany({
+            where: {
+              user_id: data.created_by,
+              course_sections: {
+                semester_course_id: named.semester_course_id,
+              },
+            },
+            select: { section_id: true },
+            orderBy: { section_id: "asc" },
           });
-          targetSectionIds = sectionInSameCourse.map((s) => s.section_id);
+
+          targetSectionIds = mine
+            .map((row) => row.section_id)
+            .filter((id): id is number => id !== null);
         }
       }
 

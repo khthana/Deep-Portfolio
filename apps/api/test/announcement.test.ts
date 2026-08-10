@@ -21,6 +21,10 @@ import { listStoredObjects } from "./helpers/storage";
  * single post out to every section of the course at once, which is the part
  * worth watching: one request, several rows, all sharing the attachments.
  *
+ * Since #30 the poster has to teach the section, and the fan-out reaches only
+ * the sections they teach — so every case that posts arranges the teacher onto
+ * the course. The rule is in docs/adr/0002-section-access.md.
+ *
  * Uploads go to a folder that is not keyed by section, so the cases that look
  * at the bucket compare it against what was there before the request rather
  * than expecting it to be empty.
@@ -146,7 +150,6 @@ describe("POST /announcement", () => {
       .set("Cookie", sessionCookie({ userId: user.user_id }))
       .field("title", "ประกาศจากผู้ที่ไม่ใช่อาจารย์")
       .field("content", JSON.stringify({ text: "เนื้อหา" }))
-      .field("created_by", user.user_id)
       .field("section_id", String(course.section_id))
       .field("all_section", "false");
 
@@ -173,7 +176,6 @@ describe("POST /announcement", () => {
       .post("/announcement")
       .field("title", "ประกาศจากคนแปลกหน้า")
       .field("content", JSON.stringify({ text: "เนื้อหา" }))
-      .field("created_by", "70000000")
       .field("section_id", String(course.section_id))
       .field("all_section", "false")
       .attach("files", PDF, "stranger.pdf");
@@ -196,7 +198,6 @@ describe("POST /announcement", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .field("title", "สอบกลางภาคสัปดาห์หน้า")
       .field("content", JSON.stringify({ text: "อ่านบทที่ 1-4" }))
-      .field("created_by", teacher.user_id)
       .field("section_id", String(course.section_id))
       .field("all_section", "false");
 
@@ -216,10 +217,10 @@ describe("POST /announcement", () => {
     });
   });
 
-  it("records the created_by the request asked for, not the session", async () => {
-    // Recorded, not endorsed. The author is taken from the body, so a teacher
-    // can post under a colleague's name. Ownership checks are absent across
-    // this API — see the spec — and fixing them here alone would not help.
+  it("records the session as the author, whoever the request names", async () => {
+    // The author used to be a body field, so a teacher could post under a
+    // colleague's name. The field is gone from the schema; a request that still
+    // sends one has it dropped rather than refused. See BEHAVIOR-CHANGES.md.
     const teacher = await createTeacher();
     const colleague = await createTeacher();
     const course = await createCourse({ teacher_id: teacher.user_id });
@@ -236,7 +237,37 @@ describe("POST /announcement", () => {
     const posted = await prisma.announcements.findFirstOrThrow({
       where: { section_id: course.section_id },
     });
-    expect(posted.created_by).toBe(colleague.user_id);
+    expect(posted.created_by).toBe(teacher.user_id);
+  });
+
+  it("refuses a teacher who does not teach the section, and stores nothing", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const colleague = await createTeacher();
+    const storedBefore = await listStoredObjects(UPLOAD_FOLDER);
+
+    const response = await request(app)
+      .post("/announcement")
+      .set("Cookie", sessionCookie({ userId: colleague.user_id }))
+      .field("title", "ประกาศถึงกลุ่มของคนอื่น")
+      .field("content", JSON.stringify({ text: "เนื้อหา" }))
+      .field("section_id", String(course.section_id))
+      .field("all_section", "false")
+      .attach("files", PDF, "colleague.pdf");
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของกลุ่มเรียนนี้",
+    });
+    expect(
+      await prisma.announcements.count({
+        where: { section_id: course.section_id },
+      }),
+    ).toBe(0);
+    // multer holds the upload in memory and the service is what puts it in the
+    // bucket, so a refusal before the service leaves nothing behind.
+    expect(await listStoredObjects(UPLOAD_FOLDER)).toEqual(storedBefore);
   });
 
   it("uploads the attached files and links them to the announcement", async () => {
@@ -248,7 +279,6 @@ describe("POST /announcement", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .field("title", "ใบงานสัปดาห์นี้")
       .field("content", JSON.stringify({ text: "ส่งภายในวันศุกร์" }))
-      .field("created_by", teacher.user_id)
       .field("section_id", String(course.section_id))
       .field("all_section", "false")
       .field(
@@ -287,7 +317,7 @@ describe("POST /announcement", () => {
     expect(await listStoredObjects(UPLOAD_FOLDER)).toContain(file!.file_path);
   });
 
-  it("posts to every section of the course when all_section is set", async () => {
+  it("posts to every section of the course the teacher teaches when all_section is set", async () => {
     const teacher = await createTeacher();
     // Same subject, same term: createCourse upserts the semester_course, so
     // these two sections are two sections of one course.
@@ -298,8 +328,9 @@ describe("POST /announcement", () => {
     const second = await createCourse({
       subject_id: first.subject_id,
       section_number: "2",
+      teacher_id: teacher.user_id,
     });
-    const elsewhere = await createCourse();
+    const elsewhere = await createCourse({ teacher_id: teacher.user_id });
     const attachment = "https://example.test/all-sections";
 
     const response = await request(app)
@@ -307,7 +338,6 @@ describe("POST /announcement", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .field("title", "ประกาศถึงทุกกลุ่ม")
       .field("content", JSON.stringify({ text: "งดการเรียนการสอน" }))
-      .field("created_by", teacher.user_id)
       .field("section_id", String(first.section_id))
       .field("all_section", "true")
       .field("urls", JSON.stringify([{ title: "รายละเอียด", url: attachment }]));
@@ -336,32 +366,37 @@ describe("POST /announcement", () => {
     expect(new Set(links.map((link) => link.attachment_id)).size).toBe(1);
   });
 
-  it("posts to the one section when all_section is set but nobody teaches it", async () => {
-    // all_section reaches the other sections through course_sections_teacher.
-    // With no row there the fan-out finds nothing and the post stays put.
+  it("leaves a colleague's section of the same course out of all_section", async () => {
+    // See BEHAVIOR-CHANGES.md. The fan-out used to look up any teacher of the
+    // named section and then post to every section of that course, so a teacher
+    // of one section wrote to a colleague's noticeboard.
     const teacher = await createTeacher();
-    const first = await createCourse({ section_number: "1" });
-    const second = await createCourse({
-      subject_id: first.subject_id,
+    const colleague = await createTeacher();
+    const mine = await createCourse({
+      section_number: "1",
+      teacher_id: teacher.user_id,
+    });
+    const theirs = await createCourse({
+      subject_id: mine.subject_id,
       section_number: "2",
+      teacher_id: colleague.user_id,
     });
 
     await request(app)
       .post("/announcement")
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
-      .field("title", "ประกาศไร้ผู้สอน")
+      .field("title", "ประกาศถึงกลุ่มของฉัน")
       .field("content", JSON.stringify({ text: "เนื้อหา" }))
-      .field("created_by", teacher.user_id)
-      .field("section_id", String(first.section_id))
+      .field("section_id", String(mine.section_id))
       .field("all_section", "true");
 
     const posted = await prisma.announcements.findMany({
-      where: { title: "ประกาศไร้ผู้สอน" },
+      where: { title: "ประกาศถึงกลุ่มของฉัน" },
     });
-    expect(posted.map((a) => a.section_id)).toEqual([first.section_id]);
+    expect(posted.map((a) => a.section_id)).toEqual([mine.section_id]);
     expect(
       await prisma.announcements.count({
-        where: { section_id: second.section_id },
+        where: { section_id: theirs.section_id },
       }),
     ).toBe(0);
   });
@@ -375,7 +410,6 @@ describe("POST /announcement", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .field("title", "ประกาศไม่ครบ")
       .field("content", JSON.stringify({ text: "เนื้อหา" }))
-      .field("created_by", teacher.user_id)
       .field("section_id", String(course.section_id));
 
     expect(response.status).toBe(400);
@@ -404,7 +438,6 @@ describe("POST /announcement", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .field("title", "ประกาศเนื้อหาไม่ใช่ JSON")
       .field("content", "ไม่ใช่ JSON")
-      .field("created_by", teacher.user_id)
       .field("section_id", String(course.section_id))
       .field("all_section", "false")
       .attach("files", PDF, "worksheet.pdf");
@@ -434,7 +467,6 @@ describe("POST /announcement", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .field("title", "ประกาศ")
       .field("content", JSON.stringify({ text: "เนื้อหา" }))
-      .field("created_by", teacher.user_id)
       .field("section_id", String(course.section_id))
       .field("all_section", "yes");
 
