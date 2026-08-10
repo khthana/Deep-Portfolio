@@ -200,8 +200,10 @@ const GradingSection = (props: Props) => {
             <div
               className={`caption-bold ${props.color === "blue" ? "text-secondary-blue" : "text-primary-orange"}`}
             >
+              {/* student_score is a number since #33 — a mark of 0 is falsy,
+                  so it is compared against null instead. */}
               {props.classworkData.status === "GRADED" &&
-              props.classworkData.student_score
+              props.classworkData.student_score != null
                 ? `${props.classworkData.student_score}/${props.classworkData.score_number} คะแนน`
                 : `คะแนนเต็ม ${props.classworkData.score_number} คะแนน`}
             </div>

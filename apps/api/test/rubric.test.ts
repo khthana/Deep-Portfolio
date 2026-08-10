@@ -140,6 +140,20 @@ describe("GET /rubric/shared-rubric/detail", () => {
     ]);
   });
 
+  it("sends the criterion's weight as a number", async () => {
+    // rubric_details.weight is Decimal(5,2) and used to reach the wire as the
+    // string "2.5" (#33), the same shape as the gpa #16 converted.
+    const rubric = await createSharedRubric();
+    await createSharedRubricDetail({ rubric_id: rubric.id, weight: 2.5 });
+
+    const response = await request(app)
+      .get("/rubric/shared-rubric/detail")
+      .query({ rubric_id: rubric.id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data[0].weight).toBe(2.5);
+  });
+
   it("returns only this rubric's criteria", async () => {
     const rubric = await createSharedRubric();
     const other = await createSharedRubric();

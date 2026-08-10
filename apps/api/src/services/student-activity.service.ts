@@ -212,10 +212,22 @@ export default class StudentActivityService {
 
     const attachments = await this.getAllAttachments(student_activity_id, tx);
 
+    // The mark and every criterion's share of it are Decimal(5,2), and a Prisma
+    // Decimal handed to res.json reaches the wire as a string (#33).
+    const marks = studentActivity && {
+      ...studentActivity,
+      score: studentActivity.score !== null ? Number(studentActivity.score) : null,
+      student_activity_rubric_score:
+        studentActivity.student_activity_rubric_score.map((mark) => ({
+          ...mark,
+          calculated_score: Number(mark.calculated_score),
+        })),
+    };
+
     return {
       ...activityDetail,
-      student_score: studentActivity?.score,
-      ...studentActivity,
+      student_score: marks?.score,
+      ...marks,
       submitted_files: attachments,
     } as GetStudentActivityDetailResp;
   }
@@ -300,7 +312,9 @@ export default class StudentActivityService {
             {
               id: studentAct.id,
               status: displayStatus,
-              received_point: studentAct.score,
+              // Decimal(5,2) — a string on the wire if it is not converted (#33).
+              received_point:
+                studentAct.score !== null ? Number(studentAct.score) : null,
             },
           ],
           activity_type: activity.activity_type.toUpperCase(),

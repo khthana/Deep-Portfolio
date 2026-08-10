@@ -297,6 +297,35 @@ describe("GET /student/classwork/list", () => {
     ]);
   });
 
+  it("sends the mark the student already has as a number", async () => {
+    // received_point is student_activity.score, a Decimal(5,2), and the type
+    // both sides of the wire declare for it is number (#33). The card that
+    // prints it does `received_point && point ? ... : ...`, so a string used to
+    // print through untouched — right for "18", wrong the moment the column's
+    // second decimal place carries anything.
+    const student = await createStudent();
+    const course = await enrolledCourse(student.student_id);
+    const activity = await createActivity({
+      section_id: course.section_id,
+      announcement_date: new Date("2020-01-01T00:00:00Z"),
+      deadline_date: FAR_FUTURE,
+    });
+    await createSubmission({
+      student_id: student.student_id,
+      activity_id: activity.id,
+      status: "GRADED",
+      score: 7.25,
+    });
+
+    const response = await request(app)
+      .get("/student/classwork/list")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.other[0].classworks[0].received_point).toBe(7.25);
+  });
+
   it("files learning activities under their own heading", async () => {
     const student = await createStudent();
     const course = await enrolledCourse(student.student_id);
@@ -769,7 +798,7 @@ describe("GET /student/activities/list", () => {
         activity_name: "งานที่ตรวจแล้ว",
         student_activity_id: submission.id,
         status: "GRADED",
-        score: "8",
+        score: 8,
         feedback: "ทำได้ดี",
       },
       {
@@ -878,7 +907,7 @@ describe("GET /student/activities/details/:student_activity_id", () => {
       id: submission.id,
       student_id: student.student_id,
       status: "GRADED",
-      score: "9",
+      score: 9,
       feedback: "เรียบร้อยดี",
       course: {
         course_id: course.subject_id,

@@ -16,7 +16,11 @@ export default class RubricService {
       orderBy: { display_order: "asc" },
     });
 
-    return result;
+    // weight is Decimal(5,2), which res.json writes as a string (#33).
+    return result.map((detail) => ({
+      ...detail,
+      weight: detail.weight !== null ? Number(detail.weight) : null,
+    }));
   }
 
   async getRubric(activity_id: number) {

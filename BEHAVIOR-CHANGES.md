@@ -1276,6 +1276,84 @@ API ไม่มีทางรู้ว่าเกณฑ์ไหนคือ�
 
 ---
 
+## #33 — คอลัมน์ `Decimal` ที่เหลือออกจาก API เป็นตัวเลข
+
+`Prisma.Decimal` ที่ส่งเข้า `res.json` ตรงๆ ออกไปถึงผู้เรียกเป็น**สตริง** #15 ข้อ 3
+ปิดไปแล้วหนึ่งที่ (`/evaluation/list`) และ #16 ข้อ 4 ปิด `portfolio_education.gpa`
+รอบนี้ไล่ `schema.prisma` ทั้งไฟล์แล้วเหลือคอลัมน์ `Decimal` อีกห้าคอลัมน์:
+
+| คอลัมน์ | ออกไปทางไหน |
+| --- | --- |
+| `rubric_details.weight` | `GET /rubric/shared-rubric/detail` |
+| `activity_clo_mapping.score` | `POST /mapping/activity` (แถวที่เพิ่งสร้างคือ response) |
+| `student_activity.score` | `GET /activity/student/detail`, `GET /student/classwork/list`, `GET /student/activities/list`, `GET /student/activities/details/:student_activity_id` |
+| `student_activity_rubric_score.calculated_score` | `GET /activity/student/detail` |
+| `activity_scores.score` | **ไม่ออกเลย** — เขียนอย่างเดียว ไม่มี endpoint ไหนอ่านออกไป จึงไม่มีอะไรต้องแก้ |
+
+ทุกที่แปลงด้วย `Number(...)` ที่ชั้น service แบบเดียวกับ #15 และ #16 ไม่ประดิษฐ์วิธีที่สาม
+ส่วนทางที่แปลงไปแล้วก่อนหน้านี้ (`/evaluation/list`, `/gradebook/*`,
+`/activity/submitted/list`) ไม่ได้แตะ
+
+> รายชื่อคอลัมน์ในตัว issue เองล้าสมัย — อ้างถึง `subject_score_ratio.score` /
+> `weight` ซึ่งเป็น `Int?` กับไม่มีอยู่ และ `student_learning_activity.score`
+> ซึ่งไม่มีในตาราง ตารางข้างบนมาจาก `schema.prisma` จริง
+
+### 1. `GET /rubric/shared-rubric/detail` คืน `weight` เป็นตัวเลข
+
+| | |
+| --- | --- |
+| **ของเดิม** | `rubric_details.weight` เป็น `Decimal(5,2)` และแถวจาก Prisma ถูกส่งต่อทั้งก้อน เกณฑ์ที่ถ่วงน้ำหนัก 2.5 จึงมาเป็น `"2.5"` |
+| **ของใหม่** | `number` หรือ `null` เมื่อยังไม่ได้ตั้งค่า (คอลัมน์เป็น nullable) |
+| **frontend** | ไม่ต้องแก้ — `features/teacher/activity/types/rubric-type.type.ts` ประกาศ `weight: number \| null` ไว้อยู่แล้ว และ `rubric-card.tsx` พิมพ์ค่าลงหน้าจอตรงๆ (`{weight}%`) สตริงกับตัวเลขจึงขึ้นเหมือนกัน การแก้ครั้งนี้ทำให้ของจริงตรงกับที่ประกาศไว้ |
+
+### 2. `POST /mapping/activity` คืน `score` เป็นตัวเลข
+
+| | |
+| --- | --- |
+| **ของเดิม** | endpoint นี้ตอบด้วยแถว `activity_clo_mapping` ที่เพิ่งสร้าง ซึ่งมี `score` เป็น `Decimal(5,2)` ที่ service คิดเองจาก `score_number × weight ÷ 100` งาน 10 คะแนนที่ผูก CLO ด้วยน้ำหนัก 25% จึงตอบ `"2.5"` |
+| **ของใหม่** | `2.5` |
+| **frontend** | ไม่ต้องแก้ — `teacher-mapping-action.ts` ประกาศ response ของ thunk นี้ว่า `{ id: number }` อ่านแค่ `id` แล้วโหลดรายการใหม่ ไม่มีใครอ่าน `score` จาก response นี้ |
+
+### 3. `GET /activity/student/detail` คืนคะแนนและคะแนนรายเกณฑ์เป็นตัวเลข
+
+| | |
+| --- | --- |
+| **ของเดิม** | `score`, `student_score` และ `calculated_score` ของทุกเกณฑ์ในอาร์เรย์ `student_activity_rubric_score` ออกไปเป็นสตริงทั้งหมด ทั้งที่ `GetStudentActivityDetail` ฝั่ง API ประกาศ `student_score: Prisma.Decimal` ส่วน type ฝั่งเว็บประกาศ `number` — สองฝั่งไม่ตรงกันเองอยู่แล้ว |
+| **ของใหม่** | ทั้งสามช่องเป็น `number` (`score` และ `student_score` ยังเป็น `null` ได้เมื่อยังไม่ถูกตรวจ) และ `GetStudentActivityDetail` ฝั่ง API เปลี่ยนเป็น `number` ตาม — type บอกสิ่งที่อยู่บน wire ไม่ใช่สิ่งที่ Prisma คืนมา |
+| **ขอบเขต** | คำขอที่ไม่มีการส่งงานอยู่จริงยังตอบเหมือนเดิมทุกอย่าง คือมีแต่ `submitted_files` ไม่มีคีย์ `student_score` โผล่มาเป็น `null` |
+| **frontend** | ไม่ต้องแก้ที่ type — `src/types/student-activity-type.type.ts` เขียน `student_score: number \| null` และ `calculated_score: number` ไว้ตรงแล้ว ส่วนจุดแสดงผลดูข้อ 5 |
+
+### 4. คะแนนในรายการงานของนักศึกษาเป็นตัวเลข
+
+| | |
+| --- | --- |
+| **ของเดิม** | `GET /student/classwork/list` ตอบ `received_point` เป็นสตริง และ `GET /student/activities/list` กับ `GET /student/activities/details/:student_activity_id` ตอบ `score` เป็นสตริง |
+| **ของใหม่** | ทั้งสามที่เป็น `number` หรือ `null` เมื่อยังไม่มีคะแนน |
+| **ขอบเขต** | `GET /all/classwork/list` และ `GET /student/calendar` ไม่ได้ `select` คะแนนมาตั้งแต่ต้น จึงไม่มีอะไรเปลี่ยน ส่วน `GET /portfolio/:id` ซึ่งเรียก service ตัวเดียวกันข้างใน อ่านแค่ชื่องานกับ feedback ไม่ได้ส่งคะแนนต่อออกไป |
+| **frontend** | type ประกาศ `number` ไว้ตรงแล้วทั้งคู่ (`features/student/course/types/course-type.ts`) จุดแสดงผลดูข้อ 5 |
+
+### 5. หน้าเว็บสามจุดเลิกกลืนคะแนน 0
+
+| | |
+| --- | --- |
+| **ของเดิม** | สามจุดที่แสดง "ได้เท่าไหร่ / เต็มเท่าไหร่" ตรวจว่ามีคะแนนหรือยังด้วยความจริงเท็จของค่าเอง (`received_point && point`, `score && student_score`) ตอนที่ค่าเป็นสตริง `"0"` ซึ่งเป็นจริง จึงแสดง `0/10 คะแนน` ถูกต้องโดยบังเอิญ |
+| **ของใหม่** | ทั้งสามจุดเทียบกับ `null` แทน (`!= null`) — `classwork-card.tsx`, `student-classwork-detail-page.tsx` และ `features/teacher/activity/components/grading-section.tsx` |
+| **เหตุผล** | พอค่ากลายเป็นตัวเลข `0` ก็เป็นเท็จ นักศึกษาที่ถูกตรวจแล้วได้ 0 คะแนนจะเห็น `10 คะแนน` (คะแนนเต็ม) แทน `0/10 คะแนน` เหมือนยังไม่ถูกตรวจ นี่คือกรณีเดียวที่การเปลี่ยนชนิดนี้กระทบสิ่งที่ผู้ใช้เห็นจริง จึงแก้ไปพร้อมกันตาม D9 |
+| **ผลข้างเคียง** | ตัวส่วน (`point` / `score` / `score_number`) ยังตรวจแบบเดิม เพราะเป็น `Int` มาตั้งแต่ต้น ไม่ได้ถูก ticket นี้แตะ |
+| **เลขศูนย์ท้าย** | ไม่เปลี่ยน — `Decimal` ตัดศูนย์ท้ายทิ้งตั้งแต่ตอน serialize อยู่แล้ว คะแนน 18 เคยมาเป็น `"18"` ไม่ใช่ `"18.00"` (เห็นได้จาก test เดิมที่ assert ไว้แบบนั้น) เป็นตัวเลขแล้วก็ยังเป็น `18` เหมือนกัน |
+
+### สิ่งที่ **ไม่ได้** ทำใน ticket นี้
+
+- **ไม่ได้เขียน helper กลางสำหรับแปลง `Decimal`** — แต่ละที่แปลงตรงจุดที่ประกอบ
+  response เหมือนที่ #15 และ #16 ทำไว้ เกณฑ์ยอมรับสั่งไว้ตรงๆ ว่า
+  "ไม่ประดิษฐ์วิธีที่สาม"
+- **`activity_scores.score`** — ไล่แล้วว่าไม่มีทางออก จึงปล่อยไว้ ถ้าวันหนึ่งมี
+  endpoint อ่านมันออกไป ต้องแปลงตอนนั้น
+- **ไม่ได้เปลี่ยนชนิดคอลัมน์ในฐานข้อมูล** — `Decimal(5,2)` ยังเป็นชนิดที่ถูกต้อง
+  สำหรับคะแนน สิ่งที่แก้คือขาที่มันออกจาก API เท่านั้น
+
+---
+
 ## หมายเหตุ: สิ่งที่ **ไม่ได้** เปลี่ยน
 
 - **`401` / `403` ของทุก route ที่ตรวจบทบาท** — `requireRole("TEACHER")` และ

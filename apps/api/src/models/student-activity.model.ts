@@ -61,13 +61,15 @@ export type GetStudentActivityDetail = {
   graded_at: Date;
   feedback: string | null;
   remark: string | null;
-  student_score: Prisma.Decimal | null;
+  // Decimal(5,2) in the database, converted to a number before it leaves the
+  // service — the type says what is on the wire, not what Prisma returns (#33).
+  student_score: number | null;
   is_bookmark: boolean;
 
   student_activity_rubric_score: {
     rubric_activity_mapping_id: number;
     rubric_level_id: number;
-    calculated_score: Prisma.Decimal;
+    calculated_score: number;
   }[];
 
   student: {

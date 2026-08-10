@@ -873,7 +873,8 @@ export default class StudentService {
         activity_name: a.activity_name,
         student_activity_id: sub?.id ?? null,
         status: sub?.status ?? null,
-        score: sub?.score ?? null,
+        // Decimal(5,2) — a string on the wire if it is not converted (#33).
+        score: sub?.score != null ? Number(sub.score) : null,
         feedback: sub?.feedback ?? null,
       };
     });
@@ -920,7 +921,17 @@ export default class StudentService {
       },
     });
 
-    if (studentActivity && studentActivity.activities.section_id) {
+    if (!studentActivity) return null;
+
+    // The whole row is the response, and score is Decimal(5,2) — a string on
+    // the wire unless it is converted here (#33).
+    const submission = {
+      ...studentActivity,
+      score:
+        studentActivity.score !== null ? Number(studentActivity.score) : null,
+    };
+
+    if (studentActivity.activities.section_id) {
       const section = await prisma.course_sections.findUnique({
         where: { section_id: studentActivity.activities.section_id },
         include: {
@@ -934,7 +945,7 @@ export default class StudentService {
 
       if (section) {
         return {
-          ...studentActivity,
+          ...submission,
           course: {
             course_id: section.semester_courses.subjects.subject_id,
             course_name_en: section.semester_courses.subjects.subject_name_en,
@@ -944,6 +955,6 @@ export default class StudentService {
       }
     }
 
-    return studentActivity;
+    return submission;
   }
 }

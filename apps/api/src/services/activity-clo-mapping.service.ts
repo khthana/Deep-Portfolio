@@ -34,7 +34,9 @@ export default class ActivityCLOMappingService {
       },
     });
 
-    return result;
+    // The created row is the response, and score is Decimal(5,2) — a string on
+    // the wire unless it is converted here (#33).
+    return { ...result, score: Number(result.score) };
   }
 
   async getActivity(clo_id: number) {

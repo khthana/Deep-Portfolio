@@ -93,7 +93,10 @@ const StudentClassworkDetailPage = () => {
                   <div className="flex justify-between">
                     <div className="body-bold-1">{classworkDetail.name}</div>
                     <div className="caption-bold text-secondary-blue">
-                      {classworkDetail.score && classworkDetail.student_score
+                      {/* student_score is a number since #33 — a mark of 0 is
+                          falsy, so it is compared against null instead. */}
+                      {classworkDetail.score &&
+                      classworkDetail.student_score != null
                         ? `${classworkDetail.student_score}/${classworkDetail.score} คะแนน`
                         : classworkDetail.score
                           ? `${classworkDetail.score} คะแนน`

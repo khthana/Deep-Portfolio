@@ -1119,12 +1119,53 @@ describe("GET /activity/student/detail", () => {
       activity_name: "รายงานบทที่ 1",
       student_id: student.student_id,
       status: "GRADED",
-      score: "18",
-      student_score: "18",
+      score: 18,
+      student_score: 18,
       feedback: "ทำได้ดี",
       student: { first_name_th: "สมชาย" },
       submitted_files: { file: [], url: [] },
     });
+  });
+
+  it("sends the marks as numbers, criterion by criterion", async () => {
+    // student_activity.score and student_activity_rubric_score.calculated_score
+    // are both Decimal(5,2), and this endpoint used to hand them to res.json as
+    // Prisma Decimals — which reach the wire as strings, where every type that
+    // describes them says number (#33).
+    const activity = await createActivity();
+    const rubric = await createActivityRubric({ activity_id: activity.id });
+    const level = await prisma.rubric_levels.findFirstOrThrow({
+      where: { rubric_id: rubric.id },
+      orderBy: { level_no: "desc" },
+    });
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      status: "GRADED",
+      score: 17.5,
+    });
+    await prisma.student_activity_rubric_score.create({
+      data: {
+        student_activity_id: submission.id,
+        rubric_activity_mapping_id: rubric.id,
+        rubric_level_id: level.id,
+        calculated_score: 17.5,
+      },
+    });
+
+    const response = await request(app)
+      .get("/activity/student/detail")
+      .query({ student_activity_id: submission.id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.score).toBe(17.5);
+    expect(response.body.data.student_score).toBe(17.5);
+    expect(response.body.data.student_activity_rubric_score).toEqual([
+      {
+        rubric_activity_mapping_id: rubric.id,
+        rubric_level_id: level.id,
+        calculated_score: 17.5,
+      },
+    ]);
   });
 
   it("fails for a submission that does not exist", async () => {

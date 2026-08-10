@@ -111,6 +111,22 @@ describe("POST /mapping/activity", () => {
     expect(Number(mapping.score)).toBe(5);
   });
 
+  it("sends the share of the mark back as a number", async () => {
+    // activity_clo_mapping.score is Decimal(5,2) and the whole created row is
+    // the response, so the score used to leave as the string "2.5" (#33).
+    const teacher = await createTeacher();
+    const activity = await mappableActivity(10);
+    const clo = await createCLO({ section_id: activity.section_id! });
+
+    const response = await request(app)
+      .post("/mapping/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ activity_id: activity.id, clo_id: clo.clo_id, weight: 25 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.score).toBe(2.5);
+  });
+
   it("numbers the next mapping after the ones already there", async () => {
     const teacher = await createTeacher();
     const activity = await mappableActivity();

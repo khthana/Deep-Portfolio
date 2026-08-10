@@ -56,7 +56,10 @@ const ClassworkCard = (props: Props) => {
         style={{ color: classworkStatusColor[props.classworkDetail.status] }}
       >
         <div className="caption-bold">
-          {props.classworkDetail.received_point && props.classworkDetail.point
+          {/* received_point is a number since #33, so a mark of 0 is falsy —
+              it has to be compared against null to keep showing "0/10 คะแนน". */}
+          {props.classworkDetail.received_point != null &&
+          props.classworkDetail.point
             ? `${props.classworkDetail.received_point}/${props.classworkDetail.point} คะแนน`
             : props.classworkDetail.point
               ? `${props.classworkDetail.point} คะแนน`
