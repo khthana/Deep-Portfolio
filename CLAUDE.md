@@ -35,9 +35,11 @@ mostly correctness work on top of it.
   40 files, 413 web cases over 27 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
-Open work is in the issue tracker: the defects filed while testing (#34 and #35
-— #25, #33, #36 and #37 are implemented and only need closing). Everything
-else from the breakdown of #1 is closed, #20–#24, #26–#29 and #31 included.
+Open work is in the issue tracker: the defects filed while testing — #34
+(attachments outlive the row that owned them) and #35 (four test cases the
+traceability table calls missing). #35 item 4 depends on what #34 decides.
+Everything else from the breakdown of #1 is closed, #20–#33 and #36–#37
+included.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on
