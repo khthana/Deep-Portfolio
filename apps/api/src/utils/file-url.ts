@@ -42,7 +42,7 @@ const TTL_SECONDS = 60 * 60;
  * more value that has to be set before anything starts. Rotating `JWT_SECRET`
  * rotates this with it, which costs at most an hour of live links.
  */
-const KEY = createHmac("sha256", env.JWT_SECRET)
+const SIGNING_KEY = createHmac("sha256", env.JWT_SECRET)
   .update("deep-portfolio/file-url/v1")
   .digest();
 
@@ -52,7 +52,7 @@ const KEY = createHmac("sha256", env.JWT_SECRET)
  * good — a nonsense `exp` fails the signature and is never read as a number.
  */
 const sign = (objectKey: string, expiresAt: string) =>
-  createHmac("sha256", KEY)
+  createHmac("sha256", SIGNING_KEY)
     .update(`${objectKey}\n${expiresAt}`)
     .digest("base64url");
 
@@ -99,17 +99,18 @@ export function signFileUrl(objectKey: string, now = Date.now()): string {
  * ours; an expired one means the page has been open too long and reloading it
  * will work.
  */
-export function assertSignedFileUrl(
-  query: { path: string; exp?: string; sig?: string },
-  now = Date.now(),
-): void {
+export function assertSignedFileUrl(query: {
+  path: string;
+  exp?: string;
+  sig?: string;
+}): void {
   const { path, exp, sig } = query;
 
   if (exp === undefined || sig === undefined || !matches(sign(path, exp), sig)) {
     throw new HttpError(403, "ลิงก์ไฟล์นี้ไม่ถูกต้อง");
   }
 
-  if (Number(exp) * 1000 <= now) {
+  if (Number(exp) * 1000 <= Date.now()) {
     throw new HttpError(410, "ลิงก์ไฟล์นี้หมดอายุแล้ว กรุณาโหลดหน้านี้ใหม่");
   }
 }

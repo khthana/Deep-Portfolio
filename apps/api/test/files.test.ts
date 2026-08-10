@@ -3,6 +3,7 @@ import request from "supertest";
 import app from "../src/app";
 import { BUCKET_NAME, minioClient } from "../src/config/minio";
 import { signFileUrl } from "../src/utils/file-url";
+import { sessionCookie } from "./helpers/session";
 
 /**
  * File delivery — /files.
@@ -86,6 +87,24 @@ describe("GET /files", () => {
       success: false,
       message: "ลิงก์ไฟล์นี้ไม่ถูกต้อง",
     });
+    expect(response.text).not.toContain(CONTENTS);
+  });
+
+  it("refuses a request with no signature from a signed-in caller too", async () => {
+    // The other half of the same rule, and the one worth writing down: a
+    // session buys nothing here. It is not that the route trusts nobody — it is
+    // that it does not read the cookie at all, because the share link has to
+    // work without one. Whoever is asking is not the question; who signed the
+    // link is.
+    await storedFile("someone-elses-transcript.txt");
+
+    const response = await request(app)
+      .get("/files")
+      .query({ path: "someone-elses-transcript.txt" })
+      .set("Cookie", sessionCookie({ userId: "65000001", role: "STUDENT" }));
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe("ลิงก์ไฟล์นี้ไม่ถูกต้อง");
     expect(response.text).not.toContain(CONTENTS);
   });
 

@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { optionalText, text } from "./fields";
 
 /**
  * What `GET /files` is asked for: an object key, and the signature that says
@@ -16,9 +15,18 @@ import { optionalText, text } from "./fields";
  * request's shape, so a request without them is refused, not corrected — the
  * schema would otherwise turn the hole this endpoint was closing into a 400
  * that reads like a typo.
+ *
+ * These are the one set of fields in this directory built from bare `z.string()`
+ * rather than from `fields.ts`. Everything there trims on the way in, which is
+ * right for a name somebody typed and wrong for these: the signature is over the
+ * exact bytes that were sent out, so a key trimmed on arrival would be checked
+ * against a signature for a different string and refused with a 403 nobody could
+ * account for.
  */
+const verbatim = z.string();
+
 export const filesQuery = z.object({
-  path: text,
-  exp: optionalText,
-  sig: optionalText,
+  path: verbatim.min(1),
+  exp: verbatim.optional(),
+  sig: verbatim.optional(),
 });
