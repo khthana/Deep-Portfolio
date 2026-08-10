@@ -7,7 +7,7 @@ import {
   MemberDetailResp,
   UpdateStudentActivityGroupBody,
 } from "../models/student-activity-group.model";
-import GroupService from "./group.service";
+import GroupService, { assertMembersEnrolled } from "./group.service";
 import crypto from "crypto";
 
 export default class StudentActivityGroupService {
@@ -21,6 +21,19 @@ export default class StudentActivityGroupService {
     let inviterName = "";
 
     const result = await prisma.$transaction(async (tx) => {
+      // The list is checked against the section's roster before anything is
+      // written, so a refusal leaves nothing behind (#37).
+      const activity = await tx.activities.findUnique({
+        where: { id: data.activity_id },
+        select: { section_id: true },
+      });
+
+      await assertMembersEnrolled(
+        tx,
+        activity?.section_id ?? null,
+        data.members,
+      );
+
       const group = await tx.student_activity_group.create({
         data: {
           activity_id: data.activity_id,
@@ -119,15 +132,25 @@ export default class StudentActivityGroupService {
         where: { group_id: data.group_id },
       });
 
-      // 2. ลบสมาชิกเดิมออกทั้งหมดเพื่อเตรียมจัดกลุ่มใหม่
-      const group = await tx.student_activity_group.update({
+      const group = await tx.student_activity_group.findUniqueOrThrow({
         where: { id: data.group_id },
-        data: {
-          student_activity_group_member: {
-            deleteMany: { group_id: data.group_id },
-          },
+        select: {
+          activity_id: true,
+          activities: { select: { section_id: true } },
         },
-        select: { activity_id: true },
+      });
+
+      // The new list is checked before the old one is deleted (#37), so a
+      // refusal leaves the group exactly as it was.
+      await assertMembersEnrolled(
+        tx,
+        group.activities.section_id,
+        data.members,
+      );
+
+      // 2. ลบสมาชิกเดิมออกทั้งหมดเพื่อเตรียมจัดกลุ่มใหม่
+      await tx.student_activity_group_member.deleteMany({
+        where: { group_id: data.group_id },
       });
 
       for (const member of data.members) {

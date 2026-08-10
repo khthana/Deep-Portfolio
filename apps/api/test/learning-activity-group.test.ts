@@ -23,7 +23,11 @@ import { sessionCookie } from "./helpers/session";
  *
  * Auth is arranged the same way: since #26 all five need a student session, the
  * three reads are about whoever is signed in, and `/without-group` answers only
- * for a section the caller is enrolled in.
+ * for a section the caller is enrolled in. Since #37 POST is the caller's own
+ * group to make and both writes only take students enrolled in the section —
+ * one difference from the twin, and it is in the schema rather than the rule:
+ * `learning_activities.section_id` is NOT NULL, so there is no work here that
+ * belongs to no section.
  */
 
 /** A section with a learning activity and students enrolled — the state a group
@@ -287,7 +291,121 @@ describe("POST /student-learning-activity-group", () => {
     ).toBe(0);
   });
 
+  it("refuses a caller who leads none of the list they sent", async () => {
+    // A group made in a classmate's name, which leaves them leading a group
+    // they never asked for and able to be dropped from it by nobody.
+    const { learningActivity, students } = await classWithStudents(2);
+    const [caller, classmate] = students;
+
+    const response = await request(app)
+      .post("/student-learning-activity-group")
+      .set("Cookie", sessionCookie({ userId: caller.student_id }))
+      .send({
+        learning_activity_id: learningActivity.id,
+        members: [
+          { student_id: classmate.student_id, role: "LEADER" },
+          { student_id: caller.student_id, role: "MEMBER" },
+        ],
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "สร้างกลุ่มได้เฉพาะกลุ่มที่ตัวเองเป็นหัวหน้าเท่านั้น",
+    });
+    expect(
+      await prisma.student_learning_activity_group.count({
+        where: { learning_activity_id: learningActivity.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("refuses a caller who is not in the list at all", async () => {
+    const { learningActivity, students } = await classWithStudents(3);
+    const [caller, leader, member] = students;
+
+    const response = await request(app)
+      .post("/student-learning-activity-group")
+      .set("Cookie", sessionCookie({ userId: caller.student_id }))
+      .send({
+        learning_activity_id: learningActivity.id,
+        members: [
+          { student_id: leader.student_id, role: "LEADER" },
+          { student_id: member.student_id, role: "MEMBER" },
+        ],
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe(
+      "สร้างกลุ่มได้เฉพาะกลุ่มที่ตัวเองเป็นหัวหน้าเท่านั้น",
+    );
+    expect(
+      await prisma.student_learning_activity_group.count({
+        where: { learning_activity_id: learningActivity.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("refuses a member who is not enrolled in the section", async () => {
+    const { learningActivity, students } = await classWithStudents(1);
+    const outsider = await createStudent();
+
+    const response = await request(app)
+      .post("/student-learning-activity-group")
+      .set("Cookie", sessionCookie({ userId: students[0].student_id }))
+      .send({
+        learning_activity_id: learningActivity.id,
+        members: [
+          { student_id: students[0].student_id, role: "LEADER" },
+          { student_id: outsider.student_id, role: "MEMBER" },
+        ],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "รายชื่อมีนักศึกษาที่ไม่ได้ลงทะเบียนกลุ่มเรียนนี้",
+    });
+    expect(
+      await prisma.student_learning_activity_group.count({
+        where: { learning_activity_id: learningActivity.id },
+      }),
+    ).toBe(0);
+    // Nothing half-written: the refusal comes before the first row.
+    expect(
+      await prisma.student_learning_activity.count({
+        where: { learning_activity_id: learningActivity.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("refuses a caller who is not enrolled in the section themselves", async () => {
+    const { learningActivity } = await classWithStudents(0);
+    const outsider = await createStudent();
+
+    const response = await request(app)
+      .post("/student-learning-activity-group")
+      .set("Cookie", sessionCookie({ userId: outsider.student_id }))
+      .send({
+        learning_activity_id: learningActivity.id,
+        members: [{ student_id: outsider.student_id, role: "LEADER" }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe(
+      "รายชื่อมีนักศึกษาที่ไม่ได้ลงทะเบียนกลุ่มเรียนนี้",
+    );
+    expect(
+      await prisma.student_learning_activity_group.count({
+        where: { learning_activity_id: learningActivity.id },
+      }),
+    ).toBe(0);
+  });
+
   it("refuses a member who is not a student in this system", async () => {
+    // A 500 before #37, from the member row's foreign key failing halfway
+    // through the transaction. Nobody is enrolled under an id that belongs to
+    // no student, so it is the same refusal as any other outsider.
     const { learningActivity, students } = await classWithStudents(1);
 
     const response = await request(app)
@@ -301,9 +419,10 @@ describe("POST /student-learning-activity-group", () => {
         ],
       });
 
-    expect(response.status).toBe(500);
-    // One transaction, so the group the first member was written into is rolled
-    // back with them.
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe(
+      "รายชื่อมีนักศึกษาที่ไม่ได้ลงทะเบียนกลุ่มเรียนนี้",
+    );
     expect(
       await prisma.student_learning_activity_group.count({
         where: { learning_activity_id: learningActivity.id },
@@ -399,6 +518,53 @@ describe("PATCH /student-learning-activity-group", () => {
         },
       }),
     ).not.toBeNull();
+  });
+
+  it("refuses a member who is not enrolled in the section", async () => {
+    // The leader may write this list and everything about it is well formed;
+    // what is wrong is the person in it, who is not in the class the work
+    // belongs to (#37).
+    const { learningActivity, students } = await classWithStudents(1);
+    const [leader] = students;
+    const outsider = await createStudent();
+    const group = await createLearningActivityGroup({
+      learning_activity_id: learningActivity.id,
+      members: [{ student_id: leader.student_id }],
+    });
+
+    const response = await request(app)
+      .patch("/student-learning-activity-group")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .send({
+        group_id: group.id,
+        members: [
+          { student_id: leader.student_id, role: "LEADER" },
+          { student_id: outsider.student_id, role: "MEMBER" },
+        ],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "รายชื่อมีนักศึกษาที่ไม่ได้ลงทะเบียนกลุ่มเรียนนี้",
+    });
+
+    // The membership is deleted before the new list is written, so the group
+    // standing as it was is what says the refusal came first.
+    expect(
+      await prisma.student_learning_activity_group_member.findMany({
+        where: { group_id: group.id },
+        select: { student_id: true },
+      }),
+    ).toEqual([{ student_id: leader.student_id }]);
+    expect(
+      await prisma.student_learning_activity.count({
+        where: {
+          learning_activity_id: learningActivity.id,
+          student_id: outsider.student_id,
+        },
+      }),
+    ).toBe(0);
   });
 
   it("refuses a request with no session", async () => {

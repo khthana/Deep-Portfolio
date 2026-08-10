@@ -14,8 +14,15 @@ import { createStudent } from "./user";
  */
 
 export interface ActivityOptions {
-  /** course_sections.section_id. A section is created if this is left out. */
-  section_id?: number;
+  /**
+   * course_sections.section_id. A section is created if this is left out.
+   *
+   * `null` writes a piece of work that belongs to no section. The column is
+   * nullable in the baseline migration and nothing in the API writes a null —
+   * `POST /activity` requires one — so this is for the cases that pin what
+   * happens if a row ever gets there another way.
+   */
+  section_id?: number | null;
   /** course_syllabus.id — the week of the lesson plan this piece of work sits
    *  in. There is no foreign key on this column; DELETE /lesson-plan nulls it
    *  by hand. */
@@ -42,7 +49,10 @@ export interface ActivityOptions {
 }
 
 export async function createActivity(options: ActivityOptions = {}) {
-  const section_id = options.section_id ?? (await createCourse()).section_id;
+  const section_id =
+    options.section_id === undefined
+      ? (await createCourse()).section_id
+      : options.section_id;
 
   return prisma.activities.create({
     data: {

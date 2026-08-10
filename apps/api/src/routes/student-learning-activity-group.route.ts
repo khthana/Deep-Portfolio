@@ -5,6 +5,7 @@ import {
   groupLeader,
   requireEnrolledSection,
   requireGroupLeader,
+  requireSelfLeader,
 } from "../middlewares/owner.middleware";
 import { validate } from "../validation/validate";
 import { groupParams } from "../validation/student-activity-group.schema";
@@ -43,10 +44,13 @@ studentLearningActivityGroupRouter.delete(
   ),
 );
 
+// The caller has to lead the list they send (#37); the rest of the list is
+// checked against the section's roster in the service, as on the twin.
 studentLearningActivityGroupRouter.post(
   "/",
   requireRole("STUDENT"),
   validate({ body: createStudentLearningActivityGroupBody }),
+  requireSelfLeader,
   studentLearningActivityGroupController.createStudentLearningActivityGroup.bind(
     studentLearningActivityGroupController,
   ),

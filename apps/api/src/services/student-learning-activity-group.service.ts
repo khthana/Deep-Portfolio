@@ -13,7 +13,7 @@ import {
   GetStudentLearningActivityGroupResp,
   UpdateStudentLearningActivityGroupBody,
 } from "../models/student-learning-activity-group.model";
-import GroupService from "./group.service";
+import GroupService, { assertMembersEnrolled } from "./group.service";
 
 export default class StudentLearningActivityGroupService {
   private readonly groupService: GroupService;
@@ -31,6 +31,18 @@ export default class StudentLearningActivityGroupService {
 
     // 2. ทำ Database Transaction
     const result = await prisma.$transaction(async (tx) => {
+      // 2.0 ตรวจว่าทุกคนในรายชื่อลงทะเบียนกลุ่มเรียนของกิจกรรมนี้ ก่อนเขียนแถวแรก (#37)
+      const learningActivity = await tx.learning_activities.findUnique({
+        where: { id: data.learning_activity_id },
+        select: { section_id: true },
+      });
+
+      await assertMembersEnrolled(
+        tx,
+        learningActivity?.section_id ?? null,
+        data.members,
+      );
+
       // 2.1 สร้างกลุ่ม
       const group = await tx.student_learning_activity_group.create({
         data: {
@@ -141,14 +153,24 @@ export default class StudentLearningActivityGroupService {
           where: { group_id: data.group_id },
         });
 
-      const group = await tx.student_learning_activity_group.update({
-        where: { id: data.group_id },
-        data: {
-          student_learning_activity_group_member: {
-            deleteMany: { group_id: data.group_id },
+      const group =
+        await tx.student_learning_activity_group.findUniqueOrThrow({
+          where: { id: data.group_id },
+          select: {
+            learning_activity_id: true,
+            learning_activities: { select: { section_id: true } },
           },
-        },
-        select: { learning_activity_id: true },
+        });
+
+      // ตรวจรายชื่อใหม่ก่อนลบรายชื่อเดิม (#37) ถ้าไม่ผ่าน กลุ่มยังเหมือนเดิมทุกอย่าง
+      await assertMembersEnrolled(
+        tx,
+        group.learning_activities.section_id,
+        data.members,
+      );
+
+      await tx.student_learning_activity_group_member.deleteMany({
+        where: { group_id: data.group_id },
       });
 
       for (const member of data.members) {

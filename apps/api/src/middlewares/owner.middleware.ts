@@ -8,7 +8,7 @@ import { errorResponse } from "../utils/response";
  * give.
  *
  * A role says what kind of user is asking. It does not say whose data this is,
- * and that is the question these middlewares answer. Four rules live here, one
+ * and that is the question these middlewares answer. Five rules live here, one
  * per ADR:
  *
  * - `requireSelf` / `requireOwnEntry` — the portfolio group's rule. Every row
@@ -24,8 +24,11 @@ import { errorResponse } from "../utils/response";
  * - `requireGroupLeader` — inside a group, the membership is the leader's to
  *   change and nobody else's.
  *   See docs/adr/0004-group-leader.md and issue #27.
+ * - `requireSelfLeader` — the same rule one step earlier: a new group is the
+ *   caller's own, so they must be the leader of the list they send.
+ *   See docs/adr/0007-group-membership.md and issue #37.
  *
- * All five assume a session middleware ran first: they read the session
+ * All of them assume a session middleware ran first: they read the session
  * through `sessionUserId`, which throws rather than answering 401, because a
  * route that reached here without a session is a wiring mistake and not a
  * caller's.
@@ -34,8 +37,9 @@ import { errorResponse } from "../utils/response";
  * something that is not there is a different question with a different answer,
  * and the controller already gives it; folding the two together would turn
  * every 404 in that group into a 403 and hide the difference from the caller.
- * The two section ones and the group one are the other way round, and
- * `sectionRule` says why.
+ * The two section ones and `requireGroupLeader` are the other way round, and
+ * `sectionRule` says why. `requireSelfLeader` asks the database nothing at all:
+ * everything it compares is in the request.
  */
 
 /**
@@ -237,6 +241,57 @@ export function requireGroupLeader(
       next(error);
     }
   };
+}
+
+/**
+ * Shown when a student sets a group up in somebody else's name (#37). A
+ * separate sentence from `NOT_GROUP_LEADER` because it is a separate mistake:
+ * that one is about a group that exists and is somebody else's, this one is
+ * about a group that does not exist yet and is being made for somebody else.
+ */
+export const NOT_SELF_LEADER = "สร้างกลุ่มได้เฉพาะกลุ่มที่ตัวเองเป็นหัวหน้าเท่านั้น";
+
+/**
+ * The body carries a member list and the signed-in student must be the one it
+ * calls `LEADER` (#37).
+ *
+ *     router.post("/", requireRole("STUDENT"),
+ *                 validate({ body: createStudentActivityGroupBody }),
+ *                 requireSelfLeader, controller.create);
+ *
+ * `POST` is where a group's leader is decided, and it used to be decided by
+ * whoever asked: a student could name a classmate as leader, leave themselves
+ * out, and hand them a group they never made — which `requireGroupLeader` then
+ * protects on that classmate's behalf. Under ADR-0001's rule the acting user is
+ * the session's, and for a group the acting user is its leader.
+ *
+ * Being in the list is deliberately not enough. A member who is not the leader
+ * cannot rewrite the list or disband the group afterwards (ADR-0004), so
+ * letting them create it would mean the one thing they could do to a group is
+ * the one thing that cannot be undone by anyone but somebody else.
+ *
+ * After `validate`, so by the time this runs the list exists and has exactly
+ * one `LEADER` in it — a body without one is a `400` from `memberList` first.
+ * Like the rules above it reads the raw body rather than the parsed one, to
+ * keep the route's schema out of the middleware's arguments.
+ */
+export function requireSelfLeader(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  const { members } = (req.body ?? {}) as { members?: unknown };
+  const leader = Array.isArray(members)
+    ? (members.find(
+        (member) => (member as { role?: unknown })?.role === "LEADER",
+      ) as { student_id?: unknown } | undefined)
+    : undefined;
+
+  if (leader?.student_id !== sessionUserId(req)) {
+    return errorResponse(res, 403, NOT_SELF_LEADER);
+  }
+
+  next();
 }
 
 /**

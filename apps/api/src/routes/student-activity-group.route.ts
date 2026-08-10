@@ -5,6 +5,7 @@ import {
   groupLeader,
   requireEnrolledSection,
   requireGroupLeader,
+  requireSelfLeader,
 } from "../middlewares/owner.middleware";
 import { validate } from "../validation/validate";
 import {
@@ -42,10 +43,15 @@ studentActivityGroupRouter.delete(
   ),
 );
 
+// A new group is the caller's own, so they have to be the leader of the list
+// they send (#37). Whether everyone in that list is in the class is the other
+// half of the rule and is checked in the service, where the section the work
+// belongs to is already being read.
 studentActivityGroupRouter.post(
   "/",
   requireRole("STUDENT"),
   validate({ body: createStudentActivityGroupBody }),
+  requireSelfLeader,
   studentActivityGroupController.createStudentActivityGroup.bind(
     studentActivityGroupController,
   ),
