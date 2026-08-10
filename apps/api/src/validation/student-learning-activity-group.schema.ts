@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { id, userId } from "./fields";
+import { id } from "./fields";
 import { groupMember } from "./student-activity-group.schema";
 
 /**
@@ -21,12 +21,10 @@ export const updateStudentLearningActivityGroupBody = z.object({
 });
 
 export const studentLearningActivityGroupQuery = z.object({
-  student_id: userId,
   learning_activity_id: id,
 });
 
 export const studentLearningActivityGroupInSecQuery = z.object({
-  student_id: userId,
   section_id: id,
 });
 

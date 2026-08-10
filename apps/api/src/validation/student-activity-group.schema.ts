@@ -31,24 +31,29 @@ export const updateStudentActivityGroupBody = z.object({
 });
 
 /**
- * The reads take the student they are about from the query string, so all three
- * parameters are required.
+ * These two reads are about the student who is signed in, so `student_id` is not
+ * a parameter of either — it comes from the session (#26, ADR-0003). What is
+ * left is the thing being asked about, and it is required.
  *
- * `student_id` on `/all` is the one that mattered most: it reached Prisma as
+ * The parameter used to be here, and on `/all` it reached Prisma as
  * `some: { student_id: undefined }`, which is not a filter matching nothing but
  * no filter at all — so leaving it out widened the answer from "my groups" to
- * every group in the section, member lists included (#26).
+ * every group in the section, member lists included. A field that is gone from
+ * the schema cannot be left out.
  */
 export const studentActivityGroupQuery = z.object({
-  student_id: userId,
   activity_id: id,
 });
 
 export const studentActivityGroupInSecQuery = z.object({
-  student_id: userId,
   section_id: id,
 });
 
+/**
+ * The third read is the odd one out: it names a section and no student, so the
+ * session does not narrow it and there is nothing here to take away. Who may ask
+ * is settled by `requireEnrolledSection` on the route instead.
+ */
 export const studentsWithoutGroupQuery = z.object({
   section_id: id,
   activity_id: id,

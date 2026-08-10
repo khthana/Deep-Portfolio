@@ -46,7 +46,6 @@ const CreateGroupworkSection = (props: Props) => {
     const getStudentActivityGroupInSecParams: GetStudentActivityGroupInSecParams =
       {
         section_id: props.classworkDetail.section_id,
-        student_id: props.classworkDetail.student_id,
       };
 
     await dispatch(
@@ -68,7 +67,6 @@ const CreateGroupworkSection = (props: Props) => {
     const getStudentActivityGroupInSecParams: GetStudentActivityGroupInSecParams =
       {
         section_id: props.classworkDetail.section_id,
-        student_id: props.classworkDetail.student_id,
       };
 
     await dispatch(

@@ -21,10 +21,11 @@ import { sessionCookie } from "./helpers/session";
  * submission row, which is what makes the group a thing that can be handed in
  * and marked as one.
  *
- * Only the two writing endpoints check a session. The three reads take the
- * student they are about from the query string, so any caller can ask about
- * any student — recorded here as it is, because there is no ownership check
- * anywhere in this system to make it consistent with.
+ * Since #26 all five endpoints need a student session. The three reads are
+ * about the student who is signed in and no other: `student_id` is gone from
+ * the query string, and `/without-group`, which names a section rather than a
+ * student, answers only for a section the caller is enrolled in. The rule is in
+ * docs/adr/0003-enrolment-access.md.
  */
 
 /** A section with an activity and students already enrolled — the state a
@@ -427,7 +428,8 @@ describe("GET /student-activity-group", () => {
 
     const response = await request(app)
       .get("/student-activity-group")
-      .query({ student_id: member.student_id, activity_id: activity.id });
+      .set("Cookie", sessionCookie({ userId: member.student_id }))
+      .query({ activity_id: activity.id });
 
     expect(response.status).toBe(200);
     expect(response.body.data.group_id).toBe(group.id);
@@ -452,10 +454,30 @@ describe("GET /student-activity-group", () => {
 
     const response = await request(app)
       .get("/student-activity-group")
-      .query({
-        student_id: students[0].student_id,
-        activity_id: activity.id,
-      });
+      .set("Cookie", sessionCookie({ userId: students[0].student_id }))
+      .query({ activity_id: activity.id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toBeNull();
+  });
+
+  it("answers about the caller, whoever the request names", async () => {
+    // See BEHAVIOR-CHANGES.md. student_id used to come from the query string,
+    // so naming somebody else's showed you their group and everyone in it.
+    const { activity, students } = await classWithStudents(3);
+    const [asking, leader, member] = students;
+    await createActivityGroup({
+      activity_id: activity.id,
+      members: [
+        { student_id: leader.student_id },
+        { student_id: member.student_id },
+      ],
+    });
+
+    const response = await request(app)
+      .get("/student-activity-group")
+      .set("Cookie", sessionCookie({ userId: asking.student_id }))
+      .query({ activity_id: activity.id, student_id: leader.student_id });
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeNull();
@@ -469,12 +491,43 @@ describe("GET /student-activity-group", () => {
 
     const response = await request(app)
       .get("/student-activity-group")
-      .query({ student_id: student.student_id });
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({});
 
     expect(response.status).toBe(400);
     expect(response.body.errors).toEqual([
       { field: "activity_id", location: "query", message: "ต้องระบุ" },
     ]);
+  });
+
+  it("refuses a request with no session", async () => {
+    const { activity } = await classWithStudents(1);
+
+    const response = await request(app)
+      .get("/student-activity-group")
+      .query({ activity_id: activity.id });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
+    });
+  });
+
+  it("refuses a teacher", async () => {
+    const { activity } = await classWithStudents(1);
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .get("/student-activity-group")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .query({ activity_id: activity.id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
+    });
   });
 });
 
@@ -503,10 +556,8 @@ describe("GET /student-activity-group/all", () => {
 
     const response = await request(app)
       .get("/student-activity-group/all")
-      .query({
-        student_id: student.student_id,
-        section_id: course.section_id,
-      });
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ section_id: course.section_id });
 
     expect(response.status).toBe(200);
     expect(
@@ -543,10 +594,8 @@ describe("GET /student-activity-group/all", () => {
 
     const response = await request(app)
       .get("/student-activity-group/all")
-      .query({
-        student_id: leader.student_id,
-        section_id: course.section_id,
-      });
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .query({ section_id: course.section_id });
 
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(1);
@@ -558,34 +607,66 @@ describe("GET /student-activity-group/all", () => {
 
     const response = await request(app)
       .get("/student-activity-group/all")
-      .query({ student_id: student.student_id, section_id: course.section_id });
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ section_id: course.section_id });
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual([]);
   });
 
-  it("answers 400 when the student_id is missing", async () => {
-    // `some: { student_id: undefined }` is not a filter that matches nothing,
-    // it is no filter at all — so dropping the parameter widened the answer
-    // from "my groups" to everyone's, and the caller was shown the member
-    // lists of students they were never in a group with (#26).
-    const { course, activity, students } = await classWithStudents(2);
+  it("leaves out the groups of the classmates the caller is not with", async () => {
+    // See BEHAVIOR-CHANGES.md. This is the leak #26 was filed for: the student
+    // came from the query string, and `some: { student_id: undefined }` is not
+    // a filter matching nothing but no filter at all, so a caller who left the
+    // parameter out was handed every group in the section, member lists and
+    // all. Now the filter is the session and cannot be left out.
+    const { course, activity, students } = await classWithStudents(3);
+    const [asking, leader, member] = students;
     await createActivityGroup({
       activity_id: activity.id,
       members: [
-        { student_id: students[0].student_id },
-        { student_id: students[1].student_id },
+        { student_id: leader.student_id },
+        { student_id: member.student_id },
       ],
     });
 
     const response = await request(app)
       .get("/student-activity-group/all")
+      .set("Cookie", sessionCookie({ userId: asking.student_id }))
+      .query({ section_id: course.section_id, student_id: leader.student_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([]);
+  });
+
+  it("refuses a request with no session", async () => {
+    const { course } = await classWithStudents(1);
+
+    const response = await request(app)
+      .get("/student-activity-group/all")
       .query({ section_id: course.section_id });
 
-    expect(response.status).toBe(400);
-    expect(response.body.errors).toEqual([
-      { field: "student_id", location: "query", message: "ต้องระบุ" },
-    ]);
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
+    });
+  });
+
+  it("refuses a teacher", async () => {
+    const { course } = await classWithStudents(1);
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .get("/student-activity-group/all")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
+    });
   });
 });
 
@@ -603,6 +684,7 @@ describe("GET /student-activity-group/without-group", () => {
 
     const response = await request(app)
       .get("/student-activity-group/without-group")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
       .query({ section_id: course.section_id, activity_id: activity.id });
 
     expect(response.status).toBe(200);
@@ -623,36 +705,100 @@ describe("GET /student-activity-group/without-group", () => {
 
     const response = await request(app)
       .get("/student-activity-group/without-group")
+      .set("Cookie", sessionCookie({ userId: students[0].student_id }))
       .query({ section_id: course.section_id, activity_id: activity.id });
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual([]);
   });
 
-  it("returns an empty list when no one is enrolled in the section", async () => {
-    const course = await createCourse();
-    const activity = await createActivity({ section_id: course.section_id });
+  it("refuses a student who is not enrolled in the section", async () => {
+    // The list is the section's roster minus whoever is already grouped, so it
+    // is the classmates' names — this is the only one of the three reads that
+    // names a section rather than the caller, and enrolment is what stands in
+    // for ownership.
+    const { course, activity } = await classWithStudents(1);
+    const outsider = await createStudent();
 
     const response = await request(app)
       .get("/student-activity-group/without-group")
+      .set("Cookie", sessionCookie({ userId: outsider.student_id }))
       .query({ section_id: course.section_id, activity_id: activity.id });
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของกลุ่มเรียนนี้",
+    });
+  });
+
+  it("refuses a section that does not exist in the same words", async () => {
+    // Not a 404, and not an empty list. Section ids are small integers, so an
+    // answer that told the caller a section exists but is not theirs would map
+    // the institution's enrolment one id at a time — the reason ADR-0002 gives
+    // for the teaching rule, and it holds the same way here.
+    const { course, activity, students } = await classWithStudents(1);
+
+    const response = await request(app)
+      .get("/student-activity-group/without-group")
+      .set("Cookie", sessionCookie({ userId: students[0].student_id }))
+      .query({
+        section_id: course.section_id + 100000,
+        activity_id: activity.id,
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของกลุ่มเรียนนี้",
+    });
   });
 
   it("answers 400 when the section_id is missing", async () => {
     // student_course.section_id is NOT NULL, so the NaN parseInt produced was
-    // rejected by Postgres rather than matching nothing.
-    const { activity } = await classWithStudents(1);
+    // rejected by Postgres rather than matching nothing. Still a 400 and not
+    // the 403 of the case above: the enrolment check runs after validate, so a
+    // request that names no section is malformed before it is anyone's.
+    const { activity, students } = await classWithStudents(1);
 
     const response = await request(app)
       .get("/student-activity-group/without-group")
+      .set("Cookie", sessionCookie({ userId: students[0].student_id }))
       .query({ activity_id: activity.id });
 
     expect(response.status).toBe(400);
     expect(response.body.errors).toEqual([
       { field: "section_id", location: "query", message: "ต้องระบุ" },
     ]);
+  });
+
+  it("refuses a request with no session", async () => {
+    const { course, activity } = await classWithStudents(1);
+
+    const response = await request(app)
+      .get("/student-activity-group/without-group")
+      .query({ section_id: course.section_id, activity_id: activity.id });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
+    });
+  });
+
+  it("refuses a teacher", async () => {
+    const { course, activity } = await classWithStudents(1);
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .get("/student-activity-group/without-group")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .query({ section_id: course.section_id, activity_id: activity.id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
+    });
   });
 });

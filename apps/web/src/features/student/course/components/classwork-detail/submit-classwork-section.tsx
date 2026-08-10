@@ -237,7 +237,6 @@ const SubmitClassworkSection = (props: Props) => {
     if (!classworkDetail) return;
 
     const params: GetStudentActivityGroupParams = {
-      student_id: classworkDetail.student_id,
       activity_id: classworkDetail.activity_id,
     };
 
@@ -250,7 +249,6 @@ const SubmitClassworkSection = (props: Props) => {
     if (!classworkDetail) return;
 
     const params: GetStudentLearningActivityGroupParams = {
-      student_id: classworkDetail.student_id,
       learning_activity_id: classworkDetail.activity_id,
     };
 

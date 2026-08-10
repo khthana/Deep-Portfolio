@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import StudentActivityGroupService from "../services/student-activity-group.service";
+import { sessionUserId } from "../middlewares/auth.middleware";
 import { successResponse } from "../utils/response";
 import { validated } from "../validation/validate";
 import {
@@ -56,13 +57,10 @@ export default class StudentActivityGroupController {
     next: NextFunction,
   ) {
     try {
-      const { student_id, activity_id } = validated(
-        req,
-        studentActivityGroupQuery,
-      );
+      const { activity_id } = validated(req, studentActivityGroupQuery);
       const group =
         await this.studentActivityGroupService.getStudentActivityGroup(
-          student_id,
+          sessionUserId(req),
           activity_id,
         );
 
@@ -101,14 +99,11 @@ export default class StudentActivityGroupController {
     next: NextFunction,
   ) {
     try {
-      const { student_id, section_id } = validated(
-        req,
-        studentActivityGroupInSecQuery,
-      );
+      const { section_id } = validated(req, studentActivityGroupInSecQuery);
       const group =
         await this.studentActivityGroupService.getStudentActivityGroupInSec(
           section_id,
-          student_id,
+          sessionUserId(req),
         );
 
       successResponse(res, group, "fetch group successfully");

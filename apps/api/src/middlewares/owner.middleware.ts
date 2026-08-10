@@ -8,7 +8,7 @@ import { errorResponse } from "../utils/response";
  * give.
  *
  * A role says what kind of user is asking. It does not say whose data this is,
- * and that is the question these middlewares answer. Two rules live here, one
+ * and that is the question these middlewares answer. Three rules live here, one
  * per ADR:
  *
  * - `requireSelf` / `requireOwnEntry` — the portfolio group's rule. Every row
@@ -18,8 +18,11 @@ import { errorResponse } from "../utils/response";
  * - `requireOwnSection` — the teaching rule. A teacher acts on the sections
  *   they teach and no others.
  *   See docs/adr/0002-section-access.md and issue #30.
+ * - `requireEnrolledSection` — the other half of the same question, from the
+ *   student's side: a student acts on the sections they are enrolled in.
+ *   See docs/adr/0003-enrolment-access.md and issue #26.
  *
- * All three assume a session middleware ran first: they read the session
+ * All four assume a session middleware ran first: they read the session
  * through `sessionUserId`, which throws rather than answering 401, because a
  * route that reached here without a session is a wiring mistake and not a
  * caller's.
@@ -28,7 +31,7 @@ import { errorResponse } from "../utils/response";
  * something that is not there is a different question with a different answer,
  * and the controller already gives it; folding the two together would turn
  * every 404 in that group into a 403 and hide the difference from the caller.
- * `requireOwnSection` is the other way round, and says why below.
+ * The two section ones are the other way round, and `sectionRule` says why.
  */
 
 /**
@@ -72,15 +75,24 @@ export function requireSelf(
 }
 
 /**
- * Shown when a teacher reaches for a section they do not teach. Says "กลุ่มเรียน"
- * because that is what the interface calls a section everywhere the user can
- * see one.
+ * Shown when a signed-in user reaches for a section they have nothing to do
+ * with. Says "กลุ่มเรียน" because that is what the interface calls a section
+ * everywhere the user can see one, and it is the same sentence for the teacher
+ * who does not teach it and the student who is not in it: which of the two the
+ * caller is, is not a fact the refusal should have to reveal.
  */
 export const NOT_MY_SECTION = "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของกลุ่มเรียนนี้";
 
+/** Whether this user belongs to this section, in whichever sense the caller's
+ *  rule means by "belongs". */
+type SectionMembership = (
+  sectionId: number,
+  userId: string,
+) => Promise<boolean>;
+
 /**
- * The request names a section — `?section_id=` or a `section_id` field — and
- * the signed-in teacher must be one of the section's teachers.
+ * The shape both section rules share: read `section_id` off the request, ask
+ * one question about it, and answer `403` when the answer is no.
  *
  *     router.get("/per-student", requireRole("TEACHER"),
  *                validate({ query: gradebookQuery }),
@@ -93,38 +105,68 @@ export const NOT_MY_SECTION = "คุณไม่มีสิทธิ์เข�
  * raw value is still a string, and reading the raw value keeps the schema out
  * of the middleware's arguments.
  *
- * A section nobody teaches, and a section that does not exist at all, both come
- * back as `403` rather than as an empty answer or a `404`. That is deliberate,
- * and it is where this rule parts company with the portfolio one above: section
- * ids are small integers, so a caller who could tell "no such section" from
- * "not yours" could walk the range and map the whole institution's teaching
- * from the outside.
+ * A section that nobody has that relationship with, and a section that does not
+ * exist at all, both come back as `403` rather than as an empty answer or a
+ * `404`. That is deliberate, and it is where these rules part company with the
+ * portfolio one above: section ids are small integers, so a caller who could
+ * tell "no such section" from "not yours" could walk the range and map the
+ * whole institution's teaching and enrolment from the outside.
  */
-export function requireOwnSection(location: "query" | "body") {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    const session = sessionUserId(req);
-    const named = (req[location] as Record<string, unknown> | undefined)
-      ?.section_id;
-    const sectionId = Number(named);
+function sectionRule(belongs: SectionMembership) {
+  return (location: "query" | "body") =>
+    async (req: Request, res: Response, next: NextFunction) => {
+      const session = sessionUserId(req);
+      const named = (req[location] as Record<string, unknown> | undefined)
+        ?.section_id;
+      const sectionId = Number(named);
 
-    try {
-      const teaches = Number.isSafeInteger(sectionId)
-        ? await prisma.course_sections_teacher.findFirst({
-            where: { section_id: sectionId, user_id: session },
-            select: { id: true },
-          })
-        : null;
+      try {
+        const member =
+          Number.isSafeInteger(sectionId) &&
+          (await belongs(sectionId, session));
 
-      if (!teaches) {
-        return errorResponse(res, 403, NOT_MY_SECTION);
+        if (!member) {
+          return errorResponse(res, 403, NOT_MY_SECTION);
+        }
+
+        next();
+      } catch (error) {
+        next(error);
       }
-
-      next();
-    } catch (error) {
-      next(error);
-    }
-  };
+    };
 }
+
+/**
+ * The request names a section and the signed-in teacher must be one of the
+ * section's teachers (#30).
+ */
+export const requireOwnSection = sectionRule(async (sectionId, userId) => {
+  const teaches = await prisma.course_sections_teacher.findFirst({
+    where: { section_id: sectionId, user_id: userId },
+    select: { id: true },
+  });
+
+  return teaches !== null;
+});
+
+/**
+ * The request names a section and the signed-in student must be enrolled in it
+ * (#26).
+ *
+ * The mirror image of `requireOwnSection` over `student_course` instead of
+ * `course_sections_teacher`. It exists because a handful of reads are about a
+ * section rather than about the caller — the roster of who is still without a
+ * group, say — so there is no user_id in the request to compare the session
+ * against, and being in the class is the nearest thing to owning the answer.
+ */
+export const requireEnrolledSection = sectionRule(async (sectionId, userId) => {
+  const enrolled = await prisma.student_course.findFirst({
+    where: { section_id: sectionId, student_id: userId },
+    select: { student_id: true },
+  });
+
+  return enrolled !== null;
+});
 
 /** Finds who a row belongs to, or null when there is no such row. */
 type OwnerLookup = (id: string) => Promise<{ user_id: string } | null>;

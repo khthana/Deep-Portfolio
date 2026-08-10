@@ -199,9 +199,10 @@ export const memberStatusTextColor: Record<MemberStatus, string> = {
 
 export type MemberStatus = keyof typeof memberStatus;
 
+// The group reads are about the student who is signed in, so they no longer
+// name one — the API takes it from the session (#26).
 export type GetStudentActivityGroupParams = {
   activity_id: number;
-  student_id: string;
 };
 
 export type GetStudentActivityGroupResp = {
@@ -218,7 +219,6 @@ export type MemberDetailResp = {
 
 export type GetStudentActivityGroupInSecParams = {
   section_id: number;
-  student_id: string;
 };
 
 export type GetStudentWithoutGroupParams = {
@@ -249,7 +249,6 @@ export type GetStudentsWithoutGroupResp = {
 
 export type GetStudentLearningActivityGroupParams = {
   learning_activity_id: number;
-  student_id: string;
 };
 
 export type GetStudentLearningActivityWithoutGroupParams = {
