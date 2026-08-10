@@ -24,6 +24,7 @@ export default class StudentLearningActivityGroupService {
 
   async createStudentLearningActivityGroup(
     data: CreateStudentLearningActivityGroupBody,
+    created_by: string,
   ) {
     // 1. เตรียม Array ไว้เก็บข้อมูลคนที่จะต้องส่งอีเมลหา และตัวแปรเก็บชื่อคนเชิญ
     const emailsToSend: { email: string; token: string; name: string }[] = [];
@@ -47,8 +48,9 @@ export default class StudentLearningActivityGroupService {
       const group = await tx.student_learning_activity_group.create({
         data: {
           learning_activity_id: data.learning_activity_id,
-          created_by:
-            data.members.find((m) => m.role === "LEADER")?.student_id ?? "",
+          // มาจาก session ไม่ใช่จากรายชื่อในคำขอ (#37) วันนี้ได้ค่าเท่ากันเพราะ
+          // requireSelfLeader บังคับไว้แล้ว แต่คนสร้างเป็นข้อเท็จจริงของคำขอ
+          created_by,
         },
         select: { id: true },
       });

@@ -16,7 +16,10 @@ export default class StudentActivityGroupService {
   constructor() {
     this.groupService = new GroupService();
   }
-  async createStudentActivityGroup(data: CreateStudentActivityGroupBody) {
+  async createStudentActivityGroup(
+    data: CreateStudentActivityGroupBody,
+    created_by: string,
+  ) {
     const emailsToSend: { email: string; token: string; name: string }[] = [];
     let inviterName = "";
 
@@ -37,8 +40,10 @@ export default class StudentActivityGroupService {
       const group = await tx.student_activity_group.create({
         data: {
           activity_id: data.activity_id,
-          created_by:
-            data.members.find((m) => m.role === "LEADER")?.student_id ?? "",
+          // Comes from the session, not from the list the caller sent (#37).
+          // Today the two agree because requireSelfLeader makes them agree,
+          // but who created the group is a fact about the request.
+          created_by,
         },
         select: { id: true },
       });

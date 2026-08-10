@@ -429,6 +429,31 @@ describe("POST /student-learning-activity-group", () => {
       }),
     ).toBe(0);
   });
+
+  it("refuses work that does not exist", async () => {
+    // Another 500 before #37, from the group's own foreign key. Work that is
+    // not there has no class list to check the members against, so it is the
+    // same refusal, and the caller learns nothing about which ids exist.
+    const student = await createStudent();
+
+    const response = await request(app)
+      .post("/student-learning-activity-group")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({
+        learning_activity_id: 999999,
+        members: [{ student_id: student.student_id, role: "LEADER" }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe(
+      "รายชื่อมีนักศึกษาที่ไม่ได้ลงทะเบียนกลุ่มเรียนนี้",
+    );
+    expect(
+      await prisma.student_learning_activity_group.count({
+        where: { learning_activity_id: 999999 },
+      }),
+    ).toBe(0);
+  });
 });
 
 describe("PATCH /student-learning-activity-group", () => {

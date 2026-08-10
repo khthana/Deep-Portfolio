@@ -26,8 +26,12 @@ export default class StudentActivityGroupController {
   ) {
     try {
       const body = validated(req, createStudentActivityGroupBody);
+      // Who created the group comes from the session, not from the list (#37).
       const group =
-        await this.studentActivityGroupService.createStudentActivityGroup(body);
+        await this.studentActivityGroupService.createStudentActivityGroup(
+          body,
+          sessionUserId(req),
+        );
 
       successResponse(res, group, "Create group successfully");
     } catch (err) {

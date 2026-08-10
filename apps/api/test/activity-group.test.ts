@@ -239,9 +239,11 @@ describe("POST /student-activity-group", () => {
   });
 
   it("answers 400 for a member list with nobody leading it", async () => {
-    // `created_by` is read off whichever member says LEADER, so a list without
-    // one used to write a group whose creator was the empty string — and, since
-    // #27, a group nobody would be allowed to edit afterwards.
+    // `created_by` used to be read off whichever member says LEADER, so a list
+    // without one wrote a group whose creator was the empty string — and, since
+    // #27, a group nobody would be allowed to edit afterwards. The creator now
+    // comes from the session (#37), but the list still has to name a leader:
+    // that is who may edit the group afterwards.
     const { activity, students } = await classWithStudents(1);
 
     const response = await request(app)
@@ -500,6 +502,32 @@ describe("POST /student-activity-group", () => {
     expect(
       await prisma.student_activity_group.count({
         where: { activity_id: activity.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("refuses work that does not exist", async () => {
+    // Also a 500 before #37 — a foreign key that pointed at nothing. Work that
+    // is not there has no section and therefore no class list, so it comes out
+    // as the same refusal, and the caller learns nothing about which activity
+    // ids exist.
+    const student = await createStudent();
+
+    const response = await request(app)
+      .post("/student-activity-group")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({
+        activity_id: 999999,
+        members: [{ student_id: student.student_id, role: "LEADER" }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe(
+      "รายชื่อมีนักศึกษาที่ไม่ได้ลงทะเบียนกลุ่มเรียนนี้",
+    );
+    expect(
+      await prisma.student_activity_group.count({
+        where: { activity_id: 999999 },
       }),
     ).toBe(0);
   });
