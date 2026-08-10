@@ -187,7 +187,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
 | TC-51 | เพิ่มประวัติการอบรมพร้อมไฟล์แนบ | ครอบคลุมแล้ว | `portfolio-training.test.ts` — `POST /portfolio-training` "creates an entry and hands it back", "uploads the certificates and attaches them to the entry", "reads the year and the visibility flag back out of multipart strings" | |
-| TC-52 | แก้ไขประวัติการอบรม | ครอบคลุมแล้ว | `portfolio-training.test.ts` — `PUT /portfolio-training/:id` "overwrites the fields the request carries", "adds the uploaded files to what is already attached", "detaches what the request asks to be rid of, without deleting it" | |
+| TC-52 | แก้ไขประวัติการอบรม | ครอบคลุมแล้ว | `portfolio-training.test.ts` — `PUT /portfolio-training/:id` "overwrites the fields the request carries", "adds the uploaded files to what is already attached", "deletes what the request asks to be rid of, row and object" | ตั้งแต่ #34 สิ่งที่ `ids_to_delete` เอ่ยถึงถูกลบจริงทั้งแถวและ object ไม่ใช่แค่ตัดการเชื่อม |
 | TC-53 | ลบประวัติการอบรม | ครอบคลุมแล้ว | `portfolio-training.test.ts` — `DELETE /portfolio-training/:id` "removes the entry and what was attached to it", "keeps an attachment another entry still points at" | TC ข้อนี้คาดแค่ว่ารายการหายจากฐานข้อมูล ไม่ได้พูดถึงไฟล์แนบ แต่ตั้งแต่ #34 ไฟล์แนบก็หายไปด้วยเหมือน TC-56 |
 
 ### e-Portfolio ส่วนคุณวุฒิทางวิชาชีพ
@@ -211,7 +211,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
 | TC-60 | เพิ่มประวัติฝึกงาน/สหกิจศึกษา | ครอบคลุมแล้ว | `portfolio-internship.test.ts` — `POST /portfolio-internship` "creates a placement and hands it back", "reads the is_show flags out of the strings multipart carries", "uploads the files and hangs them off the placement" | |
-| TC-61 | แก้ไขข้อมูลฝึกงาน/สหกิจศึกษา | ครอบคลุมแล้ว | `portfolio-internship.test.ts` — `PUT /portfolio-internship/:id` "overwrites the fields the request carries", "adds the uploaded files to the ones already there", "drops the join row ids_to_delete names and leaves the attachment" | |
+| TC-61 | แก้ไขข้อมูลฝึกงาน/สหกิจศึกษา | ครอบคลุมแล้ว | `portfolio-internship.test.ts` — `PUT /portfolio-internship/:id` "overwrites the fields the request carries", "adds the uploaded files to the ones already there", "deletes the attachment ids_to_delete names" | ตั้งแต่ #34 ไฟล์แนบที่ถูกเอาออกจากรายการสุดท้ายที่ถืออยู่ ถูกลบจริง ไม่ใช่แค่ตัดการเชื่อม |
 | TC-62 | ลบข้อมูลฝึกงาน โดยไฟล์แนบต้องถูกเคลียร์ด้วย | ครอบคลุมแล้ว | `portfolio-internship.test.ts` — `DELETE /portfolio-internship/:id` "removes the placement, its join rows and what they pointed at" | เหมือน TC-56 — ตั้งแต่ #34 แถวใน `attachments` หายไปด้วย ดู [ADR-0008](adr/0008-attachment-lifecycle.md) |
 
 ### e-Portfolio ส่วนโครงงานปริญญาตรี
@@ -219,7 +219,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
 | TC-63 | เพิ่มโครงงานปริญญาตรี | ครอบคลุมแล้ว | `portfolio-thesis.test.ts` — `POST /portfolio-thesis` "creates a project and hands it back", "reads the four is_show flags out of the strings multipart carries", "uploads the files and hangs them off the project" | |
-| TC-64 | แก้ไขโครงงานปริญญาตรี | ครอบคลุมแล้ว | `portfolio-thesis.test.ts` — `PUT /portfolio-thesis/:id` "overwrites the fields the request carries", "adds the uploaded files to the ones already there", "drops the join row ids_to_delete names and leaves the attachment" | |
+| TC-64 | แก้ไขโครงงานปริญญาตรี | ครอบคลุมแล้ว | `portfolio-thesis.test.ts` — `PUT /portfolio-thesis/:id` "overwrites the fields the request carries", "adds the uploaded files to the ones already there", "deletes the attachment ids_to_delete names" | ตั้งแต่ #34 ไฟล์แนบที่ถูกเอาออกจากรายการสุดท้ายที่ถืออยู่ ถูกลบจริง ไม่ใช่แค่ตัดการเชื่อม |
 | TC-65 | ลบโครงงานปริญญาตรี | ครอบคลุมแล้ว | `portfolio-thesis.test.ts` — `DELETE /portfolio-thesis/:id` "removes the project, its join rows and what they pointed at" | TC ข้อนี้คาดแค่ว่าการ์ดหายและข้อมูลถูกลบ ไม่ได้ระบุถึงไฟล์แนบ ซึ่งตั้งแต่ #34 ก็หายไปด้วย |
 
 ### e-Portfolio ส่วนรางวัลและการแข่งขัน
@@ -227,7 +227,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
 | TC-66 | เพิ่มรางวัล | ครอบคลุมแล้ว | `portfolio-award.test.ts` — `POST /portfolio-award` "creates a prize and hands it back", "stores no date when the request carries none", "uploads the files and hangs them off the prize" | |
-| TC-67 | แก้ไขรางวัล | ครอบคลุมแล้ว | `portfolio-award.test.ts` — `PUT /portfolio-award/:id` "overwrites the fields the request carries", "clears the date when the request sends an empty one", "drops the join row ids_to_delete names and leaves the attachment" | |
+| TC-67 | แก้ไขรางวัล | ครอบคลุมแล้ว | `portfolio-award.test.ts` — `PUT /portfolio-award/:id` "overwrites the fields the request carries", "clears the date when the request sends an empty one", "deletes the attachment ids_to_delete names" | ตั้งแต่ #34 ไฟล์แนบที่ถูกเอาออกจากรายการสุดท้ายที่ถืออยู่ ถูกลบจริง ไม่ใช่แค่ตัดการเชื่อม |
 | TC-68 | ลบรางวัล | ครอบคลุมแล้ว | `portfolio-award.test.ts` — `DELETE /portfolio-award/:id` "removes the prize, its join rows and what they pointed at" | เอกสารต้นฉบับพิมพ์เลขข้อนี้ผิดเป็น TC-65 ตารางนี้เดินตามลำดับหัวข้อ |
 
 ### e-Portfolio ส่วนกิจกรรม
@@ -235,7 +235,7 @@ TC ทั้ง 75 ข้อเป็น **manual UI test** ระดับ "ก
 | TC | เรื่อง | สถานะ | test ที่ครอบ | หมายเหตุ |
 | --- | --- | --- | --- | --- |
 | TC-69 | เพิ่มกิจกรรม | ครอบคลุมแล้ว | `portfolio-activity.test.ts` — `POST /portfolio-activity` "creates an activity and hands it back", "drops an empty date rather than sending it on", "uploads the files and hangs them off the activity" | |
-| TC-70 | แก้ไขกิจกรรม | ครอบคลุมแล้ว | `portfolio-activity.test.ts` — `PUT /portfolio-activity/:id` "overwrites the fields the request carries", "drops the join row ids_to_delete names and leaves the attachment" | |
+| TC-70 | แก้ไขกิจกรรม | ครอบคลุมแล้ว | `portfolio-activity.test.ts` — `PUT /portfolio-activity/:id` "overwrites the fields the request carries", "deletes the attachment ids_to_delete names" | ตั้งแต่ #34 ไฟล์แนบที่ถูกเอาออกจากรายการสุดท้ายที่ถืออยู่ ถูกลบจริง ไม่ใช่แค่ตัดการเชื่อม |
 | TC-71 | ลบกิจกรรม | ครอบคลุมแล้ว | `portfolio-activity.test.ts` — `DELETE /portfolio-activity/:id` "removes the activity, its join rows and what they pointed at" | |
 
 ### e-Portfolio ส่วน e-Portfolio

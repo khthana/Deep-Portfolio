@@ -334,6 +334,50 @@ describe("PUT /learning-activity", () => {
     ).toBeNull();
   });
 
+  it("removes only its own attachment, whatever ids the request names", async () => {
+    // See BEHAVIOR-CHANGES.md. The delete used to match on attachment id
+    // alone, so naming another activity's attachment unlinked it there — and
+    // once #34 put the sweep behind that delete, it would have destroyed the
+    // file as well.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const stranger = await createLinkAttachment();
+    const other = await createLearningActivity({
+      section_id: course.section_id,
+    });
+    await prisma.learning_activity_attachments.create({
+      data: {
+        learning_activity_id: other.id,
+        attachment_id: stranger.attachment_id,
+      },
+    });
+    const activity = await createLearningActivity({
+      section_id: course.section_id,
+    });
+
+    const response = await request(app)
+      .put("/learning-activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("learning_activity_id", String(activity.id))
+      .field("section_id", String(course.section_id))
+      .field("learning_activity_name", "ชื่อใหม่")
+      .field("learning_activity_type", "INDIVIDUAL")
+      .field("remove_attachment_ids", JSON.stringify([stranger.attachment_id]));
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.learning_activity_attachments.findMany({
+        where: { learning_activity_id: other.id },
+        select: { attachment_id: true },
+      }),
+    ).toEqual([{ attachment_id: stranger.attachment_id }]);
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: stranger.attachment_id },
+      }),
+    ).not.toBeNull();
+  });
+
   it("fails for an activity that does not exist", async () => {
     const teacher = await createTeacher();
     const course = await createCourse({ teacher_id: teacher.user_id });

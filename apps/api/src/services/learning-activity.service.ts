@@ -83,8 +83,14 @@ export default class LearningActivityService {
         },
       });
 
+      // Scoped by the activity being edited: the id of an attachment says
+      // nothing about who owns it, and matching on it alone unlinked the file
+      // from every other activity that had it too. See BEHAVIOR-CHANGES.md.
       await tx.learning_activity_attachments.deleteMany({
-        where: { attachment_id: { in: data.remove_attachment_ids } },
+        where: {
+          learning_activity_id: activity.id,
+          attachment_id: { in: data.remove_attachment_ids },
+        },
       });
 
       // A join row is what makes an attachment reachable. Dropping the last
