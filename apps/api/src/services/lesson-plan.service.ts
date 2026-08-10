@@ -5,13 +5,19 @@ import {
   UpdateLessonPlanBody,
 } from "../models/lesson-plan.model";
 import { isAnnounced } from "../utils/is-announced";
+import AttachmentsService from "./attachments.service";
 import CourseMaterialService from "./course-material.service";
+import MinIOService from "./upload.service";
 
 export default class LessonPlanService {
   private readonly courseMaterialService: CourseMaterialService;
+  private readonly attachmentsService: AttachmentsService;
+  private readonly uploadService: MinIOService;
 
   constructor() {
     this.courseMaterialService = new CourseMaterialService();
+    this.attachmentsService = new AttachmentsService();
+    this.uploadService = new MinIOService();
   }
 
   async addLessonPlan(body: AddLessonPlanBody) {
@@ -139,9 +145,29 @@ export default class LessonPlanService {
       where: { id: lesson_plan_id },
     });
 
-    const result = await prisma.course_syllabus.delete({
-      where: { id: lesson_plan_id },
+    const { result, objects } = await prisma.$transaction(async (tx) => {
+      // The week's material hangs off it by a foreign key that cascades, and
+      // the course_material row is the only record of which attachments were
+      // the week's own, so read them while they are still there (#34).
+      const materials = await tx.course_material.findMany({
+        where: { course_syllabus_id: lesson_plan_id },
+        select: { attachment_id: true },
+      });
+
+      const result = await tx.course_syllabus.delete({
+        where: { id: lesson_plan_id },
+      });
+
+      return {
+        result,
+        objects: await this.attachmentsService.deleteUnreferenced(
+          materials.map((material) => material.attachment_id),
+          tx,
+        ),
+      };
     });
+
+    await this.uploadService.removeFiles(objects);
 
     // Every remaining week of the section, in the order they are displayed, so
     // that renumbering them 1..n below closes the gap the delete left instead

@@ -364,6 +364,45 @@ describe("PUT /portfolio-personal/:user_id", () => {
     });
   });
 
+  it("replaces the profile picture and takes the old one with it", async () => {
+    // The row holds one picture, so pointing it at a new upload is the last
+    // anyone could reach the old one by: it goes with the pointer (#34).
+    const student = await createStudent();
+
+    await request(app)
+      .post("/portfolio-personal")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .attach("file", IMAGE, "old.png");
+
+    const before = await prisma.portfolio_personal.findUniqueOrThrow({
+      where: { user_id: student.student_id },
+    });
+    const old = await prisma.attachments.findUniqueOrThrow({
+      where: { attachment_id: before.attachment_id! },
+    });
+
+    const response = await request(app)
+      .put(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .attach("file", IMAGE, "new.png");
+
+    expect(response.status).toBe(200);
+
+    const after = await prisma.portfolio_personal.findUniqueOrThrow({
+      where: { user_id: student.student_id },
+    });
+    expect(after.attachment_id).not.toBe(before.attachment_id);
+
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: before.attachment_id! },
+      }),
+    ).toBeNull();
+    expect(await listStoredObjects("portfolio-personal/")).not.toContain(
+      old.file_path,
+    );
+  });
+
   it("refuses a date of birth it cannot read", async () => {
     // See BEHAVIOR-CHANGES.md. The service used to hand the string to Prisma
     // after `new Date(…)` had made an Invalid Date of it, which came back as a
@@ -566,6 +605,38 @@ describe("DELETE /portfolio-personal/:user_id", () => {
     expect(
       await prisma.users.findUnique({ where: { user_id: student.student_id } }),
     ).not.toBeNull();
+  });
+
+  it("removes the profile picture along with the details", async () => {
+    // portfolio_personal.attachment_id is the only pointer at the picture, so
+    // dropping the row is what strands it (#34).
+    const student = await createStudent();
+
+    await request(app)
+      .post("/portfolio-personal")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .attach("file", IMAGE, "profile.png");
+
+    const stored = await prisma.portfolio_personal.findUniqueOrThrow({
+      where: { user_id: student.student_id },
+    });
+    const picture = await prisma.attachments.findUniqueOrThrow({
+      where: { attachment_id: stored.attachment_id! },
+    });
+
+    const response = await request(app)
+      .delete(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: picture.attachment_id },
+      }),
+    ).toBeNull();
+    expect(await listStoredObjects("portfolio-personal/")).not.toContain(
+      picture.file_path,
+    );
   });
 
   it("refuses a request with no session, and deletes nothing", async () => {

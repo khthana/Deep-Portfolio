@@ -16,6 +16,7 @@ import CourseService from "./course.service";
 import LearningActivityService from "./learning-activity.service";
 import StudentActivityService from "./student-activity.service";
 import StudentLearningActivityService from "./student-learning-activity.service";
+import MinIOService from "./upload.service";
 import { CourseDetail } from "../models/course.model";
 import { sortByDate } from "../utils/sort-by-date";
 import { isAnnounced } from "../utils/is-announced";
@@ -48,12 +49,14 @@ export default class StudentService {
   private readonly studentActivityService: StudentActivityService;
   private readonly studentLearningActivityService: StudentLearningActivityService;
   private readonly learningActivityService: LearningActivityService;
+  private readonly uploadService: MinIOService;
 
   private readonly studentMapper: StudentMapper;
 
   constructor() {
     this.courseService = new CourseService();
     this.attachmentsService = new AttachmentsService();
+    this.uploadService = new MinIOService();
     this.studentActivityService = new StudentActivityService();
     this.studentLearningActivityService = new StudentLearningActivityService();
     this.learningActivityService = new LearningActivityService();
@@ -196,7 +199,7 @@ export default class StudentService {
   async submitActivity(
     data: SubmitActivityBody,
   ): Promise<GetStudentActivityDetailResp> {
-    return prisma.$transaction(async (tx) => {
+    const { result, objects } = await prisma.$transaction(async (tx) => {
       // 1. ดึง activity พร้อม attachments เดิม
       const activity = await tx.student_activity.findUnique({
         where: { id: data.student_activity_id },
@@ -249,19 +252,32 @@ export default class StudentService {
         });
       }
 
+      // Only now: what the resubmission named again has just been linked back,
+      // so what is left unreferenced is what it replaced (#34).
+      const objects = await this.attachmentsService.deleteUnreferenced(
+        activity.student_activity_attachments.map(
+          (link) => link.attachment_id,
+        ),
+        tx,
+      );
+
       const result = await this.studentActivityService.getStudentActivityDetail(
         updatedActivity.id,
         tx,
       );
 
-      return result;
+      return { result, objects };
     });
+
+    await this.uploadService.removeFiles(objects);
+
+    return result;
   }
 
   async submitGroupActivity(
     data: SubmitActivityBody,
   ): Promise<GetStudentActivityDetailResp> {
-    return prisma.$transaction(async (tx) => {
+    const { result, objects } = await prisma.$transaction(async (tx) => {
       // 1. ดึงสมาชิกในกลุ่ม
       const members = await tx.student_activity_group_member.findMany({
         where: {
@@ -350,19 +366,35 @@ export default class StudentService {
         });
       }
 
+      // Only now: what the resubmission named again has just been linked back
+      // for every member, so what is left unreferenced is what it replaced
+      // (#34).
+      const objects = await this.attachmentsService.deleteUnreferenced(
+        activities.flatMap((activity) =>
+          activity.student_activity_attachments.map(
+            (link) => link.attachment_id,
+          ),
+        ),
+        tx,
+      );
+
       const result = await this.studentActivityService.getStudentActivityDetail(
         data.student_activity_id,
         tx,
       );
 
-      return result;
+      return { result, objects };
     });
+
+    await this.uploadService.removeFiles(objects);
+
+    return result;
   }
 
   async submitLearningActivity(
     data: SubmitLearningActivityBody,
   ): Promise<GetStudentLearningActivityDetailResp> {
-    return prisma.$transaction(async (tx) => {
+    const { result, objects } = await prisma.$transaction(async (tx) => {
       const existingActivity = await tx.student_learning_activity.findUnique({
         where: { id: data.student_learning_activity_id },
         include: {
@@ -409,18 +441,31 @@ export default class StudentService {
         });
       }
 
+      // Only now: what the resubmission named again has just been linked back,
+      // so what is left unreferenced is what it replaced (#34).
+      const objects = await this.attachmentsService.deleteUnreferenced(
+        existingActivity.student_learning_activity_attachments.map(
+          (link) => link.attachment_id,
+        ),
+        tx,
+      );
+
       const result =
         await this.studentLearningActivityService.getStudentLearningActivityDetail(
           data.student_learning_activity_id,
           tx,
         );
 
-      return result;
+      return { result, objects };
     });
+
+    await this.uploadService.removeFiles(objects);
+
+    return result;
   }
 
   async submitGroupLearningActivity(data: SubmitLearningActivityBody) {
-    return prisma.$transaction(async (tx) => {
+    const { result, objects } = await prisma.$transaction(async (tx) => {
       // 1. ดึงสมาชิกในกลุ่ม
       const members = await tx.student_learning_activity_group_member.findMany({
         where: {
@@ -509,14 +554,30 @@ export default class StudentService {
         });
       }
 
+      // Only now: what the resubmission named again has just been linked back
+      // for every member, so what is left unreferenced is what it replaced
+      // (#34).
+      const objects = await this.attachmentsService.deleteUnreferenced(
+        activities.flatMap((activity) =>
+          activity.student_learning_activity_attachments.map(
+            (link) => link.attachment_id,
+          ),
+        ),
+        tx,
+      );
+
       const result =
         await this.studentLearningActivityService.getStudentLearningActivityDetail(
           data.student_learning_activity_id,
           tx,
         );
 
-      return result;
+      return { result, objects };
     });
+
+    await this.uploadService.removeFiles(objects);
+
+    return result;
   }
 
   async getStudentCourseList(

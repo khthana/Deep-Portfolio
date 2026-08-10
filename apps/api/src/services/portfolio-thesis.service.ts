@@ -6,6 +6,7 @@ import {
   PortfolioThesisResp,
 } from "../models/portfolio-thesis.model";
 import AttachmentsService from "./attachments.service";
+import MinIOService from "./upload.service";
 
 // Helper to infer the type
 const inferThesis = () =>
@@ -25,9 +26,11 @@ type PortfolioThesisWithAttachments = NonNullable<
 
 export default class PortfolioThesisService {
   private readonly attachmentsService: AttachmentsService;
+  private readonly uploadService: MinIOService;
 
   constructor() {
     this.attachmentsService = new AttachmentsService();
+    this.uploadService = new MinIOService();
   }
 
   async getAllPortfolioThesis(userId: string): Promise<PortfolioThesisResp[]> {
@@ -201,12 +204,20 @@ export default class PortfolioThesisService {
     });
 
     if (ids_to_delete && ids_to_delete.length > 0) {
-      await prisma.portfolio_thesis_attachments.deleteMany({
-        where: {
-          thesis_id: id,
-          attachment_id: { in: ids_to_delete },
-        },
+      // A join row is what makes an attachment reachable. Dropping the last
+      // one strands it, so it goes with the link (#34).
+      const objects = await prisma.$transaction(async (tx) => {
+        await tx.portfolio_thesis_attachments.deleteMany({
+          where: {
+            thesis_id: id,
+            attachment_id: { in: ids_to_delete },
+          },
+        });
+
+        return this.attachmentsService.deleteUnreferenced(ids_to_delete, tx);
       });
+
+      await this.uploadService.removeFiles(objects);
     }
 
     if (files && files.length > 0) {
@@ -232,9 +243,30 @@ export default class PortfolioThesisService {
   }
 
   async deletePortfolioThesis(id: number): Promise<PortfolioThesisResp> {
-    const result = await prisma.portfolio_thesis.delete({
-      where: { id },
+    const { result, objects } = await prisma.$transaction(async (tx) => {
+      // Read what hangs off the project first: deleting it cascades the join
+      // rows away, and they are the only record of which attachments were
+      // its own (#34).
+      const links = await tx.portfolio_thesis_attachments.findMany({
+        where: { thesis_id: id },
+        select: { attachment_id: true },
+      });
+
+      const result = await tx.portfolio_thesis.delete({
+        where: { id },
+      });
+
+      return {
+        result,
+        objects: await this.attachmentsService.deleteUnreferenced(
+          links.map((link) => link.attachment_id),
+          tx,
+        ),
+      };
     });
+
+    await this.uploadService.removeFiles(objects);
+
     return {
       ...result,
       attachments: [],

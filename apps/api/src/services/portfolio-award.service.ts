@@ -6,6 +6,7 @@ import {
   PortfolioAwardResp,
 } from "../models/portfolio-award.model";
 import AttachmentsService from "./attachments.service";
+import MinIOService from "./upload.service";
 
 // Helper to infer the type
 const inferAward = () =>
@@ -29,9 +30,11 @@ type PortfolioAwardAttachment = NonNullable<
 
 export default class PortfolioAwardService {
   private readonly attachmentsService: AttachmentsService;
+  private readonly uploadService: MinIOService;
 
   constructor() {
     this.attachmentsService = new AttachmentsService();
+    this.uploadService = new MinIOService();
   }
 
   async getAllPortfolioAward(userId: string): Promise<PortfolioAwardResp[]> {
@@ -206,12 +209,20 @@ export default class PortfolioAwardService {
     });
 
     if (ids_to_delete && ids_to_delete.length > 0) {
-      await prisma.portfolio_award_attachments.deleteMany({
-        where: {
-          award_id: id,
-          attachment_id: { in: ids_to_delete },
-        },
+      // A join row is what makes an attachment reachable. Dropping the last
+      // one strands it, so it goes with the link (#34).
+      const objects = await prisma.$transaction(async (tx) => {
+        await tx.portfolio_award_attachments.deleteMany({
+          where: {
+            award_id: id,
+            attachment_id: { in: ids_to_delete },
+          },
+        });
+
+        return this.attachmentsService.deleteUnreferenced(ids_to_delete, tx);
       });
+
+      await this.uploadService.removeFiles(objects);
     }
 
     if (files && files.length > 0) {
@@ -237,9 +248,30 @@ export default class PortfolioAwardService {
   }
 
   async deletePortfolioAward(id: number): Promise<PortfolioAwardResp> {
-    const result = await prisma.portfolio_award.delete({
-      where: { id },
+    const { result, objects } = await prisma.$transaction(async (tx) => {
+      // Read what hangs off the prize first: deleting it cascades the join
+      // rows away, and they are the only record of which attachments were
+      // its own (#34).
+      const links = await tx.portfolio_award_attachments.findMany({
+        where: { award_id: id },
+        select: { attachment_id: true },
+      });
+
+      const result = await tx.portfolio_award.delete({
+        where: { id },
+      });
+
+      return {
+        result,
+        objects: await this.attachmentsService.deleteUnreferenced(
+          links.map((link) => link.attachment_id),
+          tx,
+        ),
+      };
     });
+
+    await this.uploadService.removeFiles(objects);
+
     return {
       ...result,
       is_show: result.is_show,

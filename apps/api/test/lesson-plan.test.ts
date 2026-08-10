@@ -558,6 +558,15 @@ describe("DELETE /lesson-plan", () => {
       where: { id: material.id },
     });
     expect(stored).toBeNull();
+
+    // The course_material row was the only thing pointing at the file, and it
+    // is what made the file reachable, so the attachment goes with it rather
+    // than being left where nothing can reach it (#34).
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: material.attachment_id },
+      }),
+    ).toBeNull();
   });
 
   it("fails for a week that does not exist", async () => {

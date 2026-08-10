@@ -10,6 +10,7 @@ import { AttachmentDetailResp } from "../models/announcement.model";
 import { ClassworkType } from "../models/student.model";
 import { HttpError } from "../utils/http-error";
 import AttachmentsService from "./attachments.service";
+import MinIOService from "./upload.service";
 
 /** The ids of the criteria the teacher kept — the ones that came back carrying
  *  the id `GET /activity` gave them. A criterion with no id is a new one. */
@@ -51,9 +52,11 @@ function assertOwnRubric(
 
 export default class ActivityService {
   private readonly attachmentsService: AttachmentsService;
+  private readonly uploadService: MinIOService;
 
   constructor() {
     this.attachmentsService = new AttachmentsService();
+    this.uploadService = new MinIOService();
   }
 
   async createActivity(data: CreateActivityReqBody) {
@@ -117,7 +120,7 @@ export default class ActivityService {
   }
 
   async updateActivity(data: UpdateActivityReqBody) {
-    return prisma.$transaction(async (tx) => {
+    const { activity, objects } = await prisma.$transaction(async (tx) => {
       // Asked before anything is written, because not everything below rolls
       // back: createAttachments uploads to MinIO and writes its rows outside
       // this transaction, so a refusal after it would leave both behind.
@@ -148,6 +151,13 @@ export default class ActivityService {
         where: { attachment_id: { in: data.remove_attachment_ids } },
       });
 
+      // A join row is what makes an attachment reachable. Dropping the last
+      // one strands it, so it goes with the link (#34).
+      const objects = await this.attachmentsService.deleteUnreferenced(
+        data.remove_attachment_ids,
+        tx,
+      );
+
       const attachmentIds = await this.attachmentsService.createAttachments(
         {
           urls: data.urls,
@@ -167,8 +177,12 @@ export default class ActivityService {
 
       await this.saveRubric(tx, activity.id, data.rubric, existingRubricIds);
 
-      return activity;
+      return { activity, objects };
     });
+
+    await this.uploadService.removeFiles(objects);
+
+    return activity;
   }
 
   /** The ids of the criteria an activity has as it stands — what an incoming
@@ -426,9 +440,33 @@ export default class ActivityService {
   }
 
   async deleteActivity(activity_id: number) {
-    const result = await prisma.activities.delete({
-      where: { id: activity_id },
+    const { result, objects } = await prisma.$transaction(async (tx) => {
+      // Both sides of the work hang off this row — what the teacher handed out
+      // and what the students handed in — and deleting it cascades every join
+      // row away, so read them while they are still there (#34).
+      const handedOut = await tx.activity_attachments.findMany({
+        where: { activity_id },
+        select: { attachment_id: true },
+      });
+      const handedIn = await tx.student_activity_attachments.findMany({
+        where: { student_activity: { activity_id } },
+        select: { attachment_id: true },
+      });
+
+      const result = await tx.activities.delete({
+        where: { id: activity_id },
+      });
+
+      return {
+        result,
+        objects: await this.attachmentsService.deleteUnreferenced(
+          [...handedOut, ...handedIn].map((link) => link.attachment_id),
+          tx,
+        ),
+      };
     });
+
+    await this.uploadService.removeFiles(objects);
 
     return result;
   }

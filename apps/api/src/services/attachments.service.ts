@@ -72,6 +72,61 @@ export default class AttachmentsService {
     return attachmentIds;
   }
 
+  /**
+   * Deletes the attachments among `attachmentIds` that no record points at any
+   * more, and answers with the object keys the bucket still holds for them.
+   *
+   * Call it after the rows that owned the attachment are gone — the join rows
+   * are what makes an attachment referenced, so the count is only right once
+   * they have been removed inside the same transaction. The caller hands the
+   * keys to `MinIOService.removeFiles` once that transaction has committed.
+   *
+   * Every table that points at `attachments` has to appear below. A new one
+   * that does not will make its attachments look unreferenced and take them
+   * out from under itself. See docs/adr/0008-attachment-lifecycle.md.
+   */
+  async deleteUnreferenced(
+    attachmentIds: number[],
+    tx?: Prisma.TransactionClient,
+  ): Promise<string[]> {
+    if (attachmentIds.length === 0) return [];
+
+    const prismaClient = tx ?? prisma;
+
+    const orphans = await prismaClient.attachments.findMany({
+      where: {
+        attachment_id: { in: attachmentIds },
+        activity_attachments: { none: {} },
+        announcement_attachments: { none: {} },
+        course_material: { none: {} },
+        learning_activity_attachments: { none: {} },
+        portfolio_activity_attachments: { none: {} },
+        portfolio_award_attachments: { none: {} },
+        portfolio_certificate_attachments: { none: {} },
+        portfolio_internship_attachments: { none: {} },
+        portfolio_personal: { none: {} },
+        portfolio_thesis_attachments: { none: {} },
+        portfolio_training_attachments: { none: {} },
+        student_activity_attachments: { none: {} },
+        student_learning_activity_attachments: { none: {} },
+      },
+      select: { attachment_id: true, file_path: true },
+    });
+
+    if (orphans.length === 0) return [];
+
+    await prismaClient.attachments.deleteMany({
+      where: {
+        attachment_id: { in: orphans.map((o) => o.attachment_id) },
+      },
+    });
+
+    // A link has no object behind it, only a url.
+    return orphans
+      .map((o) => o.file_path)
+      .filter((path): path is string => path !== null);
+  }
+
   async getAttachments(
     attachmentsIds: {
       attachment_id: number;

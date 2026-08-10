@@ -416,9 +416,7 @@ describe("PUT /portfolio-internship/:id", () => {
     expect(response.body.data.attachments).toHaveLength(2);
   });
 
-  it("drops the join row ids_to_delete names and leaves the attachment", async () => {
-    // Recorded, not endorsed: only the join row goes. The attachment stays in
-    // the table and in the bucket, the same as training and certificate.
+  it("deletes the attachment ids_to_delete names", async () => {
     const dropped = await createFileAttachment();
     const kept = await createFileAttachment();
     const entry = await createPortfolioInternship({
@@ -436,11 +434,13 @@ describe("PUT /portfolio-internship/:id", () => {
         (a: { attachment_id: number }) => a.attachment_id,
       ),
     ).toEqual([kept.attachment_id]);
+
+    // Losing its last owner takes the attachment with it (#34).
     expect(
       await prisma.attachments.findUnique({
         where: { attachment_id: dropped.attachment_id },
       }),
-    ).not.toBeNull();
+    ).toBeNull();
   });
 
   it("refuses a request with no session, and changes nothing", async () => {
@@ -511,7 +511,7 @@ describe("PUT /portfolio-internship/:id", () => {
 });
 
 describe("DELETE /portfolio-internship/:id", () => {
-  it("removes the placement and its join rows", async () => {
+  it("removes the placement, its join rows and what they pointed at", async () => {
     const student = await createStudent();
     const attachment = await createFileAttachment();
     const doomed = await createPortfolioInternship({
@@ -541,6 +541,11 @@ describe("DELETE /portfolio-internship/:id", () => {
         where: { internship_id: doomed.id },
       }),
     ).toHaveLength(0);
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: attachment.attachment_id },
+      }),
+    ).toBeNull();
   });
 
   it("refuses a request with no session, and deletes nothing", async () => {

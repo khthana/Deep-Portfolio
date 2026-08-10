@@ -383,7 +383,7 @@ describe("PUT /portfolio-thesis/:id", () => {
     expect(response.body.data.attachments).toHaveLength(2);
   });
 
-  it("drops the join row ids_to_delete names and leaves the attachment", async () => {
+  it("deletes the attachment ids_to_delete names", async () => {
     const dropped = await createFileAttachment();
     const kept = await createFileAttachment();
     const entry = await createPortfolioThesis({
@@ -401,11 +401,13 @@ describe("PUT /portfolio-thesis/:id", () => {
         (a: { attachment_id: number }) => a.attachment_id,
       ),
     ).toEqual([kept.attachment_id]);
+
+    // Losing its last owner takes the attachment with it (#34).
     expect(
       await prisma.attachments.findUnique({
         where: { attachment_id: dropped.attachment_id },
       }),
-    ).not.toBeNull();
+    ).toBeNull();
   });
 
   it("refuses a request with no session, and changes nothing", async () => {
@@ -474,7 +476,7 @@ describe("PUT /portfolio-thesis/:id", () => {
 });
 
 describe("DELETE /portfolio-thesis/:id", () => {
-  it("removes the project and its join rows", async () => {
+  it("removes the project, its join rows and what they pointed at", async () => {
     const student = await createStudent();
     const attachment = await createFileAttachment();
     const doomed = await createPortfolioThesis({
@@ -502,6 +504,11 @@ describe("DELETE /portfolio-thesis/:id", () => {
         where: { thesis_id: doomed.id },
       }),
     ).toHaveLength(0);
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: attachment.attachment_id },
+      }),
+    ).toBeNull();
   });
 
   it("refuses a request with no session, and deletes nothing", async () => {

@@ -69,7 +69,7 @@ export default class LearningActivityService {
   }
 
   async updateLearningActivity(data: UpdateLearningActivityReqBody) {
-    return prisma.$transaction(async (tx) => {
+    const { activity, objects } = await prisma.$transaction(async (tx) => {
       const activity = await tx.learning_activities.update({
         where: { id: data.learning_activity_id },
         data: {
@@ -86,6 +86,13 @@ export default class LearningActivityService {
       await tx.learning_activity_attachments.deleteMany({
         where: { attachment_id: { in: data.remove_attachment_ids } },
       });
+
+      // A join row is what makes an attachment reachable. Dropping the last
+      // one strands it, so it goes with the link (#34).
+      const objects = await this.attachmentsService.deleteUnreferenced(
+        data.remove_attachment_ids,
+        tx,
+      );
 
       const attachmentIds = await this.attachmentsService.createAttachments(
         {
@@ -104,8 +111,12 @@ export default class LearningActivityService {
         });
       }
 
-      return activity;
+      return { activity, objects };
     });
+
+    await this.uploadService.removeFiles(objects);
+
+    return activity;
   }
 
   async getAllLearningActivity(
@@ -225,9 +236,33 @@ export default class LearningActivityService {
   }
 
   async deleteLearningActivity(learning_activity_id: number) {
-    const result = await prisma.learning_activities.delete({
-      where: { id: learning_activity_id },
+    const { result, objects } = await prisma.$transaction(async (tx) => {
+      // Both sides of the work hang off this row — what the teacher handed out
+      // and what the students handed in — and deleting it cascades every join
+      // row away, so read them while they are still there (#34).
+      const handedOut = await tx.learning_activity_attachments.findMany({
+        where: { learning_activity_id },
+        select: { attachment_id: true },
+      });
+      const handedIn = await tx.student_learning_activity_attachments.findMany({
+        where: { student_learning_activity: { learning_activity_id } },
+        select: { attachment_id: true },
+      });
+
+      const result = await tx.learning_activities.delete({
+        where: { id: learning_activity_id },
+      });
+
+      return {
+        result,
+        objects: await this.attachmentsService.deleteUnreferenced(
+          [...handedOut, ...handedIn].map((link) => link.attachment_id),
+          tx,
+        ),
+      };
     });
+
+    await this.uploadService.removeFiles(objects);
 
     return result;
   }

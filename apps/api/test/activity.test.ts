@@ -6,6 +6,7 @@ import {
   createActivity,
   createActivityRubric,
   createCourse,
+  createLinkAttachment,
   createScoreWeight,
   createStudent,
   createSubmission,
@@ -793,6 +794,47 @@ describe("PUT /activity", () => {
     });
   });
 
+  it("deletes the attachments remove_attachment_ids names", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const doomed = await createLinkAttachment();
+    const kept = await createLinkAttachment();
+    const activity = await createActivity({
+      section_id: course.section_id,
+      attachment_ids: [doomed.attachment_id, kept.attachment_id],
+    });
+
+    const response = await request(app)
+      .put("/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("activity_id", String(activity.id))
+      .field("section_id", String(course.section_id))
+      .field("activity_name", "ชื่อใหม่")
+      .field("activity_type", "INDIVIDUAL")
+      .field("rubric", JSON.stringify(RUBRIC))
+      .field("remove_attachment_ids", JSON.stringify([doomed.attachment_id]));
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.activity_attachments.findMany({
+        where: { activity_id: activity.id },
+        select: { attachment_id: true },
+      }),
+    ).toEqual([{ attachment_id: kept.attachment_id }]);
+
+    // Nothing else pointed at the removed one, so it goes with the link (#34).
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: doomed.attachment_id },
+      }),
+    ).toBeNull();
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: kept.attachment_id },
+      }),
+    ).not.toBeNull();
+  });
+
   it("fails for an activity that does not exist", async () => {
     const teacher = await createTeacher();
     const course = await createCourse({ teacher_id: teacher.user_id });
@@ -870,9 +912,16 @@ describe("DELETE /activity", () => {
 
   it("deletes the activity and everything hanging off it", async () => {
     const teacher = await createTeacher();
-    const activity = await createActivity();
+    const handedOut = await createLinkAttachment();
+    const handedIn = await createLinkAttachment();
+    const activity = await createActivity({
+      attachment_ids: [handedOut.attachment_id],
+    });
     const rubric = await createActivityRubric({ activity_id: activity.id });
-    const submission = await createSubmission({ activity_id: activity.id });
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      attachment_ids: [handedIn.attachment_id],
+    });
     const survivor = await createActivity();
 
     const response = await request(app)
@@ -897,6 +946,19 @@ describe("DELETE /activity", () => {
     expect(
       await prisma.student_activity.findUnique({ where: { id: submission.id } }),
     ).toBeNull();
+
+    // Both sides of the work lose their last owner in the same cascade — what
+    // the teacher handed out and what the student handed in — so the
+    // attachments go with it rather than being left unreachable (#34).
+    expect(
+      await prisma.attachments.findMany({
+        where: {
+          attachment_id: {
+            in: [handedOut.attachment_id, handedIn.attachment_id],
+          },
+        },
+      }),
+    ).toEqual([]);
     expect(
       await prisma.activities.findUnique({ where: { id: survivor.id } }),
     ).not.toBeNull();

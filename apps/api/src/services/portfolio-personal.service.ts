@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import {
   CreatePortfolioPersonalReqBody,
@@ -5,12 +6,33 @@ import {
   PortfolioPersonalResp,
 } from "../models/portfolio-personal.model";
 import AttachmentsService from "./attachments.service";
+import MinIOService from "./upload.service";
 
 export default class PortfolioPersonalService {
   private readonly attachmentsService: AttachmentsService;
+  private readonly uploadService: MinIOService;
 
   constructor() {
     this.attachmentsService = new AttachmentsService();
+    this.uploadService = new MinIOService();
+  }
+
+  /**
+   * The objects left behind when a row stops pointing at the picture it held.
+   *
+   * The row holds one picture and `attachment_id` is the only way to reach it,
+   * so naming a different one — or losing the row altogether — strands the old
+   * one where nothing in the UI can get at it. It goes with the pointer (#34).
+   * Naming the same picture again changes nothing and sweeps nothing.
+   */
+  private async releasePicture(
+    previous: number | null | undefined,
+    current: number | null,
+    tx: Prisma.TransactionClient,
+  ) {
+    if (!previous || previous === current) return [];
+
+    return this.attachmentsService.deleteUnreferenced([previous], tx);
   }
 
   /**
@@ -143,10 +165,30 @@ export default class PortfolioPersonalService {
   ): Promise<PortfolioPersonalResp> {
     const personal = await this.withUploadedPicture(data, file);
 
-    return await prisma.portfolio_personal.update({
-      where: { user_id: userId },
-      data: personal,
+    const { result, objects } = await prisma.$transaction(async (tx) => {
+      const previous = await tx.portfolio_personal.findUnique({
+        where: { user_id: userId },
+        select: { attachment_id: true },
+      });
+
+      const result = await tx.portfolio_personal.update({
+        where: { user_id: userId },
+        data: personal,
+      });
+
+      return {
+        result,
+        objects: await this.releasePicture(
+          previous?.attachment_id,
+          result.attachment_id,
+          tx,
+        ),
+      };
     });
+
+    await this.uploadService.removeFiles(objects);
+
+    return result;
   }
 
   async upsertPortfolioPersonal(
@@ -156,21 +198,52 @@ export default class PortfolioPersonalService {
   ): Promise<PortfolioPersonalResp> {
     const personal = await this.withUploadedPicture(data, file);
 
-    return await prisma.portfolio_personal.upsert({
-      where: { user_id: userId },
-      update: personal,
-      create: {
-        user_id: userId,
-        ...personal,
-      },
+    const { result, objects } = await prisma.$transaction(async (tx) => {
+      const previous = await tx.portfolio_personal.findUnique({
+        where: { user_id: userId },
+        select: { attachment_id: true },
+      });
+
+      const result = await tx.portfolio_personal.upsert({
+        where: { user_id: userId },
+        update: personal,
+        create: {
+          user_id: userId,
+          ...personal,
+        },
+      });
+
+      return {
+        result,
+        objects: await this.releasePicture(
+          previous?.attachment_id,
+          result.attachment_id,
+          tx,
+        ),
+      };
     });
+
+    await this.uploadService.removeFiles(objects);
+
+    return result;
   }
 
   async deletePortfolioPersonal(
     userId: string,
   ): Promise<PortfolioPersonalResp> {
-    return await prisma.portfolio_personal.delete({
-      where: { user_id: userId },
+    const { result, objects } = await prisma.$transaction(async (tx) => {
+      const result = await tx.portfolio_personal.delete({
+        where: { user_id: userId },
+      });
+
+      return {
+        result,
+        objects: await this.releasePicture(result.attachment_id, null, tx),
+      };
     });
+
+    await this.uploadService.removeFiles(objects);
+
+    return result;
   }
 }

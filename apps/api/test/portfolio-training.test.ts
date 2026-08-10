@@ -22,7 +22,9 @@ import { signedFileKey, signedFileUrl } from "./helpers/file-url";
  *
  * Attachments hang off a join table rather than a column, so an entry can
  * carry several and losing one is a matter of deleting the join row — which is
- * what `ids_to_delete` does, and why the attachment itself survives it.
+ * what `ids_to_delete` does. Since #34 the attachment does not survive that on
+ * its own: once no record points at it any more, the row in `attachments` and
+ * the object behind it go too. See docs/adr/0008-attachment-lifecycle.md.
  *
  * The plain error paths this shares with the rest of the group — a
  * non-numeric id, an id that belongs to nobody — are covered in full in
@@ -408,22 +410,29 @@ describe("PUT /portfolio-training/:id", () => {
     ).toEqual(["new.pdf", "old.pdf"]);
   });
 
-  it("detaches what the request asks to be rid of, without deleting it", async () => {
-    // Recorded, not endorsed: only the join row goes. The attachment stays in
-    // the table and its object stays in the bucket, so both accumulate — the
-    // same orphaning /course-material has, and it belongs with the wider
-    // storage clean-up rather than with this ticket.
-    const dropped = await createFileAttachment({
-      original_filename: "dropped.pdf",
-    });
-    const kept = await createFileAttachment({ original_filename: "kept.pdf" });
-    const entry = await createPortfolioTraining({
-      attachment_ids: [dropped.attachment_id, kept.attachment_id],
-    });
+  it("deletes what the request asks to be rid of, row and object", async () => {
+    // Nothing else points at the dropped file once its join row is gone, so
+    // the attachment and the object behind it go with it (#34).
+    const student = await createStudent();
+    const created = await request(app)
+      .post("/portfolio-training")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .field("name", "อบรมพร้อมไฟล์")
+      .attach("files", PDF, "dropped.pdf")
+      .attach("files", PDF, "kept.pdf");
+
+    const attachments = created.body.data.attachments as {
+      attachment_id: number;
+      original_filename: string;
+      file_path: string;
+    }[];
+    const dropped = attachments.find((a) => a.original_filename === "dropped.pdf")!;
+    const kept = attachments.find((a) => a.original_filename === "kept.pdf")!;
+    const droppedKey = signedFileKey(dropped.file_path);
 
     const response = await request(app)
-      .put(`/portfolio-training/${entry.id}`)
-      .set("Cookie", sessionCookie({ userId: entry.user_id }))
+      .put(`/portfolio-training/${created.body.data.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ ids_to_delete: [dropped.attachment_id] });
 
     expect(response.status).toBe(200);
@@ -434,16 +443,19 @@ describe("PUT /portfolio-training/:id", () => {
     ).toEqual([kept.attachment_id]);
     expect(
       await prisma.portfolio_training_attachments.findMany({
-        where: { training_id: entry.id },
+        where: { training_id: created.body.data.id },
       }),
     ).toEqual([
-      { training_id: entry.id, attachment_id: kept.attachment_id },
+      { training_id: created.body.data.id, attachment_id: kept.attachment_id },
     ]);
     expect(
       await prisma.attachments.findUnique({
         where: { attachment_id: dropped.attachment_id },
       }),
-    ).not.toBeNull();
+    ).toBeNull();
+    expect(await listStoredObjects("portfolio-training/")).not.toContain(
+      droppedKey,
+    );
   });
 
   it("refuses a request with no session, and changes nothing", async () => {
@@ -530,37 +542,81 @@ describe("PUT /portfolio-training/:id", () => {
 });
 
 describe("DELETE /portfolio-training/:id", () => {
-  it("removes the entry and the links to what was attached", async () => {
-    const attachment = await createFileAttachment();
-    const doomed = await createPortfolioTraining({
-      attachment_ids: [attachment.attachment_id],
+  it("removes the entry and what was attached to it", async () => {
+    const student = await createStudent();
+    const created = await request(app)
+      .post("/portfolio-training")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .field("name", "อบรมพร้อมไฟล์")
+      .attach("files", PDF, "certificate.pdf");
+
+    const attachment = created.body.data.attachments[0];
+    const objectKey = signedFileKey(attachment.file_path);
+    const kept = await createPortfolioTraining({
+      user_id: student.student_id,
     });
-    const kept = await createPortfolioTraining();
 
     const response = await request(app)
-      .delete(`/portfolio-training/${doomed.id}`)
-      .set("Cookie", sessionCookie({ userId: doomed.user_id }));
+      .delete(`/portfolio-training/${created.body.data.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeNull();
     expect(
-      await prisma.portfolio_training.findUnique({ where: { id: doomed.id } }),
+      await prisma.portfolio_training.findUnique({
+        where: { id: created.body.data.id },
+      }),
     ).toBeNull();
     expect(
       await prisma.portfolio_training_attachments.count({
-        where: { training_id: doomed.id },
+        where: { training_id: created.body.data.id },
       }),
     ).toBe(0);
 
-    // The attachment itself outlives the entry, same as on the detach path.
+    // The entry was the only thing pointing at the file, so it goes too (#34).
     expect(
       await prisma.attachments.findUnique({
         where: { attachment_id: attachment.attachment_id },
       }),
-    ).not.toBeNull();
+    ).toBeNull();
+    expect(await listStoredObjects("portfolio-training/")).not.toContain(
+      objectKey,
+    );
     expect(
       await prisma.portfolio_training.findUnique({ where: { id: kept.id } }),
     ).not.toBeNull();
+  });
+
+  it("keeps an attachment another entry still points at", async () => {
+    // Nothing shares an attachment today — every upload makes its own row —
+    // but the sweep counts references rather than trusting the owner, so a
+    // shared file survives the loss of one of its owners (#34).
+    const shared = await createFileAttachment();
+    const student = await createStudent();
+    const doomed = await createPortfolioTraining({
+      user_id: student.student_id,
+      attachment_ids: [shared.attachment_id],
+    });
+    const other = await createPortfolioTraining({
+      user_id: student.student_id,
+      attachment_ids: [shared.attachment_id],
+    });
+
+    const response = await request(app)
+      .delete(`/portfolio-training/${doomed.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: shared.attachment_id },
+      }),
+    ).not.toBeNull();
+    expect(
+      await prisma.portfolio_training_attachments.findMany({
+        where: { training_id: other.id },
+      }),
+    ).toEqual([{ training_id: other.id, attachment_id: shared.attachment_id }]);
   });
 
   it("refuses a request with no session, and deletes nothing", async () => {

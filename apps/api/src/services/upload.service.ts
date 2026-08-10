@@ -37,6 +37,26 @@ export default class MinIOService {
     }
   }
 
+  /**
+   * Removes objects nobody points at any more.
+   *
+   * Called after the database transaction that dropped the rows has already
+   * committed, so it cannot report failure to the caller — the delete has
+   * happened as far as the request is concerned. A bucket that refuses leaves
+   * an object nothing references, which costs space; the opposite order would
+   * leave a row pointing at a file that is gone, which the reader sees. See
+   * docs/adr/0008-attachment-lifecycle.md.
+   */
+  async removeFiles(paths: string[]) {
+    if (paths.length === 0) return;
+
+    try {
+      await minioClient.removeObjects(BUCKET_NAME, paths);
+    } catch (error) {
+      console.error("Delete Error:", error);
+    }
+  }
+
   async getFile(path: string) {
     const presignedUrl = await minioClient.presignedGetObject(
       BUCKET_NAME,

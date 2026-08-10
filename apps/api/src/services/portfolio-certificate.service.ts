@@ -6,6 +6,7 @@ import {
   PortfolioCertificateResp,
 } from "../models/portfolio-certificate.model";
 import AttachmentsService from "./attachments.service";
+import MinIOService from "./upload.service";
 
 // Helper to infer the type
 const inferCertificate = () =>
@@ -29,9 +30,11 @@ type PortfolioCertificateAttachment = NonNullable<
 
 export default class PortfolioCertificateService {
   private readonly attachmentsService: AttachmentsService;
+  private readonly uploadService: MinIOService;
 
   constructor() {
     this.attachmentsService = new AttachmentsService();
+    this.uploadService = new MinIOService();
   }
 
   async getAllPortfolioCertificate(
@@ -203,12 +206,20 @@ export default class PortfolioCertificateService {
     });
 
     if (ids_to_delete && ids_to_delete.length > 0) {
-      await prisma.portfolio_certificate_attachments.deleteMany({
-        where: {
-          certificate_id: id,
-          attachment_id: { in: ids_to_delete },
-        },
+      // A join row is what makes an attachment reachable. Dropping the last
+      // one strands it, so it goes with the link (#34).
+      const objects = await prisma.$transaction(async (tx) => {
+        await tx.portfolio_certificate_attachments.deleteMany({
+          where: {
+            certificate_id: id,
+            attachment_id: { in: ids_to_delete },
+          },
+        });
+
+        return this.attachmentsService.deleteUnreferenced(ids_to_delete, tx);
       });
+
+      await this.uploadService.removeFiles(objects);
     }
 
     if (files && files.length > 0) {
@@ -236,9 +247,30 @@ export default class PortfolioCertificateService {
   async deletePortfolioCertificate(
     id: number,
   ): Promise<PortfolioCertificateResp> {
-    const result = await prisma.portfolio_certificate.delete({
-      where: { id },
+    const { result, objects } = await prisma.$transaction(async (tx) => {
+      // Read what hangs off the certificate first: deleting it cascades the
+      // join rows away, and they are the only record of which attachments
+      // were its own (#34).
+      const links = await tx.portfolio_certificate_attachments.findMany({
+        where: { certificate_id: id },
+        select: { attachment_id: true },
+      });
+
+      const result = await tx.portfolio_certificate.delete({
+        where: { id },
+      });
+
+      return {
+        result,
+        objects: await this.attachmentsService.deleteUnreferenced(
+          links.map((link) => link.attachment_id),
+          tx,
+        ),
+      };
     });
+
+    await this.uploadService.removeFiles(objects);
+
     return {
       ...result,
       attachments: [],

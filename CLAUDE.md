@@ -31,15 +31,15 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 954 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 960 API cases over
   40 files, 413 web cases over 27 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
-Open work is in the issue tracker: the defects filed while testing — #34
-(attachments outlive the row that owned them) and #35 (four test cases the
-traceability table calls missing). #35 item 4 depends on what #34 decides.
-Everything else from the breakdown of #1 is closed, #20–#33 and #36–#37
-included.
+Open work is in the issue tracker: #35 (four test cases the traceability table
+calls missing). Its item 4 was waiting on what #34 decided, which is now
+settled — see [ADR-0008](docs/adr/0008-attachment-lifecycle.md). Everything
+else from the breakdown of #1 is closed, #20–#34 and #36–#37 included, though
+#25, #33, #34, #36 and #37 are implemented and only need closing.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

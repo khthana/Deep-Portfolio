@@ -377,7 +377,7 @@ describe("PUT /portfolio-certificate/:id", () => {
 });
 
 describe("DELETE /portfolio-certificate/:id", () => {
-  it("removes the certificate and the links to what was attached", async () => {
+  it("removes the certificate and what was attached to it", async () => {
     const attachment = await createFileAttachment();
     const doomed = await createPortfolioCertificate({
       attachment_ids: [attachment.attachment_id],
@@ -400,11 +400,13 @@ describe("DELETE /portfolio-certificate/:id", () => {
         where: { certificate_id: doomed.id },
       }),
     ).toBe(0);
+
+    // Nothing else pointed at the file, so it goes with the certificate (#34).
     expect(
       await prisma.attachments.findUnique({
         where: { attachment_id: attachment.attachment_id },
       }),
-    ).not.toBeNull();
+    ).toBeNull();
     expect(
       await prisma.portfolio_certificate.findUnique({ where: { id: kept.id } }),
     ).not.toBeNull();

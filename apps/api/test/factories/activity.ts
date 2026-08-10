@@ -46,6 +46,10 @@ export interface ActivityOptions {
    * than in the case.
    */
   score_weight_id?: number;
+  /** attachments.attachment_id values, joined on through activity_attachments —
+   *  what the teacher handed out with the work. Nothing here uploads anything;
+   *  a case that wants an object in the bucket has to post to the endpoint. */
+  attachment_ids?: number[];
 }
 
 export async function createActivity(options: ActivityOptions = {}) {
@@ -54,7 +58,7 @@ export async function createActivity(options: ActivityOptions = {}) {
       ? (await createCourse()).section_id
       : options.section_id;
 
-  return prisma.activities.create({
+  const activity = await prisma.activities.create({
     data: {
       section_id,
       course_syllabus_id: options.course_syllabus_id,
@@ -73,6 +77,17 @@ export async function createActivity(options: ActivityOptions = {}) {
       expected_level: options.expected_level,
     },
   });
+
+  if (options.attachment_ids?.length) {
+    await prisma.activity_attachments.createMany({
+      data: options.attachment_ids.map((attachment_id) => ({
+        activity_id: activity.id,
+        attachment_id,
+      })),
+    });
+  }
+
+  return activity;
 }
 
 export interface LearningActivityOptions {
@@ -86,6 +101,9 @@ export interface LearningActivityOptions {
   announcement_date?: Date;
   deadline_date?: Date;
   detail?: Prisma.InputJsonValue;
+  /** attachments.attachment_id values, joined on through
+   *  learning_activity_attachments. */
+  attachment_ids?: number[];
 }
 
 /**
@@ -100,7 +118,7 @@ export async function createLearningActivity(
 ) {
   const section_id = options.section_id ?? (await createCourse()).section_id;
 
-  return prisma.learning_activities.create({
+  const learningActivity = await prisma.learning_activities.create({
     data: {
       section_id,
       course_syllabus_id: options.course_syllabus_id,
@@ -112,6 +130,17 @@ export async function createLearningActivity(
       detail: options.detail,
     },
   });
+
+  if (options.attachment_ids?.length) {
+    await prisma.learning_activity_attachments.createMany({
+      data: options.attachment_ids.map((attachment_id) => ({
+        learning_activity_id: learningActivity.id,
+        attachment_id,
+      })),
+    });
+  }
+
+  return learningActivity;
 }
 
 export interface SubmissionOptions {
@@ -126,6 +155,9 @@ export interface SubmissionOptions {
   graded_by?: string;
   is_bookmark?: boolean;
   remark?: string;
+  /** attachments.attachment_id values, joined on through
+   *  student_activity_attachments — the files the student handed in. */
+  attachment_ids?: number[];
 }
 
 export async function createSubmission(options: SubmissionOptions = {}) {
@@ -133,7 +165,7 @@ export async function createSubmission(options: SubmissionOptions = {}) {
     options.student_id ?? (await createStudent()).student_id;
   const activity_id = options.activity_id ?? (await createActivity()).id;
 
-  return prisma.student_activity.create({
+  const submission = await prisma.student_activity.create({
     data: {
       student_id,
       activity_id,
@@ -147,6 +179,17 @@ export async function createSubmission(options: SubmissionOptions = {}) {
       remark: options.remark,
     },
   });
+
+  if (options.attachment_ids?.length) {
+    await prisma.student_activity_attachments.createMany({
+      data: options.attachment_ids.map((attachment_id) => ({
+        student_activity_id: submission.id,
+        attachment_id,
+      })),
+    });
+  }
+
+  return submission;
 }
 
 export interface LearningSubmissionOptions {
@@ -160,6 +203,9 @@ export interface LearningSubmissionOptions {
   graded_by?: string;
   is_bookmark?: boolean;
   remark?: string;
+  /** attachments.attachment_id values, joined on through
+   *  student_learning_activity_attachments. */
+  attachment_ids?: number[];
 }
 
 /**
@@ -174,7 +220,7 @@ export async function createLearningSubmission(
   const learning_activity_id =
     options.learning_activity_id ?? (await createLearningActivity()).id;
 
-  return prisma.student_learning_activity.create({
+  const submission = await prisma.student_learning_activity.create({
     data: {
       student_id,
       learning_activity_id,
@@ -187,4 +233,15 @@ export async function createLearningSubmission(
       remark: options.remark,
     },
   });
+
+  if (options.attachment_ids?.length) {
+    await prisma.student_learning_activity_attachments.createMany({
+      data: options.attachment_ids.map((attachment_id) => ({
+        student_learning_activity_id: submission.id,
+        attachment_id,
+      })),
+    });
+  }
+
+  return submission;
 }

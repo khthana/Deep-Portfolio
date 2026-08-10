@@ -3,6 +3,7 @@ import request from "supertest";
 import app from "../src/app";
 import prisma from "../src/config/prisma";
 import {
+  createAnnouncement,
   createCourse,
   createCourseMaterial,
   createFileAttachment,
@@ -509,10 +510,10 @@ describe("DELETE /course-material", () => {
     expect(doomedMaterial.attachment_id).toBe(doomed.attachment_id);
   });
 
-  it("leaves the uploaded object in the bucket", async () => {
-    // Recorded, not endorsed: the row goes, the file stays. Nothing else
-    // references it, so the bucket accumulates orphans. Deleting it belongs
-    // with the wider storage clean-up, not with this ticket.
+  it("removes the uploaded object from the bucket", async () => {
+    // The row and the object go together (#34): nothing else references the
+    // attachment once the material is gone, and an object nothing points at
+    // can never be reached or removed through the screens again.
     const teacher = await createTeacher();
     const course = await createCourse({ teacher_id: teacher.user_id });
     const week = await createLessonPlan({ section_id: course.section_id });
@@ -542,6 +543,53 @@ describe("DELETE /course-material", () => {
         where: { attachment_id: uploaded.attachment_id },
       }),
     ).toBeNull();
+    expect(await listStoredObjects(sectionPrefix(course.section_id))).toEqual(
+      [],
+    );
+  });
+
+  it("keeps the object of an attachment another record still points at", async () => {
+    // The sweep is by reference, not by owner: the material row goes, but the
+    // announcement still names the same attachment, so neither the row nor the
+    // object may be taken out from under it (#34).
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const week = await createLessonPlan({ section_id: course.section_id });
+
+    await request(app)
+      .post("/course-material")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("course_syllabus_id", String(week.id))
+      .field("section_id", String(course.section_id))
+      .attach("lecture_files", PDF, "week-1.pdf");
+
+    const uploaded = await prisma.course_material.findFirstOrThrow({
+      where: { course_syllabus_id: week.id },
+    });
+    const objectsBefore = await listStoredObjects(
+      sectionPrefix(course.section_id),
+    );
+    await createAnnouncement({
+      section_id: course.section_id,
+      attachment_ids: [uploaded.attachment_id],
+    });
+
+    const response = await request(app)
+      .delete("/course-material")
+      .query({ attachment_id: uploaded.attachment_id })
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.course_material.findMany({
+        where: { course_syllabus_id: week.id },
+      }),
+    ).toEqual([]);
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: uploaded.attachment_id },
+      }),
+    ).not.toBeNull();
     expect(await listStoredObjects(sectionPrefix(course.section_id))).toEqual(
       objectsBefore,
     );

@@ -21,9 +21,12 @@ what: `0001-portfolio-access.md` (a student's own rows),
 `0006-file-access.md` (whoever may read the row an attachment hangs on, via a
 short-lived signed URL) and `0007-group-membership.md` (a new group is the
 caller's own, and everyone in it is in the class). Read all six before adding
-an authorisation check anywhere. The remaining one,
-`0005-announcement-date.md`, is about when rather than who — a piece of work
-with no announcement date counts as announced, on every student-facing read.
+an authorisation check anywhere. The remaining two are about when rather than
+who: `0005-announcement-date.md` — a piece of work with no announcement date
+counts as announced, on every student-facing read — and
+`0008-attachment-lifecycle.md`, which says an attachment dies with its last
+owner, so read it before writing any endpoint that deletes a row an attachment
+hangs on.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

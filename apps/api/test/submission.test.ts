@@ -184,11 +184,18 @@ describe("POST /student/submit/activity", () => {
       }),
     ).toEqual([{ attachment_id: kept.attachment_id }]);
 
-    // Only the link to the submission goes; the attachment row and its object
-    // are left behind. #20 has the wider clean-up question.
+    // The submission was the only thing pointing at the dropped file, so it
+    // goes with the link rather than being left where nothing can reach it
+    // (#34). What existing_files_ids named is linked back in the same
+    // transaction, so the sweep never sees it unreferenced.
     expect(
       await prisma.attachments.count({
         where: { attachment_id: dropped.attachment_id },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.attachments.count({
+        where: { attachment_id: kept.attachment_id },
       }),
     ).toBe(1);
   });

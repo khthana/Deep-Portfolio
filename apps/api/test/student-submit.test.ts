@@ -168,10 +168,18 @@ describe("POST /student/submit/activity", () => {
       where: { student_activity_id: submission.id },
     });
     expect(linked.map((a) => a.attachment_id)).toEqual([kept.attachment_id]);
-    // Only the join row goes. The attachment itself, and its object, stay.
+
+    // The replaced file goes with its last join row (#34), and the one the
+    // resubmission named again survives — it is linked back in the same
+    // transaction, so the sweep never sees it unreferenced.
     expect(
       await prisma.attachments.findUnique({
         where: { attachment_id: dropped.attachment_id },
+      }),
+    ).toBeNull();
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: kept.attachment_id },
       }),
     ).not.toBeNull();
   });
@@ -242,6 +250,65 @@ describe("POST /student/submit/activity", () => {
       `${course.section_id}/activity/${activity.id}/group-${group.id}`,
     );
     expect(objects).toHaveLength(1);
+  });
+
+  it("replaces the group's file on a resubmission", async () => {
+    const leader = await createStudent();
+    const member = await createStudent();
+    const course = await createCourse();
+    const activity = await createActivity({ section_id: course.section_id });
+    const group = await createActivityGroup({
+      activity_id: activity.id,
+      members: [
+        { student_id: leader.student_id },
+        { student_id: member.student_id, status: "ACCEPT" },
+      ],
+    });
+    const leaderSubmission = group.student_activity_group_member.find(
+      (m) => m.student_id === leader.student_id,
+    )!;
+    const groupPrefix = `${course.section_id}/activity/${activity.id}/group-${group.id}`;
+
+    const submit = (filename: string) =>
+      request(app)
+        .post("/student/submit/activity")
+        .set("Cookie", sessionCookie({ userId: leader.student_id }))
+        .field(
+          "student_activity_id",
+          String(leaderSubmission.student_activity_id),
+        )
+        .field("section_id", String(course.section_id))
+        .field("activity_id", String(activity.id))
+        .field("type", "GROUP")
+        .field("group_id", String(group.id))
+        .attach("files", PNG, filename);
+
+    expect((await submit("งานกลุ่มฉบับแรก.png")).status).toBe(200);
+    const first = await prisma.attachments.findFirstOrThrow({
+      where: { title: "งานกลุ่มฉบับแรก.png" },
+    });
+
+    expect((await submit("งานกลุ่มฉบับสอง.png")).status).toBe(200);
+
+    // The first file is nobody's any more once every member is linked to the
+    // second, so it goes — row and object (#34).
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: first.attachment_id },
+      }),
+    ).toBeNull();
+    expect(await listStoredObjects(groupPrefix)).toHaveLength(1);
+
+    const submissions = await prisma.student_activity.findMany({
+      where: { activity_id: activity.id },
+      include: { student_activity_attachments: true },
+    });
+    for (const submission of submissions) {
+      expect(submission.student_activity_attachments).toHaveLength(1);
+      expect(
+        submission.student_activity_attachments[0].attachment_id,
+      ).not.toBe(first.attachment_id);
+    }
   });
 
   it("answers 400 for a group with nobody who accepted", async () => {
@@ -508,6 +575,13 @@ describe("POST /student/submit/learning-activity", () => {
         where: { student_learning_activity_id: submission.id },
       }),
     ).toEqual([]);
+
+    // The replaced file goes with its last join row (#34).
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: dropped.attachment_id },
+      }),
+    ).toBeNull();
   });
 
   it("submits for every accepted member of a group at once", async () => {

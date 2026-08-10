@@ -325,14 +325,13 @@ describe("PUT /learning-activity", () => {
       url: "https://example.test/worksheet",
     });
 
-    // The link between activity and attachment goes; the attachment itself is
-    // left behind. Recorded, not endorsed — it is the same orphan the rest of
-    // the upload code leaves.
+    // The activity was the only thing pointing at the removed attachment, so
+    // it goes with the link rather than being left behind (#34).
     expect(
       await prisma.attachments.findUnique({
         where: { attachment_id: doomed.attachment_id },
       }),
-    ).not.toBeNull();
+    ).toBeNull();
   });
 
   it("fails for an activity that does not exist", async () => {
@@ -410,9 +409,14 @@ describe("DELETE /learning-activity", () => {
 
   it("deletes the activity and the students' rows with it", async () => {
     const teacher = await createTeacher();
-    const activity = await createLearningActivity();
+    const handedOut = await createLinkAttachment();
+    const handedIn = await createLinkAttachment();
+    const activity = await createLearningActivity({
+      attachment_ids: [handedOut.attachment_id],
+    });
     const submission = await createLearningSubmission({
       learning_activity_id: activity.id,
+      attachment_ids: [handedIn.attachment_id],
     });
     const survivor = await createLearningActivity();
 
@@ -430,6 +434,19 @@ describe("DELETE /learning-activity", () => {
         where: { id: submission.id },
       }),
     ).toBeNull();
+
+    // The cascade takes the join rows on both sides, and nothing else points
+    // at either attachment — so what the teacher handed out and what the
+    // student handed in go too (#34).
+    expect(
+      await prisma.attachments.findMany({
+        where: {
+          attachment_id: {
+            in: [handedOut.attachment_id, handedIn.attachment_id],
+          },
+        },
+      }),
+    ).toEqual([]);
     expect(
       await prisma.learning_activities.findUnique({ where: { id: survivor.id } }),
     ).not.toBeNull();

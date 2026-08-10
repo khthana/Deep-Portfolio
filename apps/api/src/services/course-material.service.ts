@@ -4,12 +4,15 @@ import {
   GetCourseMaterialDetailResp,
 } from "../models/course-material.model";
 import AttachmentsService from "./attachments.service";
+import MinIOService from "./upload.service";
 
 export default class CourseMaterialService {
   private readonly attachmentsService: AttachmentsService;
+  private readonly uploadService: MinIOService;
 
   constructor() {
     this.attachmentsService = new AttachmentsService();
+    this.uploadService = new MinIOService();
   }
 
   async createCourseMaterial(data: CreateCourseMaterialReqBody) {
@@ -122,14 +125,18 @@ export default class CourseMaterialService {
   }
 
   async deleteCourseMaterial(attachment_id: number) {
-    return prisma.$transaction(async (tx) => {
+    const objects = await prisma.$transaction(async (tx) => {
+      // Unchanged: naming an attachment that is not there is still an error,
+      // which the route answers as it always has.
+      await tx.attachments.findUniqueOrThrow({ where: { attachment_id } });
+
       await tx.course_material.deleteMany({
         where: { attachment_id: attachment_id },
       });
 
-      await tx.attachments.delete({
-        where: { attachment_id: attachment_id },
-      });
+      return this.attachmentsService.deleteUnreferenced([attachment_id], tx);
     });
+
+    await this.uploadService.removeFiles(objects);
   }
 }
