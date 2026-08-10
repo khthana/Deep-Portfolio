@@ -28,7 +28,8 @@ mostly correctness work on top of it.
   including where it disagrees with the thesis document.
 - **Master data goes in through a CLI**, not the UI — 28 tables have no write
   path anywhere in the API. `npm run import --workspace @deep-portfolio/api --
-  ./data` reads a directory of CSV files; see
+  <absolute path>` reads a directory of CSV files — absolute because
+  `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
 - **Tests**: `npm test` at the root runs both workspaces. 781 API cases over
   39 files, 400 web cases over 24 files. Both were written against the

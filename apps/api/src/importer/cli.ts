@@ -6,7 +6,11 @@ import type { ImportError } from "./rows";
 /**
  * The command an administrator runs:
  *
- *     npm run import --workspace @deep-portfolio/api -- ./data
+ *     npm run import --workspace @deep-portfolio/api -- /path/to/data
+ *
+ * The directory is resolved against the working directory, and --workspace
+ * makes that apps/api rather than wherever the administrator was standing, so
+ * the documented form is an absolute path.
  *
  * Everything it prints is Thai, because the person reading it is the
  * administrator doing the import rather than a developer reading a log — the

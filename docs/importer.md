@@ -12,7 +12,7 @@ master data 28 ตารางของระบบไม่มีหน้า�
 เตรียมโฟลเดอร์ที่มีไฟล์ `.csv` แล้วสั่ง
 
 ```
-npm run import --workspace @deep-portfolio/api -- ./data
+npm run import --workspace @deep-portfolio/api -- /path/to/data
 ```
 
 ถ้าข้อมูลถูกต้องทั้งหมด จะเขียนลงฐานข้อมูลแล้วรายงานว่าเพิ่ม/อัปเดตตารางละกี่รายการ

@@ -1,3 +1,5 @@
+import path from "path";
+
 import dotenv from "dotenv";
 
 /**
@@ -19,7 +21,15 @@ import dotenv from "dotenv";
  * to read) DATABASE_URL.
  */
 
+// Anchored to this file rather than left to dotenv's default of the working
+// directory. `npm run import --workspace` happens to make the working directory
+// apps/api, and so does the container's WORKDIR, but `node apps/api/dist/...`
+// from the repo root does not — and there the default would quietly load the
+// root .env, which is compose's file and has no DATABASE_URL in it at all.
+// ../../ from either src/importer or dist/importer is the workspace root.
+const workspaceRoot = path.resolve(__dirname, "..", "..");
+
 // quiet: everything else this command prints is a report meant for the
 // administrator running it, in Thai. dotenv's default startup banner is a note
 // to developers and does not belong in the middle of that.
-dotenv.config({ quiet: true });
+dotenv.config({ path: path.join(workspaceRoot, ".env"), quiet: true });
