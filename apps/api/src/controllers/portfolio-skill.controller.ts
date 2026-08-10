@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { sessionUserId } from "../middlewares/auth.middleware";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
 import PortfolioSkillService from "../services/portfolio-skill.service";
@@ -68,10 +69,10 @@ export default class PortfolioSkillController {
 
   async createPortfolioSkill(req: Request, res: Response, next: NextFunction) {
     try {
-      const { user_id, ...data } = validated(req, createPortfolioSkillBody);
+      const data = validated(req, createPortfolioSkillBody);
 
       const result = await this.portfolioSkillService.createPortfolioSkill(
-        user_id,
+        sessionUserId(req),
         data,
       );
 
@@ -138,7 +139,10 @@ export default class PortfolioSkillController {
     try {
       const data = validated(req, assignWorkToSkillsBody);
 
-      await this.portfolioSkillService.assignWorkToSkills(data);
+      await this.portfolioSkillService.assignWorkToSkills(
+        sessionUserId(req),
+        data,
+      );
 
       successResponse(res, null, "Work assigned to skills successfully", 201);
     } catch (err) {

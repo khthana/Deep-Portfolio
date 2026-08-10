@@ -175,7 +175,7 @@ const WorkEditModal = ({
     if (!name) return;
     setCreatingSkill(true);
     try {
-      const res = await createPortfolioSkill({ user_id: studentId, name });
+      const res = await createPortfolioSkill({ name });
       if (res.success) {
         setAllSkills((prev) => [...prev, res.data]);
         const next = [...(form.getFieldValue("skill_ids") || []), res.data.id];
@@ -205,7 +205,6 @@ const WorkEditModal = ({
       }
 
       await assignWorkToSkills({
-        user_id: studentId,
         student_activity_id: work.student_activity_id,
         skill_ids: skillIds,
         repository: values.repository || undefined,

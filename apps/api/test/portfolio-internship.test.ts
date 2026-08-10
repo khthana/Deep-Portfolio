@@ -8,6 +8,7 @@ import {
   createPortfolioInternship,
   createStudent,
 } from "./factories";
+import { sessionCookie } from "./helpers/session";
 import { listStoredObjects } from "./helpers/storage";
 
 /**
@@ -22,8 +23,10 @@ import { listStoredObjects } from "./helpers/storage";
  * The list is ordered by start_date descending, which is the only ordering in
  * the group that reads off a column the student may leave blank.
  *
- * Nothing on this route group is behind any middleware; the user being acted
- * for is whoever the query or the body says. That is #31.
+ * Authorisation is the same everywhere in the group since #31 — a session, and
+ * your own rows — and portfolio-education.test.ts carries those cases in full.
+ * What is here is the pair this file can get wrong on its own: a multipart
+ * create that is refused before the upload, and a refused delete.
  */
 
 const PDF = Buffer.from("%PDF-1.4 example");
@@ -47,6 +50,7 @@ describe("GET /portfolio-internship", () => {
 
     const response = await request(app)
       .get("/portfolio-internship")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.status).toBe(200);
@@ -93,6 +97,7 @@ describe("GET /portfolio-internship", () => {
 
     const response = await request(app)
       .get("/portfolio-internship")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     // Files first, then links — the endpoint concatenates the two lists the
@@ -124,6 +129,7 @@ describe("GET /portfolio-internship", () => {
 
     const response = await request(app)
       .get("/portfolio-internship")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.body.data.map((i: { id: number }) => i.id)).toEqual([
@@ -132,15 +138,17 @@ describe("GET /portfolio-internship", () => {
   });
 
   it("refuses a request that names no user", async () => {
-    const response = await request(app).get("/portfolio-internship");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-internship")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
       message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [
-        { field: "user_id", location: "query", message: "ต้องระบุ" },
-      ],
+      errors: [{ field: "user_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });
@@ -152,7 +160,9 @@ describe("GET /portfolio-internship/:id", () => {
       position: "นักพัฒนาซอฟต์แวร์",
     });
 
-    const response = await request(app).get(`/portfolio-internship/${entry.id}`);
+    const response = await request(app)
+      .get(`/portfolio-internship/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
@@ -163,7 +173,11 @@ describe("GET /portfolio-internship/:id", () => {
   });
 
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).get("/portfolio-internship/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-internship/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -174,7 +188,11 @@ describe("GET /portfolio-internship/:id", () => {
   });
 
   it("answers 404 for an id that belongs to no placement", async () => {
-    const response = await request(app).get("/portfolio-internship/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-internship/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -190,7 +208,7 @@ describe("POST /portfolio-internship", () => {
 
     const response = await request(app)
       .post("/portfolio-internship")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("type", "coop")
       .field("title", "สหกิจศึกษา")
       .field("company", "บริษัทตัวอย่าง")
@@ -220,7 +238,7 @@ describe("POST /portfolio-internship", () => {
 
     const response = await request(app)
       .post("/portfolio-internship")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("type", "internship")
       .field("is_show_resp", "false")
       .field("is_show_learning", "true")
@@ -243,7 +261,7 @@ describe("POST /portfolio-internship", () => {
 
     const response = await request(app)
       .post("/portfolio-internship")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("type", "internship")
       .attach("files", PDF, "evaluation.pdf");
 
@@ -260,25 +278,24 @@ describe("POST /portfolio-internship", () => {
     expect(objects).toContain(response.body.data.attachments[0].file_path);
   });
 
-  it("refuses a request that names no user", async () => {
+  it("stores nothing in the bucket when there is no session", async () => {
+    // requireUser runs before the upload middleware since #31, so a request
+    // nobody is behind never reaches the bucket at all.
+    const before = await listStoredObjects("portfolio-internship/");
+
     const response = await request(app)
       .post("/portfolio-internship")
       .field("type", "internship")
-      .field("company", "บริษัทไร้เจ้าของ");
+      .field("company", "บริษัทไร้เจ้าของ")
+      .attach("files", PDF, "evaluation.pdf");
 
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      success: false,
-      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [
-        { field: "user_id", location: "body", message: "ต้องระบุ" },
-      ],
-    });
+    expect(response.status).toBe(401);
     expect(
       await prisma.portfolio_internship.count({
         where: { company: "บริษัทไร้เจ้าของ" },
       }),
     ).toBe(0);
+    expect(await listStoredObjects("portfolio-internship/")).toEqual(before);
   });
 
   it("fails when the request names no type of placement", async () => {
@@ -286,7 +303,7 @@ describe("POST /portfolio-internship", () => {
 
     const response = await request(app)
       .post("/portfolio-internship")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("company", "บริษัทตัวอย่าง");
 
     expect(response.status).toBe(400);
@@ -312,6 +329,7 @@ describe("PUT /portfolio-internship/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-internship/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .field("company", "บริษัทใหม่");
 
     expect(response.status).toBe(200);
@@ -337,6 +355,7 @@ describe("PUT /portfolio-internship/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-internship/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .attach("files", PDF, "extra.pdf");
 
     expect(response.status).toBe(200);
@@ -354,6 +373,7 @@ describe("PUT /portfolio-internship/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-internship/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ ids_to_delete: [dropped.attachment_id] });
 
     expect(response.status).toBe(200);
@@ -369,9 +389,33 @@ describe("PUT /portfolio-internship/:id", () => {
     ).not.toBeNull();
   });
 
+  it("keeps a refused upload out of the bucket", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioInternship({ company: "บริษัทเดิม" });
+    const before = await listStoredObjects("portfolio-internship/");
+
+    const response = await request(app)
+      .put(`/portfolio-internship/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .attach("files", PDF, "evaluation.pdf");
+
+    expect(response.status).toBe(403);
+    expect(
+      (
+        await prisma.portfolio_internship.findUniqueOrThrow({
+          where: { id: entry.id },
+        })
+      ).company,
+    ).toBe("บริษัทเดิม");
+    expect(await listStoredObjects("portfolio-internship/")).toEqual(before);
+  });
+
   it("answers 400 for an id that is not a number", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-internship/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("company", "บริษัทใหม่");
 
     expect(response.status).toBe(400);
@@ -383,8 +427,11 @@ describe("PUT /portfolio-internship/:id", () => {
   });
 
   it("fails for a placement that does not exist", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-internship/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("company", "บริษัทใหม่");
 
     expect(response.status).toBe(500);
@@ -404,9 +451,9 @@ describe("DELETE /portfolio-internship/:id", () => {
       user_id: student.student_id,
     });
 
-    const response = await request(app).delete(
-      `/portfolio-internship/${doomed.id}`,
-    );
+    const response = await request(app)
+      .delete(`/portfolio-internship/${doomed.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeNull();
@@ -425,8 +472,26 @@ describe("DELETE /portfolio-internship/:id", () => {
     ).toHaveLength(0);
   });
 
+  it("refuses another student's placement, and deletes nothing", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioInternship();
+
+    const response = await request(app)
+      .delete(`/portfolio-internship/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(
+      await prisma.portfolio_internship.findUnique({ where: { id: entry.id } }),
+    ).not.toBeNull();
+  });
+
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).delete("/portfolio-internship/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-internship/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -437,7 +502,11 @@ describe("DELETE /portfolio-internship/:id", () => {
   });
 
   it("fails for a placement that does not exist", async () => {
-    const response = await request(app).delete("/portfolio-internship/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-internship/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(500);
     expect(response.body.success).toBe(false);

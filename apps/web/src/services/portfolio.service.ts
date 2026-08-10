@@ -9,7 +9,6 @@ export interface PortfolioTemplate {
 }
 
 export interface CreatePortfolioReq {
-  user_id: string;
   template_id: number;
   portfolio_name: string;
   template_color: string;

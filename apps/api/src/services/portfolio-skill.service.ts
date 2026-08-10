@@ -216,9 +216,11 @@ export default class PortfolioSkillService {
     await prisma.portfolio_skill_activity_mapping.delete({ where: { id } });
   }
 
-  async assignWorkToSkills(data: AssignWorkToSkillsReqBody): Promise<void> {
+  async assignWorkToSkills(
+    user_id: string,
+    data: AssignWorkToSkillsReqBody,
+  ): Promise<void> {
     const {
-      user_id,
       student_activity_id,
       skill_ids,
       repository,

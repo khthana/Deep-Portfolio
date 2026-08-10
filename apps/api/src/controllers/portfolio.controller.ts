@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { sessionUserId } from "../middlewares/auth.middleware";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
 import PortfolioService from "../services/portfolio.service";
@@ -89,7 +90,10 @@ export default class PortfolioController {
     try {
       const data = validated(req, createPortfolioBody);
 
-      const result = await this.portfolioService.createPortfolio(data);
+      const result = await this.portfolioService.createPortfolio(
+        sessionUserId(req),
+        data,
+      );
 
       successResponse(res, result, "Created portfolio successfully", 201);
     } catch (err) {

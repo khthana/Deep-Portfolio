@@ -22,7 +22,6 @@ export type PortfolioThesisAttachment = {
 };
 
 export type CreatePortfolioThesisReq = {
-  user_id: string;
   name: string;
   repository?: string;
   role_and_resp?: string;

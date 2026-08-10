@@ -33,7 +33,6 @@ export const createPortfolioAward = async (
   const formData = new FormData();
 
   // Append form fields
-  formData.append("user_id", data.user_id);
   if (data.award) formData.append("award", data.award);
   if (data.name) formData.append("name", data.name);
   if (data.organize) formData.append("organize", data.organize);

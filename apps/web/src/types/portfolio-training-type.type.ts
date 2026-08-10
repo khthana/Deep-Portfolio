@@ -19,7 +19,6 @@ export type PortfolioTrainingResp = {
 };
 
 export type CreatePortfolioTrainingReq = {
-  user_id: string;
   year?: number;
   country?: string;
   organize?: string;
@@ -28,8 +27,6 @@ export type CreatePortfolioTrainingReq = {
   is_show?: boolean;
 };
 
-export type UpdatePortfolioTrainingReq = Partial<
-  Omit<CreatePortfolioTrainingReq, "user_id">
-> & {
+export type UpdatePortfolioTrainingReq = Partial<CreatePortfolioTrainingReq> & {
   ids_to_delete?: number[];
 };

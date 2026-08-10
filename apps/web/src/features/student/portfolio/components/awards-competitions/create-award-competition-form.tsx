@@ -94,7 +94,6 @@ const CreateAwardCompetitionForm = ({
     setLoading(true);
     try {
       const reqData: CreatePortfolioAwardReq = {
-        user_id: studentId,
         name: values.name,
         organize: values.organize,
         award: values.award,

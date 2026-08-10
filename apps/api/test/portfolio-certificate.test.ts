@@ -7,6 +7,7 @@ import {
   createPortfolioCertificate,
   createStudent,
 } from "./factories";
+import { sessionCookie } from "./helpers/session";
 import { listStoredObjects } from "./helpers/storage";
 
 /**
@@ -20,8 +21,8 @@ import { listStoredObjects } from "./helpers/storage";
  * portfolio-training.test.ts and portfolio-education.test.ts (T5). What is
  * here is one success and one failure for each endpoint, plus the date.
  *
- * Nothing on this route group is behind any middleware; the user being acted
- * for is whoever the query string or body says. That is #31.
+ * Authorisation is the same everywhere in the group since #31 — a session, and
+ * your own rows — and portfolio-education.test.ts carries those cases in full.
  */
 
 const PDF = Buffer.from("%PDF-1.4 example\n");
@@ -44,6 +45,7 @@ describe("GET /portfolio-certificate", () => {
 
     const response = await request(app)
       .get("/portfolio-certificate")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.status).toBe(200);
@@ -73,6 +75,7 @@ describe("GET /portfolio-certificate", () => {
 
     const response = await request(app)
       .get("/portfolio-certificate")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.body.data.map((c: { id: number }) => c.id)).toEqual([
@@ -81,7 +84,11 @@ describe("GET /portfolio-certificate", () => {
   });
 
   it("refuses a request that names no user", async () => {
-    const response = await request(app).get("/portfolio-certificate");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-certificate")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -104,9 +111,9 @@ describe("GET /portfolio-certificate/:id", () => {
       attachment_ids: [file.attachment_id],
     });
 
-    const response = await request(app).get(
-      `/portfolio-certificate/${entry.id}`,
-    );
+    const response = await request(app)
+      .get(`/portfolio-certificate/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
@@ -125,7 +132,11 @@ describe("GET /portfolio-certificate/:id", () => {
   });
 
   it("answers 404 for an id that belongs to no certificate", async () => {
-    const response = await request(app).get("/portfolio-certificate/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-certificate/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -135,7 +146,11 @@ describe("GET /portfolio-certificate/:id", () => {
   });
 
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).get("/portfolio-certificate/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-certificate/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -150,13 +165,15 @@ describe("POST /portfolio-certificate", () => {
   it("creates a certificate and hands it back", async () => {
     const student = await createStudent();
 
-    const response = await request(app).post("/portfolio-certificate").send({
-      user_id: student.student_id,
-      date: "2025-11-20",
-      organize: "หน่วยงานตัวอย่าง",
-      name: "ประกาศนียบัตรตัวอย่าง",
-      description: "รายละเอียดตัวอย่าง",
-    });
+    const response = await request(app)
+      .post("/portfolio-certificate")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({
+        date: "2025-11-20",
+        organize: "หน่วยงานตัวอย่าง",
+        name: "ประกาศนียบัตรตัวอย่าง",
+        description: "รายละเอียดตัวอย่าง",
+      });
 
     expect(response.status).toBe(201);
     expect(response.body.data).toMatchObject({
@@ -178,7 +195,7 @@ describe("POST /portfolio-certificate", () => {
 
     const response = await request(app)
       .post("/portfolio-certificate")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "ประกาศนียบัตรพร้อมไฟล์")
       .field("is_show", "false")
       .attach("files", PDF, "certificate.pdf");
@@ -191,17 +208,12 @@ describe("POST /portfolio-certificate", () => {
     expect(objects).toContain(response.body.data.attachments[0].file_path);
   });
 
-  it("refuses a request that names no user", async () => {
+  it("refuses a request with no session", async () => {
     const response = await request(app)
       .post("/portfolio-certificate")
       .send({ name: "ประกาศนียบัตรไร้เจ้าของ" });
 
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      success: false,
-      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [{ field: "user_id", location: "body", message: "ต้องระบุ" }],
-    });
+    expect(response.status).toBe(401);
     expect(
       await prisma.portfolio_certificate.count({
         where: { name: "ประกาศนียบัตรไร้เจ้าของ" },
@@ -220,6 +232,7 @@ describe("PUT /portfolio-certificate/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-certificate/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ name: "ชื่อใหม่", date: "2025-11-20" });
 
     expect(response.status).toBe(200);
@@ -238,6 +251,7 @@ describe("PUT /portfolio-certificate/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-certificate/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ name: "ชื่อใหม่" });
 
     expect(response.status).toBe(200);
@@ -251,6 +265,7 @@ describe("PUT /portfolio-certificate/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-certificate/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ name: "ชื่อใหม่", date: null });
 
     expect(response.status).toBe(200);
@@ -258,8 +273,11 @@ describe("PUT /portfolio-certificate/:id", () => {
   });
 
   it("fails for a certificate that does not exist", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-certificate/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ name: "ชื่อใหม่" });
 
     expect(response.status).toBe(500);
@@ -275,9 +293,9 @@ describe("DELETE /portfolio-certificate/:id", () => {
     });
     const kept = await createPortfolioCertificate();
 
-    const response = await request(app).delete(
-      `/portfolio-certificate/${doomed.id}`,
-    );
+    const response = await request(app)
+      .delete(`/portfolio-certificate/${doomed.id}`)
+      .set("Cookie", sessionCookie({ userId: doomed.user_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeNull();
@@ -301,8 +319,28 @@ describe("DELETE /portfolio-certificate/:id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses another student's certificate, and deletes nothing", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioCertificate();
+
+    const response = await request(app)
+      .delete(`/portfolio-certificate/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(
+      await prisma.portfolio_certificate.findUnique({
+        where: { id: entry.id },
+      }),
+    ).not.toBeNull();
+  });
+
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).delete("/portfolio-certificate/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-certificate/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({

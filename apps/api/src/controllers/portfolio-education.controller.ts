@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { sessionUserId } from "../middlewares/auth.middleware";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
 import PortfolioEducationService from "../services/portfolio-education.service";
@@ -65,11 +66,11 @@ export default class PortfolioEducationController {
     next: NextFunction,
   ) {
     try {
-      const { user_id, ...data } = validated(req, createPortfolioEducationBody);
+      const data = validated(req, createPortfolioEducationBody);
 
       const result =
         await this.portfolioEducationService.createPortfolioEducation(
-          user_id,
+          sessionUserId(req),
           data,
         );
 

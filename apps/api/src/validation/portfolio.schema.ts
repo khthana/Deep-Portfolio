@@ -13,11 +13,12 @@ import {
  * `/portfolio` — the cover page — and the pieces the nine section routers share.
  *
  * Two things about this group show up in every schema here and in the three
- * files beside it. Nothing on it is behind any middleware, so the user being
- * acted for is a field like any other and has to be checked like one — #31 is
- * the missing middleware, not this. And most of it is posted as multipart,
- * because the sections carry uploads, so every field arrives as a string, which
- * is what the coercing types in ./fields are for.
+ * files beside it. No create says who it is for: since #31 the acting user is
+ * the session's, so `user_id` survives only where a request names whose data it
+ * wants to read — and there it is a field the middleware checks, not one the
+ * service trusts. And most of it is posted as multipart, because the sections
+ * carry uploads, so every field arrives as a string, which is what the coercing
+ * types in ./fields are for.
  */
 
 /** Whose portfolio the request is about. Every list in the group asks this way. */
@@ -89,7 +90,7 @@ const cover = {
   ...visibility,
 };
 
-export const createPortfolioBody = z.object({ user_id: userId, ...cover });
+export const createPortfolioBody = z.object(cover);
 export const updatePortfolioBody = z.object(cover);
 
 /**

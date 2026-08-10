@@ -32,7 +32,6 @@ export const createPortfolioThesis = async (
 ) => {
   const formData = new FormData();
 
-  formData.append("user_id", data.user_id);
   formData.append("name", data.name);
   if (data.repository) formData.append("repository", data.repository);
   if (data.role_and_resp) formData.append("role_and_resp", data.role_and_resp);

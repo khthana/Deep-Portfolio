@@ -82,7 +82,6 @@ const CreateActivityForm = ({ messageApi }: CreateActivityFormProps) => {
     setLoading(true);
     try {
       const reqData: CreatePortfolioActivityReq = {
-        user_id: studentId,
         name: values.name,
         date: values.date ? values.date.toISOString() : undefined,
         role: values.role,

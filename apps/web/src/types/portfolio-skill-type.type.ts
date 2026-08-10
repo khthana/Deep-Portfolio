@@ -32,7 +32,6 @@ export type SkillMappingReq = {
 };
 
 export type CreatePortfolioSkillReq = {
-  user_id?: string;
   name: string;
   mappings?: SkillMappingReq[];
 };
@@ -43,7 +42,6 @@ export type UpdatePortfolioSkillReq = {
 };
 
 export type AssignWorkToSkillsReq = {
-  user_id: string;
   student_activity_id: number;
   skill_ids: number[];
   repository?: string;

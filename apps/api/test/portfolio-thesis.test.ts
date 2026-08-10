@@ -8,6 +8,7 @@ import {
   createPortfolioThesis,
   createStudent,
 } from "./factories";
+import { sessionCookie } from "./helpers/session";
 import { listStoredObjects } from "./helpers/storage";
 
 /**
@@ -22,8 +23,8 @@ import { listStoredObjects } from "./helpers/storage";
  * recently done. It carries four is_show_* flags, one per free-text field, all
  * of which the controller has to convert out of multipart's strings.
  *
- * Nothing on this route group is behind any middleware; the user being acted
- * for is whoever the query or the body says. That is #31.
+ * Authorisation is the same everywhere in the group since #31 — a session, and
+ * your own rows — and portfolio-education.test.ts carries those cases in full.
  */
 
 const PDF = Buffer.from("%PDF-1.4 example");
@@ -42,6 +43,7 @@ describe("GET /portfolio-thesis", () => {
 
     const response = await request(app)
       .get("/portfolio-thesis")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.status).toBe(200);
@@ -83,6 +85,7 @@ describe("GET /portfolio-thesis", () => {
 
     const response = await request(app)
       .get("/portfolio-thesis")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.body.data[0].attachments).toEqual([
@@ -110,6 +113,7 @@ describe("GET /portfolio-thesis", () => {
 
     const response = await request(app)
       .get("/portfolio-thesis")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.body.data.map((t: { id: number }) => t.id)).toEqual([
@@ -118,15 +122,17 @@ describe("GET /portfolio-thesis", () => {
   });
 
   it("refuses a request that names no user", async () => {
-    const response = await request(app).get("/portfolio-thesis");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-thesis")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
       message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [
-        { field: "user_id", location: "query", message: "ต้องระบุ" },
-      ],
+      errors: [{ field: "user_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });
@@ -138,7 +144,9 @@ describe("GET /portfolio-thesis/:id", () => {
       repository: "https://example.test/repo",
     });
 
-    const response = await request(app).get(`/portfolio-thesis/${entry.id}`);
+    const response = await request(app)
+      .get(`/portfolio-thesis/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
@@ -148,8 +156,27 @@ describe("GET /portfolio-thesis/:id", () => {
     });
   });
 
+  it("refuses another student's project", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioThesis();
+
+    const response = await request(app)
+      .get(`/portfolio-thesis/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).get("/portfolio-thesis/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-thesis/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -160,7 +187,11 @@ describe("GET /portfolio-thesis/:id", () => {
   });
 
   it("answers 404 for an id that belongs to no project", async () => {
-    const response = await request(app).get("/portfolio-thesis/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-thesis/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -176,7 +207,7 @@ describe("POST /portfolio-thesis", () => {
 
     const response = await request(app)
       .post("/portfolio-thesis")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "ปริญญานิพนธ์ตัวอย่าง")
       .field("repository", "https://example.test/repo")
       .field("role_and_resp", "พัฒนาส่วนหลังบ้าน");
@@ -202,7 +233,7 @@ describe("POST /portfolio-thesis", () => {
 
     const response = await request(app)
       .post("/portfolio-thesis")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "ปริญญานิพนธ์ตัวอย่าง")
       .field("is_show_repo", "false")
       .field("is_show_role", "true")
@@ -227,7 +258,7 @@ describe("POST /portfolio-thesis", () => {
 
     const response = await request(app)
       .post("/portfolio-thesis")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "ปริญญานิพนธ์ตัวอย่าง")
       .attach("files", PDF, "poster.pdf");
 
@@ -238,18 +269,15 @@ describe("POST /portfolio-thesis", () => {
     expect(objects).toContain(response.body.data.attachments[0].file_path);
   });
 
-  it("refuses a request that names no user", async () => {
+  it("refuses a request with no session", async () => {
     const response = await request(app)
       .post("/portfolio-thesis")
       .field("name", "ปริญญานิพนธ์ไร้เจ้าของ");
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
     expect(response.body).toEqual({
       success: false,
-      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [
-        { field: "user_id", location: "body", message: "ต้องระบุ" },
-      ],
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
     expect(
       await prisma.portfolio_thesis.count({
@@ -258,13 +286,13 @@ describe("POST /portfolio-thesis", () => {
     ).toBe(0);
   });
 
-  it("fails for a user who does not exist", async () => {
+  it("refuses a session for a user who does not exist", async () => {
     const response = await request(app)
       .post("/portfolio-thesis")
-      .field("user_id", "99999999")
+      .set("Cookie", sessionCookie({ userId: "99999999" }))
       .field("name", "ปริญญานิพนธ์ไร้เจ้าของ");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(401);
     expect(
       await prisma.portfolio_thesis.count({ where: { user_id: "99999999" } }),
     ).toBe(0);
@@ -280,6 +308,7 @@ describe("PUT /portfolio-thesis/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-thesis/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .field("name", "ปริญญานิพนธ์ใหม่");
 
     expect(response.status).toBe(200);
@@ -305,6 +334,7 @@ describe("PUT /portfolio-thesis/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-thesis/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .attach("files", PDF, "extra.pdf");
 
     expect(response.status).toBe(200);
@@ -320,6 +350,7 @@ describe("PUT /portfolio-thesis/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-thesis/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ ids_to_delete: [dropped.attachment_id] });
 
     expect(response.status).toBe(200);
@@ -335,9 +366,31 @@ describe("PUT /portfolio-thesis/:id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses another student's project, and changes nothing", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioThesis({ name: "ปริญญานิพนธ์เดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio-thesis/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .field("name", "ปริญญานิพนธ์ใหม่");
+
+    expect(response.status).toBe(403);
+    expect(
+      (
+        await prisma.portfolio_thesis.findUniqueOrThrow({
+          where: { id: entry.id },
+        })
+      ).name,
+    ).toBe("ปริญญานิพนธ์เดิม");
+  });
+
   it("answers 400 for an id that is not a number", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-thesis/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "ปริญญานิพนธ์ใหม่");
 
     expect(response.status).toBe(400);
@@ -349,8 +402,11 @@ describe("PUT /portfolio-thesis/:id", () => {
   });
 
   it("fails for a project that does not exist", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-thesis/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "ปริญญานิพนธ์ใหม่");
 
     expect(response.status).toBe(500);
@@ -368,7 +424,9 @@ describe("DELETE /portfolio-thesis/:id", () => {
     });
     const kept = await createPortfolioThesis({ user_id: student.student_id });
 
-    const response = await request(app).delete(`/portfolio-thesis/${doomed.id}`);
+    const response = await request(app)
+      .delete(`/portfolio-thesis/${doomed.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeNull();
@@ -388,7 +446,11 @@ describe("DELETE /portfolio-thesis/:id", () => {
   });
 
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).delete("/portfolio-thesis/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-thesis/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -399,7 +461,11 @@ describe("DELETE /portfolio-thesis/:id", () => {
   });
 
   it("fails for a project that does not exist", async () => {
-    const response = await request(app).delete("/portfolio-thesis/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-thesis/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(500);
     expect(response.body.success).toBe(false);

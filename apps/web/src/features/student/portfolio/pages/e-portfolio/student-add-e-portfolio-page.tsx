@@ -176,7 +176,6 @@ const StudentAddEPortfolioPage = () => {
       );
 
       const payload = {
-        user_id: studentId,
         portfolio_name: values.portfolioName,
         template_color: templateColor,
         about_me: values.about_me,

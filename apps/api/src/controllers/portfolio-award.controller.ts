@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { sessionUserId } from "../middlewares/auth.middleware";
 import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
@@ -53,11 +54,11 @@ export default class PortfolioAwardController {
 
   async createPortfolioAward(req: Request, res: Response, next: NextFunction) {
     try {
-      const { user_id, ...data } = validated(req, createPortfolioAwardBody);
+      const data = validated(req, createPortfolioAwardBody);
       const files = uploadedFiles(req);
 
       const result = await this.portfolioAwardService.createPortfolioAward(
-        user_id,
+        sessionUserId(req),
         data,
         files,
       );

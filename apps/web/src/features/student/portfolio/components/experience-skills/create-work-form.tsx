@@ -210,7 +210,7 @@ const CreateWorkForm = () => {
     if (!name) return;
     setCreatingSkill(true);
     try {
-      const res = await createPortfolioSkill({ user_id: studentId, name });
+      const res = await createPortfolioSkill({ name });
       if (res.success) {
         const created = res.data;
         setSkills((prev) => [...prev, created]);
@@ -237,7 +237,6 @@ const CreateWorkForm = () => {
       setLoading(true);
 
       await assignWorkToSkills({
-        user_id: studentId,
         student_activity_id: values.student_activity_id,
         skill_ids: values.skill_ids,
         repository: values.repository || undefined,

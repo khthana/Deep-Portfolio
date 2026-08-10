@@ -8,14 +8,15 @@ import {
   createStudent,
   createSubmission,
 } from "./factories";
+import { sessionCookie } from "./helpers/session";
 
 /**
  * Skills and the work that evidences them — /portfolio-skill.
  *
- * The widest surface in the group: nine handlers, no uploads, and the only
- * ownership check in the whole portfolio. A skill is a name the student
- * chooses; a mapping ties that skill to a piece of submitted coursework, and
- * the same submission usually carries one mapping per skill it demonstrates.
+ * The widest surface in the group: nine handlers and no uploads. A skill is a
+ * name the student chooses; a mapping ties that skill to a piece of submitted
+ * coursework, and the same submission usually carries one mapping per skill it
+ * demonstrates.
  *
  * Two shapes are worth knowing before reading the cases:
  *
@@ -27,9 +28,13 @@ import {
  *   work's skill list a single call.
  *
  * portfolio_skill_activity_mapping.student_activity_id has no foreign key, so a
- * mapping can name a submission that does not exist. Nothing checks who is
- * asking, either — /assign-work verifies that the *skills* belong to the user
- * it was handed, not that the caller is that user. That is #31.
+ * mapping can name a submission that does not exist.
+ *
+ * Ownership is two-layered here since #31: a skill owns itself, and a mapping
+ * is owned by the skill it hangs off. /assign-work is the one route in the
+ * group whose check is not the middleware's — it names skills in the body, and
+ * the service refuses the transaction unless every one of them is the caller's.
+ * See docs/adr/0001-portfolio-access.md.
  */
 
 describe("GET /portfolio-skill", () => {
@@ -52,6 +57,7 @@ describe("GET /portfolio-skill", () => {
 
     const response = await request(app)
       .get("/portfolio-skill")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.status).toBe(200);
@@ -81,6 +87,7 @@ describe("GET /portfolio-skill", () => {
 
     const response = await request(app)
       .get("/portfolio-skill")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.body.data.map((s: { id: number }) => s.id)).toEqual([
@@ -89,7 +96,11 @@ describe("GET /portfolio-skill", () => {
   });
 
   it("refuses a request that names no user", async () => {
-    const response = await request(app).get("/portfolio-skill");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-skill")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -131,6 +142,7 @@ describe("GET /portfolio-skill/works", () => {
 
     const response = await request(app)
       .get("/portfolio-skill/works")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.status).toBe(200);
@@ -168,6 +180,7 @@ describe("GET /portfolio-skill/works", () => {
 
     const response = await request(app)
       .get("/portfolio-skill/works")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(
@@ -177,8 +190,28 @@ describe("GET /portfolio-skill/works", () => {
     ).toEqual([mine.id]);
   });
 
+  it("refuses a student asking for somebody else's work", async () => {
+    const owner = await createStudent();
+    const stranger = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-skill/works")
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .query({ user_id: owner.student_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
   it("refuses a request that names no user", async () => {
-    const response = await request(app).get("/portfolio-skill/works");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-skill/works")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -193,7 +226,9 @@ describe("GET /portfolio-skill/:id", () => {
   it("returns the skill the id names", async () => {
     const skill = await createPortfolioSkill({ name: "การเขียนโปรแกรม" });
 
-    const response = await request(app).get(`/portfolio-skill/${skill.id}`);
+    const response = await request(app)
+      .get(`/portfolio-skill/${skill.id}`)
+      .set("Cookie", sessionCookie({ userId: skill.user_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
@@ -203,8 +238,27 @@ describe("GET /portfolio-skill/:id", () => {
     });
   });
 
+  it("refuses another student's skill", async () => {
+    const stranger = await createStudent();
+    const skill = await createPortfolioSkill();
+
+    const response = await request(app)
+      .get(`/portfolio-skill/${skill.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).get("/portfolio-skill/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-skill/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -215,7 +269,11 @@ describe("GET /portfolio-skill/:id", () => {
   });
 
   it("answers 404 for an id that belongs to no skill", async () => {
-    const response = await request(app).get("/portfolio-skill/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-skill/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -231,7 +289,8 @@ describe("POST /portfolio-skill", () => {
 
     const response = await request(app)
       .post("/portfolio-skill")
-      .send({ user_id: student.student_id, name: "การเขียนโปรแกรม" });
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({ name: "การเขียนโปรแกรม" });
 
     expect(response.status).toBe(201);
     expect(response.body.data).toMatchObject({
@@ -253,8 +312,8 @@ describe("POST /portfolio-skill", () => {
 
     const response = await request(app)
       .post("/portfolio-skill")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({
-        user_id: student.student_id,
         name: "การเขียนโปรแกรม",
         mappings: [
           {
@@ -280,16 +339,15 @@ describe("POST /portfolio-skill", () => {
     ]);
   });
 
-  it("refuses a request that names no user", async () => {
+  it("refuses a request with no session", async () => {
     const response = await request(app)
       .post("/portfolio-skill")
       .send({ name: "ทักษะไร้เจ้าของ" });
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
     expect(response.body).toEqual({
       success: false,
-      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [{ field: "user_id", location: "body", message: "ต้องระบุ" }],
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
     expect(
       await prisma.portfolio_skill.count({
@@ -306,8 +364,8 @@ describe("POST /portfolio-skill", () => {
 
     const response = await request(app)
       .post("/portfolio-skill")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({
-        user_id: student.student_id,
         name: "การเขียนโปรแกรม",
         mappings: [{ repository: "https://example.test/repo" }],
       });
@@ -332,12 +390,13 @@ describe("POST /portfolio-skill", () => {
     ).toBe(0);
   });
 
-  it("fails for a user who does not exist", async () => {
+  it("refuses a session for a user who does not exist", async () => {
     const response = await request(app)
       .post("/portfolio-skill")
-      .send({ user_id: "99999999", name: "ทักษะไร้เจ้าของ" });
+      .set("Cookie", sessionCookie({ userId: "99999999" }))
+      .send({ name: "ทักษะไร้เจ้าของ" });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(401);
     expect(
       await prisma.portfolio_skill.count({ where: { user_id: "99999999" } }),
     ).toBe(0);
@@ -350,6 +409,7 @@ describe("PUT /portfolio-skill/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-skill/${skill.id}`)
+      .set("Cookie", sessionCookie({ userId: skill.user_id }))
       .send({ name: "ชื่อใหม่" });
 
     expect(response.status).toBe(200);
@@ -377,6 +437,7 @@ describe("PUT /portfolio-skill/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-skill/${skill.id}`)
+      .set("Cookie", sessionCookie({ userId: skill.user_id }))
       .send({ mappings: [{ student_activity_id: fresh.id }] });
 
     expect(response.status).toBe(200);
@@ -398,6 +459,7 @@ describe("PUT /portfolio-skill/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-skill/${skill.id}`)
+      .set("Cookie", sessionCookie({ userId: skill.user_id }))
       .send({ mappings: [] });
 
     expect(response.status).toBe(200);
@@ -411,10 +473,13 @@ describe("PUT /portfolio-skill/:id", () => {
 
   it("leaves the mappings alone when the request says nothing about them", async () => {
     const skill = await createPortfolioSkill({ name: "ชื่อเดิม" });
-    const mapping = await createPortfolioSkillActivityMapping({ skill_id: skill.id });
+    const mapping = await createPortfolioSkillActivityMapping({
+      skill_id: skill.id,
+    });
 
     const response = await request(app)
       .put(`/portfolio-skill/${skill.id}`)
+      .set("Cookie", sessionCookie({ userId: skill.user_id }))
       .send({ name: "ชื่อใหม่" });
 
     expect(response.status).toBe(200);
@@ -423,9 +488,31 @@ describe("PUT /portfolio-skill/:id", () => {
     );
   });
 
+  it("refuses another student's skill, and changes nothing", async () => {
+    const stranger = await createStudent();
+    const skill = await createPortfolioSkill({ name: "ชื่อเดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio-skill/${skill.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .send({ name: "ชื่อใหม่" });
+
+    expect(response.status).toBe(403);
+    expect(
+      (
+        await prisma.portfolio_skill.findUniqueOrThrow({
+          where: { id: skill.id },
+        })
+      ).name,
+    ).toBe("ชื่อเดิม");
+  });
+
   it("answers 400 for an id that is not a number", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-skill/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ name: "ชื่อใหม่" });
 
     expect(response.status).toBe(400);
@@ -437,8 +524,11 @@ describe("PUT /portfolio-skill/:id", () => {
   });
 
   it("fails for a skill that does not exist", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-skill/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ name: "ชื่อใหม่" });
 
     expect(response.status).toBe(500);
@@ -451,9 +541,13 @@ describe("DELETE /portfolio-skill/:id", () => {
     const student = await createStudent();
     const doomed = await createPortfolioSkill({ user_id: student.student_id });
     const kept = await createPortfolioSkill({ user_id: student.student_id });
-    const mapping = await createPortfolioSkillActivityMapping({ skill_id: doomed.id });
+    const mapping = await createPortfolioSkillActivityMapping({
+      skill_id: doomed.id,
+    });
 
-    const response = await request(app).delete(`/portfolio-skill/${doomed.id}`);
+    const response = await request(app)
+      .delete(`/portfolio-skill/${doomed.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeNull();
@@ -472,8 +566,26 @@ describe("DELETE /portfolio-skill/:id", () => {
     ).toBeNull();
   });
 
+  it("refuses another student's skill, and deletes nothing", async () => {
+    const stranger = await createStudent();
+    const skill = await createPortfolioSkill();
+
+    const response = await request(app)
+      .delete(`/portfolio-skill/${skill.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(
+      await prisma.portfolio_skill.findUnique({ where: { id: skill.id } }),
+    ).not.toBeNull();
+  });
+
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).delete("/portfolio-skill/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-skill/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -484,7 +596,11 @@ describe("DELETE /portfolio-skill/:id", () => {
   });
 
   it("fails for a skill that does not exist", async () => {
-    const response = await request(app).delete("/portfolio-skill/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-skill/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(500);
     expect(response.body.success).toBe(false);
@@ -499,9 +615,9 @@ describe("GET /portfolio-skill/mapping/:id", () => {
       reflection: "ได้เรียนรู้การแบ่งงาน",
     });
 
-    const response = await request(app).get(
-      `/portfolio-skill/mapping/${mapping.id}`,
-    );
+    const response = await request(app)
+      .get(`/portfolio-skill/mapping/${mapping.id}`)
+      .set("Cookie", sessionCookie({ userId: skill.user_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
@@ -512,8 +628,29 @@ describe("GET /portfolio-skill/mapping/:id", () => {
     });
   });
 
+  it("refuses a mapping hanging off another student's skill", async () => {
+    // The mapping has no user_id of its own; the owner is read through the
+    // skill it belongs to.
+    const stranger = await createStudent();
+    const mapping = await createPortfolioSkillActivityMapping();
+
+    const response = await request(app)
+      .get(`/portfolio-skill/mapping/${mapping.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).get("/portfolio-skill/mapping/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-skill/mapping/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -524,7 +661,11 @@ describe("GET /portfolio-skill/mapping/:id", () => {
   });
 
   it("answers 404 for an id that belongs to no mapping", async () => {
-    const response = await request(app).get("/portfolio-skill/mapping/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-skill/mapping/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -549,8 +690,8 @@ describe("POST /portfolio-skill/assign-work", () => {
 
     const response = await request(app)
       .post("/portfolio-skill/assign-work")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({
-        user_id: student.student_id,
         student_activity_id: submission.id,
         skill_ids: [coding.id, teamwork.id],
         repository: "https://example.test/repo",
@@ -590,8 +731,8 @@ describe("POST /portfolio-skill/assign-work", () => {
 
     const response = await request(app)
       .post("/portfolio-skill/assign-work")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({
-        user_id: student.student_id,
         student_activity_id: submission.id,
         skill_ids: [added.id],
       });
@@ -614,8 +755,8 @@ describe("POST /portfolio-skill/assign-work", () => {
 
     const response = await request(app)
       .post("/portfolio-skill/assign-work")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({
-        user_id: student.student_id,
         student_activity_id: 999999,
         skill_ids: [skill.id],
       });
@@ -629,9 +770,9 @@ describe("POST /portfolio-skill/assign-work", () => {
   });
 
   it("refuses to map a skill that belongs to somebody else", async () => {
-    // See BEHAVIOR-CHANGES.md. The refusal is the only ownership check in the
-    // portfolio group; it used to arrive as a 500, which reads as the server
-    // breaking rather than declining.
+    // See BEHAVIOR-CHANGES.md. The refusal used to be measured against the
+    // user_id in the body, which the caller also wrote — so naming the skill's
+    // owner satisfied it. It is the session's user now.
     const student = await createStudent();
     const stranger = await createStudent();
     const mine = await createPortfolioSkill({ user_id: student.student_id });
@@ -644,8 +785,8 @@ describe("POST /portfolio-skill/assign-work", () => {
 
     const response = await request(app)
       .post("/portfolio-skill/assign-work")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({
-        user_id: student.student_id,
         student_activity_id: submission.id,
         skill_ids: [mine.id, theirs.id],
       });
@@ -664,16 +805,15 @@ describe("POST /portfolio-skill/assign-work", () => {
     ).toBe(0);
   });
 
-  it("refuses a request that names no user", async () => {
+  it("refuses a request with no session", async () => {
     const response = await request(app)
       .post("/portfolio-skill/assign-work")
       .send({ student_activity_id: 1, skill_ids: [1] });
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
     expect(response.body).toEqual({
       success: false,
-      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [{ field: "user_id", location: "body", message: "ต้องระบุ" }],
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
 
@@ -682,7 +822,8 @@ describe("POST /portfolio-skill/assign-work", () => {
 
     const response = await request(app)
       .post("/portfolio-skill/assign-work")
-      .send({ user_id: student.student_id, skill_ids: [1] });
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({ skill_ids: [1] });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -706,8 +847,8 @@ describe("POST /portfolio-skill/assign-work", () => {
 
     const response = await request(app)
       .post("/portfolio-skill/assign-work")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({
-        user_id: student.student_id,
         student_activity_id: submission.id,
         skill_ids: [],
       });
@@ -735,12 +876,16 @@ describe("POST /portfolio-skill/assign-work", () => {
 describe("DELETE /portfolio-skill/mapping/:id", () => {
   it("removes the mapping and leaves the skill standing", async () => {
     const skill = await createPortfolioSkill();
-    const doomed = await createPortfolioSkillActivityMapping({ skill_id: skill.id });
-    const kept = await createPortfolioSkillActivityMapping({ skill_id: skill.id });
+    const doomed = await createPortfolioSkillActivityMapping({
+      skill_id: skill.id,
+    });
+    const kept = await createPortfolioSkillActivityMapping({
+      skill_id: skill.id,
+    });
 
-    const response = await request(app).delete(
-      `/portfolio-skill/mapping/${doomed.id}`,
-    );
+    const response = await request(app)
+      .delete(`/portfolio-skill/mapping/${doomed.id}`)
+      .set("Cookie", sessionCookie({ userId: skill.user_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeNull();
@@ -759,8 +904,28 @@ describe("DELETE /portfolio-skill/mapping/:id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses a mapping hanging off another student's skill", async () => {
+    const stranger = await createStudent();
+    const mapping = await createPortfolioSkillActivityMapping();
+
+    const response = await request(app)
+      .delete(`/portfolio-skill/mapping/${mapping.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(
+      await prisma.portfolio_skill_activity_mapping.findUnique({
+        where: { id: mapping.id },
+      }),
+    ).not.toBeNull();
+  });
+
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).delete("/portfolio-skill/mapping/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-skill/mapping/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -771,9 +936,11 @@ describe("DELETE /portfolio-skill/mapping/:id", () => {
   });
 
   it("fails for a mapping that does not exist", async () => {
-    const response = await request(app).delete(
-      "/portfolio-skill/mapping/999999",
-    );
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-skill/mapping/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(500);
     expect(response.body.success).toBe(false);

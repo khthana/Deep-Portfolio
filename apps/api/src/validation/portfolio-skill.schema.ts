@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { blankableText, id, optionalBool, userId } from "./fields";
+import { blankableText, id, optionalBool } from "./fields";
 
 /**
  * `/portfolio-skill` — the skills a student claims, and the submitted work each
@@ -45,7 +45,7 @@ const skill = {
   mappings: z.array(skillMapping).optional(),
 };
 
-export const createPortfolioSkillBody = z.object({ user_id: userId, ...skill });
+export const createPortfolioSkillBody = z.object(skill);
 export const updatePortfolioSkillBody = z.object(skill);
 
 /**
@@ -57,7 +57,6 @@ export const updatePortfolioSkillBody = z.object(skill);
  * empty list by accident would get silence rather than a refusal.
  */
 export const assignWorkToSkillsBody = z.object({
-  user_id: userId,
   student_activity_id: id,
   skill_ids: z.array(id).min(1),
   ...evidence,

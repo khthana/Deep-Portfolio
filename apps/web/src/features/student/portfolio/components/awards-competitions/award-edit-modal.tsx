@@ -126,7 +126,6 @@ const AwardEditModal = ({
       } else {
         // Create
         const payload: CreatePortfolioAwardReq = {
-          user_id: userId,
           ...values,
           date: values.date ? values.date.toISOString() : undefined,
         };

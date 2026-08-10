@@ -3,8 +3,8 @@ import type { PortfolioPersonalFields } from "../validation/portfolio-personal.s
 /**
  * Create and update take the same fields.
  *
- * They always have — the create names the student in the body and the update in
- * the path, and neither is part of what is written — but the declared types
+ * They always have — whose row it is arrives beside the fields rather than
+ * among them, from the session since #31 — but the declared types
  * said every field was optional, which is what let the service treat `""` and
  * the string `"null"` as values worth a runtime pass of their own. Every field
  * here is `T | null | undefined`: sent, sent empty, or not sent.

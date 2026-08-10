@@ -31,7 +31,6 @@ export const createPortfolioActivity = async (
 ) => {
   const formData = new FormData();
 
-  formData.append("user_id", data.user_id);
   if (data.name) formData.append("name", data.name);
   if (data.date) formData.append("date", data.date);
   if (data.role) formData.append("role", data.role);

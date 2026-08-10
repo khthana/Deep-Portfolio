@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { sessionUserId } from "../middlewares/auth.middleware";
 import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
@@ -66,12 +67,12 @@ export default class PortfolioInternshipController {
     next: NextFunction,
   ) {
     try {
-      const { user_id, ...data } = validated(req, createPortfolioInternshipBody);
+      const data = validated(req, createPortfolioInternshipBody);
       const files = uploadedFiles(req);
 
       const result =
         await this.portfolioInternshipService.createPortfolioInternship(
-          user_id,
+          sessionUserId(req),
           data,
           files,
         );

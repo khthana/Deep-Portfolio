@@ -4,14 +4,11 @@ import type {
 } from "../validation/portfolio-sections.schema";
 
 /**
- * What the service is handed, which is what the schema let through — minus
- * `user_id`, which the controller passes separately because it is the owner of
- * the row rather than one of its columns.
+ * What the service is handed, which is what the schema let through. The owner
+ * is not in it: since #31 the request cannot name one, and the controller
+ * passes the session's separately.
  */
-export type CreatePortfolioAwardReqBody = Omit<
-  CreatePortfolioAwardFields,
-  "user_id"
->;
+export type CreatePortfolioAwardReqBody = CreatePortfolioAwardFields;
 
 export type UpdatePortfolioAwardReqBody = UpdatePortfolioAwardFields;
 

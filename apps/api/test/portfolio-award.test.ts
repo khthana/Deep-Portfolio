@@ -8,6 +8,7 @@ import {
   createPortfolioAward,
   createStudent,
 } from "./factories";
+import { sessionCookie } from "./helpers/session";
 import { listStoredObjects } from "./helpers/storage";
 
 /**
@@ -24,8 +25,10 @@ import { listStoredObjects } from "./helpers/storage";
  *   is not a clearing instruction, it is no instruction at all. Certificate has
  *   the same quirk; see the closing notes in BEHAVIOR-CHANGES.md.
  *
- * Nothing on this route group is behind any middleware; the user being acted
- * for is whoever the query or the body says. That is #31.
+ * Authorisation is the same everywhere in the group since #31 — a session, and
+ * your own rows — and portfolio-education.test.ts carries those cases in full.
+ * The one case kept here is the session for an account that is gone, which
+ * used to reach Postgres and come back as a 500.
  */
 
 const PDF = Buffer.from("%PDF-1.4 example");
@@ -46,6 +49,7 @@ describe("GET /portfolio-award", () => {
 
     const response = await request(app)
       .get("/portfolio-award")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.status).toBe(200);
@@ -84,6 +88,7 @@ describe("GET /portfolio-award", () => {
 
     const response = await request(app)
       .get("/portfolio-award")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.body.data[0].attachments).toEqual([
@@ -111,6 +116,7 @@ describe("GET /portfolio-award", () => {
 
     const response = await request(app)
       .get("/portfolio-award")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.body.data.map((a: { id: number }) => a.id)).toEqual([
@@ -119,7 +125,11 @@ describe("GET /portfolio-award", () => {
   });
 
   it("refuses a request that names no user", async () => {
-    const response = await request(app).get("/portfolio-award");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-award")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -137,7 +147,9 @@ describe("GET /portfolio-award/:id", () => {
       award: "รางวัลรองชนะเลิศ",
     });
 
-    const response = await request(app).get(`/portfolio-award/${entry.id}`);
+    const response = await request(app)
+      .get(`/portfolio-award/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
@@ -148,7 +160,11 @@ describe("GET /portfolio-award/:id", () => {
   });
 
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).get("/portfolio-award/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-award/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -159,7 +175,11 @@ describe("GET /portfolio-award/:id", () => {
   });
 
   it("answers 404 for an id that belongs to no prize", async () => {
-    const response = await request(app).get("/portfolio-award/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-award/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -175,7 +195,7 @@ describe("POST /portfolio-award", () => {
 
     const response = await request(app)
       .post("/portfolio-award")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("organize", "หน่วยงานตัวอย่าง")
       .field("name", "การแข่งขันตัวอย่าง")
       .field("award", "รางวัลชนะเลิศ")
@@ -209,7 +229,7 @@ describe("POST /portfolio-award", () => {
 
     const response = await request(app)
       .post("/portfolio-award")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "การแข่งขันตัวอย่าง");
 
     expect(response.status).toBe(201);
@@ -228,7 +248,7 @@ describe("POST /portfolio-award", () => {
 
     const response = await request(app)
       .post("/portfolio-award")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "การแข่งขันไร้วันที่");
 
     expect(response.status).toBe(201);
@@ -240,7 +260,7 @@ describe("POST /portfolio-award", () => {
 
     const response = await request(app)
       .post("/portfolio-award")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "การแข่งขันตัวอย่าง")
       .attach("files", PDF, "certificate.pdf");
 
@@ -251,16 +271,15 @@ describe("POST /portfolio-award", () => {
     expect(objects).toContain(response.body.data.attachments[0].file_path);
   });
 
-  it("refuses a request that names no user", async () => {
+  it("refuses a request with no session", async () => {
     const response = await request(app)
       .post("/portfolio-award")
       .field("name", "การแข่งขันไร้เจ้าของ");
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
     expect(response.body).toEqual({
       success: false,
-      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [{ field: "user_id", location: "body", message: "ต้องระบุ" }],
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
     expect(
       await prisma.portfolio_award.count({
@@ -274,7 +293,7 @@ describe("POST /portfolio-award", () => {
 
     const response = await request(app)
       .post("/portfolio-award")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "การแข่งขันตัวอย่าง")
       .field("date", "เมื่อวาน")
       .field("is_show", "maybe");
@@ -299,13 +318,16 @@ describe("POST /portfolio-award", () => {
     ).toBe(0);
   });
 
-  it("fails for a user who does not exist", async () => {
+  it("refuses a session for a user who does not exist", async () => {
+    // See BEHAVIOR-CHANGES.md. The write used to go straight at the table and
+    // come back as a 500 from the foreign key; requireUser now looks the
+    // account up before anything is written.
     const response = await request(app)
       .post("/portfolio-award")
-      .field("user_id", "99999999")
+      .set("Cookie", sessionCookie({ userId: "99999999" }))
       .field("name", "การแข่งขันไร้เจ้าของ");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(401);
     expect(
       await prisma.portfolio_award.count({ where: { user_id: "99999999" } }),
     ).toBe(0);
@@ -321,6 +343,7 @@ describe("PUT /portfolio-award/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-award/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ name: "การแข่งขันใหม่" });
 
     expect(response.status).toBe(200);
@@ -338,6 +361,7 @@ describe("PUT /portfolio-award/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-award/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ name: "การแข่งขันใหม่" });
 
     expect(response.body.data.is_show).toBe(true);
@@ -348,6 +372,7 @@ describe("PUT /portfolio-award/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-award/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ date: "" });
 
     expect(response.status).toBe(200);
@@ -359,6 +384,7 @@ describe("PUT /portfolio-award/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-award/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ name: "การแข่งขันใหม่" });
 
     expect(response.status).toBe(200);
@@ -374,6 +400,7 @@ describe("PUT /portfolio-award/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-award/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ ids_to_delete: [dropped.attachment_id] });
 
     expect(response.status).toBe(200);
@@ -389,9 +416,31 @@ describe("PUT /portfolio-award/:id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses another student's prize, and changes nothing", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioAward({ name: "การแข่งขันเดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio-award/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .send({ name: "การแข่งขันใหม่" });
+
+    expect(response.status).toBe(403);
+    expect(
+      (
+        await prisma.portfolio_award.findUniqueOrThrow({
+          where: { id: entry.id },
+        })
+      ).name,
+    ).toBe("การแข่งขันเดิม");
+  });
+
   it("answers 400 for an id that is not a number", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-award/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ name: "การแข่งขันใหม่" });
 
     expect(response.status).toBe(400);
@@ -403,8 +452,11 @@ describe("PUT /portfolio-award/:id", () => {
   });
 
   it("fails for a prize that does not exist", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-award/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ name: "การแข่งขันใหม่" });
 
     expect(response.status).toBe(500);
@@ -422,7 +474,9 @@ describe("DELETE /portfolio-award/:id", () => {
     });
     const kept = await createPortfolioAward({ user_id: student.student_id });
 
-    const response = await request(app).delete(`/portfolio-award/${doomed.id}`);
+    const response = await request(app)
+      .delete(`/portfolio-award/${doomed.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeNull();
@@ -442,7 +496,11 @@ describe("DELETE /portfolio-award/:id", () => {
   });
 
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).delete("/portfolio-award/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-award/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -453,7 +511,11 @@ describe("DELETE /portfolio-award/:id", () => {
   });
 
   it("fails for a prize that does not exist", async () => {
-    const response = await request(app).delete("/portfolio-award/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-award/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(500);
     expect(response.body.success).toBe(false);

@@ -67,7 +67,6 @@ const CreateThesisForm = () => {
   }) => {
     try {
       const req: CreatePortfolioThesisReq = {
-        user_id: studentId,
         name: values.name,
         repository: values.repository,
         role_and_resp: values.role_and_resp,

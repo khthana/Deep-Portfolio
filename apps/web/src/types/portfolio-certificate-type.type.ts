@@ -18,7 +18,6 @@ export type PortfolioCertificateResp = {
 };
 
 export type CreatePortfolioCertificateReq = {
-  user_id: string;
   date?: string;
   organize?: string;
   name?: string;
@@ -26,8 +25,7 @@ export type CreatePortfolioCertificateReq = {
   is_show?: boolean;
 };
 
-export type UpdatePortfolioCertificateReq = Partial<
-  Omit<CreatePortfolioCertificateReq, "user_id">
-> & {
-  ids_to_delete?: number[];
-};
+export type UpdatePortfolioCertificateReq =
+  Partial<CreatePortfolioCertificateReq> & {
+    ids_to_delete?: number[];
+  };

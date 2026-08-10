@@ -32,7 +32,6 @@ export const createPortfolioInternship = async (
   const formData = new FormData();
 
   // Append form fields
-  formData.append("user_id", data.user_id);
   formData.append("type", data.type);
   if (data.title) formData.append("title", data.title);
   if (data.position) formData.append("position", data.position);

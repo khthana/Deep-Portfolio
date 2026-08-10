@@ -12,12 +12,12 @@ How the engineering skills should consume this repo's domain documentation when 
 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
 
-Neither file exists yet in this repo. Until they do, the closest thing to a
-recorded set of decisions is `docs/spec-refactor-redeploy.md`, whose
-Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
-function as provisional ADRs. Treat a contradiction with those the same way
-you would treat a contradiction with an ADR: surface it, don't override it
-silently.
+`CONTEXT.md` does not exist yet in this repo. `docs/adr/` does, and holds the
+decisions taken after the refactor — start with `0001-portfolio-access.md`.
+Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
+whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
+function as ADRs for that period. Treat a contradiction with either the same
+way: surface it, don't override it silently.
 
 ## File structure
 

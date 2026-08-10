@@ -18,7 +18,6 @@ export type PortfolioActivityType = {
 };
 
 export type CreatePortfolioActivityReq = {
-  user_id: string;
   name: string;
   date?: string;
   role?: string;

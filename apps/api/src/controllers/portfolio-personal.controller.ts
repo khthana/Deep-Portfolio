@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
+import { sessionUserId } from "../middlewares/auth.middleware";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
 import PortfolioPersonalService from "../services/portfolio-personal.service";
 import {
-  createPortfolioPersonalBody,
   portfolioPersonalBody,
   portfolioPersonalParams,
 } from "../validation/portfolio-personal.schema";
@@ -49,12 +49,12 @@ export default class PortfolioPersonalController {
     next: NextFunction,
   ) {
     try {
-      const { user_id, ...data } = validated(req, createPortfolioPersonalBody);
+      const data = validated(req, portfolioPersonalBody);
       const file = req.file;
 
       const portfolio =
         await this.portfolioPersonalService.createPortfolioPersonal(
-          user_id,
+          sessionUserId(req),
           data,
           file,
         );

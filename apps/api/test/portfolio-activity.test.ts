@@ -8,6 +8,7 @@ import {
   createPortfolioActivity,
   createStudent,
 } from "./factories";
+import { sessionCookie } from "./helpers/session";
 import { listStoredObjects } from "./helpers/storage";
 
 /**
@@ -22,8 +23,8 @@ import { listStoredObjects } from "./helpers/storage";
  * itself — an empty string is dropped rather than sent on as one — which is
  * what keeps a blank date field from reaching Prisma as an Invalid Date.
  *
- * Nothing on this route group is behind any middleware; the user being acted
- * for is whoever the query or the body says. That is #31.
+ * Authorisation is the same everywhere in the group since #31 — a session, and
+ * your own rows — and portfolio-education.test.ts carries those cases in full.
  */
 
 const PDF = Buffer.from("%PDF-1.4 example");
@@ -44,6 +45,7 @@ describe("GET /portfolio-activity", () => {
 
     const response = await request(app)
       .get("/portfolio-activity")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.status).toBe(200);
@@ -81,6 +83,7 @@ describe("GET /portfolio-activity", () => {
 
     const response = await request(app)
       .get("/portfolio-activity")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.body.data[0].attachments).toEqual([
@@ -108,6 +111,7 @@ describe("GET /portfolio-activity", () => {
 
     const response = await request(app)
       .get("/portfolio-activity")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.body.data.map((a: { id: number }) => a.id)).toEqual([
@@ -116,15 +120,17 @@ describe("GET /portfolio-activity", () => {
   });
 
   it("refuses a request that names no user", async () => {
-    const response = await request(app).get("/portfolio-activity");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-activity")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
       message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [
-        { field: "user_id", location: "query", message: "ต้องระบุ" },
-      ],
+      errors: [{ field: "user_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });
@@ -136,7 +142,9 @@ describe("GET /portfolio-activity/:id", () => {
       role: "ประธานค่าย",
     });
 
-    const response = await request(app).get(`/portfolio-activity/${entry.id}`);
+    const response = await request(app)
+      .get(`/portfolio-activity/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
@@ -147,7 +155,11 @@ describe("GET /portfolio-activity/:id", () => {
   });
 
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).get("/portfolio-activity/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-activity/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -158,7 +170,11 @@ describe("GET /portfolio-activity/:id", () => {
   });
 
   it("answers 404 for an id that belongs to no activity", async () => {
-    const response = await request(app).get("/portfolio-activity/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-activity/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -174,7 +190,7 @@ describe("POST /portfolio-activity", () => {
 
     const response = await request(app)
       .post("/portfolio-activity")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "ค่ายอาสาตัวอย่าง")
       .field("role", "ประธานค่าย")
       .field("date", "2024-10-01")
@@ -205,7 +221,7 @@ describe("POST /portfolio-activity", () => {
 
     const response = await request(app)
       .post("/portfolio-activity")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "ค่ายอาสาไร้วันที่")
       .field("date", "")
       .field("is_show", "");
@@ -221,7 +237,7 @@ describe("POST /portfolio-activity", () => {
 
     const response = await request(app)
       .post("/portfolio-activity")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "ค่ายอาสาตัวอย่าง")
       .attach("files", PDF, "photo.pdf");
 
@@ -232,18 +248,15 @@ describe("POST /portfolio-activity", () => {
     expect(objects).toContain(response.body.data.attachments[0].file_path);
   });
 
-  it("refuses a request that names no user", async () => {
+  it("refuses a request with no session", async () => {
     const response = await request(app)
       .post("/portfolio-activity")
       .field("name", "ค่ายอาสาไร้เจ้าของ");
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
     expect(response.body).toEqual({
       success: false,
-      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [
-        { field: "user_id", location: "body", message: "ต้องระบุ" },
-      ],
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
     expect(
       await prisma.portfolio_activities.count({
@@ -257,7 +270,7 @@ describe("POST /portfolio-activity", () => {
 
     const response = await request(app)
       .post("/portfolio-activity")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("role", "ประธานค่าย");
 
     expect(response.status).toBe(400);
@@ -283,6 +296,7 @@ describe("PUT /portfolio-activity/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-activity/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .field("name", "ค่ายอาสาใหม่");
 
     expect(response.status).toBe(200);
@@ -310,6 +324,7 @@ describe("PUT /portfolio-activity/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-activity/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .field("date", "");
 
     expect(response.status).toBe(200);
@@ -323,6 +338,7 @@ describe("PUT /portfolio-activity/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-activity/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .field("name", "ค่ายอาสาใหม่");
 
     expect(response.status).toBe(200);
@@ -338,6 +354,7 @@ describe("PUT /portfolio-activity/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-activity/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ ids_to_delete: [dropped.attachment_id] });
 
     expect(response.status).toBe(200);
@@ -353,9 +370,31 @@ describe("PUT /portfolio-activity/:id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses another student's activity, and changes nothing", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioActivity({ name: "ค่ายอาสาเดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio-activity/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .field("name", "ค่ายอาสาใหม่");
+
+    expect(response.status).toBe(403);
+    expect(
+      (
+        await prisma.portfolio_activities.findUniqueOrThrow({
+          where: { id: entry.id },
+        })
+      ).name,
+    ).toBe("ค่ายอาสาเดิม");
+  });
+
   it("answers 400 for an id that is not a number", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-activity/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "ค่ายอาสาใหม่");
 
     expect(response.status).toBe(400);
@@ -367,8 +406,11 @@ describe("PUT /portfolio-activity/:id", () => {
   });
 
   it("fails for an activity that does not exist", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-activity/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "ค่ายอาสาใหม่");
 
     expect(response.status).toBe(500);
@@ -388,9 +430,9 @@ describe("DELETE /portfolio-activity/:id", () => {
       user_id: student.student_id,
     });
 
-    const response = await request(app).delete(
-      `/portfolio-activity/${doomed.id}`,
-    );
+    const response = await request(app)
+      .delete(`/portfolio-activity/${doomed.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeNull();
@@ -410,7 +452,11 @@ describe("DELETE /portfolio-activity/:id", () => {
   });
 
   it("answers 400 for an id that is not a number", async () => {
-    const response = await request(app).delete("/portfolio-activity/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-activity/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -421,7 +467,11 @@ describe("DELETE /portfolio-activity/:id", () => {
   });
 
   it("fails for an activity that does not exist", async () => {
-    const response = await request(app).delete("/portfolio-activity/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-activity/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(500);
     expect(response.body.success).toBe(false);

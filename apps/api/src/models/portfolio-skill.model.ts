@@ -9,10 +9,7 @@ export type AssignWorkToSkillsReqBody = AssignWorkToSkillsFields;
 
 export type SkillMappingReqBody = SkillMappingFields;
 
-export type CreatePortfolioSkillReqBody = Omit<
-  CreatePortfolioSkillFields,
-  "user_id"
->;
+export type CreatePortfolioSkillReqBody = CreatePortfolioSkillFields;
 
 /**
  * The update takes the same mapping shape as the create.

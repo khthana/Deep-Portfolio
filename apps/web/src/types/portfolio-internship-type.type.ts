@@ -27,7 +27,6 @@ export interface PortfolioInternshipResp {
 }
 
 export interface CreatePortfolioInternshipReq {
-  user_id: string;
   type: string;
   title?: string;
   position: string;
@@ -44,8 +43,7 @@ export interface CreatePortfolioInternshipReq {
   is_show_reflec?: boolean;
 }
 
-export type UpdatePortfolioInternshipReq = Partial<
-  Omit<CreatePortfolioInternshipReq, "user_id">
-> & {
-  ids_to_delete?: number[];
-};
+export type UpdatePortfolioInternshipReq =
+  Partial<CreatePortfolioInternshipReq> & {
+    ids_to_delete?: number[];
+  };

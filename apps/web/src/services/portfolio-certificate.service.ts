@@ -32,7 +32,6 @@ export const createPortfolioCertificate = async (
   const formData = new FormData();
 
   // Append form fields
-  formData.append("user_id", data.user_id);
   if (data.date) formData.append("date", data.date);
   if (data.organize) formData.append("organize", data.organize);
   if (data.name) formData.append("name", data.name);

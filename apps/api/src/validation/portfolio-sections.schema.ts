@@ -7,7 +7,6 @@ import {
   optionalBool,
   optionalText,
   text,
-  userId,
 } from "./fields";
 import { idsToDelete } from "./portfolio.schema";
 
@@ -32,9 +31,6 @@ import { idsToDelete } from "./portfolio.schema";
  * as false.
  */
 
-/** Every create says who it is for; nothing in this group is behind auth. */
-const owner = { user_id: userId };
-
 /** Every update but education's may drop attachments while it is at it. */
 const attachments = { ids_to_delete: idsToDelete };
 
@@ -49,7 +45,7 @@ const award = {
   is_show: optionalBool,
 };
 
-export const createPortfolioAwardBody = z.object({ ...owner, ...award });
+export const createPortfolioAwardBody = z.object({ ...award });
 export const updatePortfolioAwardBody = z.object({ ...award, ...attachments });
 
 // --- Certificates -----------------------------------------------------------
@@ -63,7 +59,6 @@ const certificate = {
 };
 
 export const createPortfolioCertificateBody = z.object({
-  ...owner,
   ...certificate,
 });
 export const updatePortfolioCertificateBody = z.object({
@@ -82,7 +77,6 @@ const activity = {
 };
 
 export const createPortfolioActivityBody = z.object({
-  ...owner,
   name: text,
   ...activity,
 });
@@ -103,7 +97,7 @@ const training = {
   is_show: optionalBool,
 };
 
-export const createPortfolioTrainingBody = z.object({ ...owner, ...training });
+export const createPortfolioTrainingBody = z.object({ ...training });
 export const updatePortfolioTrainingBody = z.object({
   ...training,
   ...attachments,
@@ -124,7 +118,7 @@ const thesis = {
   is_show_reflec: optionalBool,
 };
 
-export const createPortfolioThesisBody = z.object({ ...owner, ...thesis });
+export const createPortfolioThesisBody = z.object({ ...thesis });
 export const updatePortfolioThesisBody = z.object({
   ...thesis,
   ...attachments,
@@ -150,7 +144,6 @@ const education = {
 };
 
 export const createPortfolioEducationBody = z.object({
-  ...owner,
   education_level: text,
   ...education,
 });
@@ -185,7 +178,6 @@ const internship = {
 };
 
 export const createPortfolioInternshipBody = z.object({
-  ...owner,
   type: text,
   ...internship,
 });

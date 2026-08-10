@@ -69,15 +69,18 @@ const personal = {
   attachment_id: clearable(optionalId),
 };
 
-/** Whose details — the path parameter on read, update, delete and upsert. */
+/**
+ * Whose details — the path parameter on read, update, delete and upsert, and
+ * checked against the session by `requireSelf` before any of them run.
+ */
 export const portfolioPersonalParams = z.object({ user_id: userId });
 
-/** Create is the one that names the student in the body instead. */
-export const createPortfolioPersonalBody = z.object({
-  user_id: userId,
-  ...personal,
-});
-
+/**
+ * Create, update and upsert all take the same fields, and none of them says
+ * whose row it is: the create used to name the student in the body, which is
+ * how anyone could write personal details under anyone's id (#31). The session
+ * says whose row it is now.
+ */
 export const portfolioPersonalBody = z.object(personal);
 
 export type PortfolioPersonalFields = z.infer<typeof portfolioPersonalBody>;

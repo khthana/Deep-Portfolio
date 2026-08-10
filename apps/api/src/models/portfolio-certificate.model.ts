@@ -3,10 +3,7 @@ import type {
   UpdatePortfolioCertificateFields,
 } from "../validation/portfolio-sections.schema";
 
-export type CreatePortfolioCertificateReqBody = Omit<
-  CreatePortfolioCertificateFields,
-  "user_id"
->;
+export type CreatePortfolioCertificateReqBody = CreatePortfolioCertificateFields;
 
 export type UpdatePortfolioCertificateReqBody =
   UpdatePortfolioCertificateFields;

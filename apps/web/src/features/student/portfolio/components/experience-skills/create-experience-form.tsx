@@ -130,7 +130,6 @@ const CreateExperienceForm = ({ messageApi }: CreateExperienceFormProps) => {
     setLoading(true);
     try {
       const reqData: CreatePortfolioInternshipReq = {
-        user_id: studentId,
         type: programType,
         company: values.company,
         country: values.country,

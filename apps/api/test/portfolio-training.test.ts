@@ -8,6 +8,7 @@ import {
   createPortfolioTraining,
   createStudent,
 } from "./factories";
+import { sessionCookie } from "./helpers/session";
 import { listStoredObjects } from "./helpers/storage";
 
 /**
@@ -27,8 +28,11 @@ import { listStoredObjects } from "./helpers/storage";
  * portfolio-education.test.ts, which is the group's representative (T5). What
  * is here is one of each, plus everything that is particular to this endpoint.
  *
- * Nothing on this route group is behind any middleware; the user being acted
- * for is whoever the query string or body says. That is #31.
+ * Authorisation is the same everywhere in the group since #31 — a session, and
+ * your own rows — so portfolio-education.test.ts carries those cases in full
+ * too. What is here is the pair this endpoint can get wrong on its own: a
+ * refused upload must leave the bucket alone, and a refused write must leave
+ * the entry alone.
  */
 
 const PDF = Buffer.from("%PDF-1.4 example\n");
@@ -52,6 +56,7 @@ describe("GET /portfolio-training", () => {
 
     const response = await request(app)
       .get("/portfolio-training")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.status).toBe(200);
@@ -90,6 +95,7 @@ describe("GET /portfolio-training", () => {
 
     const response = await request(app)
       .get("/portfolio-training")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     // Files first, then links — the endpoint concatenates the two lists the
@@ -121,6 +127,7 @@ describe("GET /portfolio-training", () => {
 
     const response = await request(app)
       .get("/portfolio-training")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.body.data.map((t: { id: number }) => t.id)).toEqual([
@@ -129,7 +136,11 @@ describe("GET /portfolio-training", () => {
   });
 
   it("refuses a request that names no user", async () => {
-    const response = await request(app).get("/portfolio-training");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-training")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -155,7 +166,9 @@ describe("GET /portfolio-training/:id", () => {
       attachment_ids: [file.attachment_id],
     });
 
-    const response = await request(app).get(`/portfolio-training/${entry.id}`);
+    const response = await request(app)
+      .get(`/portfolio-training/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
@@ -175,7 +188,11 @@ describe("GET /portfolio-training/:id", () => {
   });
 
   it("answers 404 for an id that belongs to no entry", async () => {
-    const response = await request(app).get("/portfolio-training/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio-training/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -189,14 +206,16 @@ describe("POST /portfolio-training", () => {
   it("creates an entry and hands it back", async () => {
     const student = await createStudent();
 
-    const response = await request(app).post("/portfolio-training").send({
-      user_id: student.student_id,
-      year: 2567,
-      country: "ไทย",
-      organize: "หน่วยงานตัวอย่าง",
-      name: "อบรมตัวอย่าง",
-      description: "รายละเอียดตัวอย่าง",
-    });
+    const response = await request(app)
+      .post("/portfolio-training")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({
+        year: 2567,
+        country: "ไทย",
+        organize: "หน่วยงานตัวอย่าง",
+        name: "อบรมตัวอย่าง",
+        description: "รายละเอียดตัวอย่าง",
+      });
 
     expect(response.status).toBe(201);
     expect(response.body.data).toMatchObject({
@@ -220,7 +239,7 @@ describe("POST /portfolio-training", () => {
 
     const response = await request(app)
       .post("/portfolio-training")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "อบรมซ่อนไว้")
       .field("year", "2567")
       .field("is_show", "false");
@@ -240,7 +259,7 @@ describe("POST /portfolio-training", () => {
 
     const response = await request(app)
       .post("/portfolio-training")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "อบรมพร้อมไฟล์")
       .attach("files", PDF, "certificate.pdf")
       .attach("files", PDF, "attendance.pdf");
@@ -265,19 +284,12 @@ describe("POST /portfolio-training", () => {
     }
   });
 
-  it("refuses a request that names no user", async () => {
+  it("refuses a request with no session", async () => {
     const response = await request(app)
       .post("/portfolio-training")
       .send({ name: "อบรมไร้เจ้าของ" });
 
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      success: false,
-      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [
-        { field: "user_id", location: "body", message: "ต้องระบุ" },
-      ],
-    });
+    expect(response.status).toBe(401);
     expect(
       await prisma.portfolio_training.count({
         where: { name: "อบรมไร้เจ้าของ" },
@@ -285,9 +297,10 @@ describe("POST /portfolio-training", () => {
     ).toBe(0);
   });
 
-  it("stores nothing in the bucket when the request names no user", async () => {
-    // The upload middleware runs before the controller, so a request that is
-    // about to be told 400 has already had its file read in.
+  it("stores nothing in the bucket when there is no session", async () => {
+    // See BEHAVIOR-CHANGES.md. `requireUser` is registered ahead of the upload
+    // middleware, so a request that is about to be refused never has its file
+    // read off the stream, let alone written to MinIO.
     const before = await listStoredObjects("portfolio-training/");
 
     const response = await request(app)
@@ -295,7 +308,7 @@ describe("POST /portfolio-training", () => {
       .field("name", "อบรมไร้เจ้าของ")
       .attach("files", PDF, "orphan.pdf");
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
     expect(await listStoredObjects("portfolio-training/")).toEqual(before);
   });
 });
@@ -310,6 +323,7 @@ describe("PUT /portfolio-training/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-training/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ name: "ชื่อใหม่" });
 
     expect(response.status).toBe(200);
@@ -332,6 +346,7 @@ describe("PUT /portfolio-training/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-training/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .field("name", "ชื่อใหม่")
       .attach("files", PDF, "new.pdf");
 
@@ -358,6 +373,7 @@ describe("PUT /portfolio-training/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio-training/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }))
       .send({ ids_to_delete: [dropped.attachment_id] });
 
     expect(response.status).toBe(200);
@@ -380,9 +396,49 @@ describe("PUT /portfolio-training/:id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses another student's entry, and changes nothing", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioTraining({ name: "ชื่อเดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio-training/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .send({ name: "ชื่อใหม่" });
+
+    expect(response.status).toBe(403);
+    expect(
+      (
+        await prisma.portfolio_training.findUniqueOrThrow({
+          where: { id: entry.id },
+        })
+      ).name,
+    ).toBe("ชื่อเดิม");
+  });
+
+  it("keeps a refused upload out of the bucket", async () => {
+    // The ownership check is registered ahead of the upload middleware for the
+    // same reason `requireUser` is: a request nobody is going to act on should
+    // not leave a file behind in MinIO.
+    const stranger = await createStudent();
+    const entry = await createPortfolioTraining();
+    const before = await listStoredObjects("portfolio-training/");
+
+    const response = await request(app)
+      .put(`/portfolio-training/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .field("name", "ชื่อใหม่")
+      .attach("files", PDF, "orphan.pdf");
+
+    expect(response.status).toBe(403);
+    expect(await listStoredObjects("portfolio-training/")).toEqual(before);
+  });
+
   it("answers 400 for an id that is not a number", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-training/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ name: "ชื่อใหม่" });
 
     expect(response.status).toBe(400);
@@ -394,8 +450,11 @@ describe("PUT /portfolio-training/:id", () => {
   });
 
   it("fails for an entry that does not exist", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put("/portfolio-training/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ name: "ชื่อใหม่" });
 
     expect(response.status).toBe(500);
@@ -411,9 +470,9 @@ describe("DELETE /portfolio-training/:id", () => {
     });
     const kept = await createPortfolioTraining();
 
-    const response = await request(app).delete(
-      `/portfolio-training/${doomed.id}`,
-    );
+    const response = await request(app)
+      .delete(`/portfolio-training/${doomed.id}`)
+      .set("Cookie", sessionCookie({ userId: doomed.user_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeNull();
@@ -437,8 +496,26 @@ describe("DELETE /portfolio-training/:id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses another student's entry, and deletes nothing", async () => {
+    const stranger = await createStudent();
+    const entry = await createPortfolioTraining();
+
+    const response = await request(app)
+      .delete(`/portfolio-training/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(
+      await prisma.portfolio_training.findUnique({ where: { id: entry.id } }),
+    ).not.toBeNull();
+  });
+
   it("fails for an entry that does not exist", async () => {
-    const response = await request(app).delete("/portfolio-training/999999");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-training/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(500);
     expect(response.body.success).toBe(false);

@@ -7,6 +7,7 @@ import {
   createPortfolioPersonal,
   createStudent,
 } from "./factories";
+import { sessionCookie } from "./helpers/session";
 import { listStoredObjects } from "./helpers/storage";
 
 /**
@@ -23,8 +24,10 @@ import { listStoredObjects } from "./helpers/storage";
  * treats an empty string as "clear this" for those two fields alone, where
  * everywhere else an empty string means null.
  *
- * Nothing on this route group is behind any middleware; the user being acted
- * for is whoever the path says. That is #31.
+ * Being keyed on the student is also why ownership here is `requireSelf`
+ * against the path rather than a lookup by row id (#31): every route but the
+ * create names the student it acts for, and it has to be the caller. See
+ * docs/adr/0001-portfolio-access.md.
  */
 
 const IMAGE = Buffer.from("\x89PNG\r\n\x1a\n example");
@@ -43,9 +46,9 @@ describe("GET /portfolio-personal/:user_id", () => {
       phone_number: "021111111",
     });
 
-    const response = await request(app).get(
-      `/portfolio-personal/${student.student_id}`,
-    );
+    const response = await request(app)
+      .get(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual({
@@ -76,9 +79,9 @@ describe("GET /portfolio-personal/:user_id", () => {
       phone_number: null,
     });
 
-    const response = await request(app).get(
-      `/portfolio-personal/${student.student_id}`,
-    );
+    const response = await request(app)
+      .get(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.body.data).toMatchObject({
       email: "account@example.test",
@@ -90,9 +93,9 @@ describe("GET /portfolio-personal/:user_id", () => {
     const student = await createStudent();
     await createPortfolioPersonal({ user_id: student.student_id });
 
-    const response = await request(app).get(
-      `/portfolio-personal/${student.student_id}`,
-    );
+    const response = await request(app)
+      .get(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.body.data).not.toHaveProperty("users");
   });
@@ -103,9 +106,9 @@ describe("GET /portfolio-personal/:user_id", () => {
       phone: "028888888",
     });
 
-    const response = await request(app).get(
-      `/portfolio-personal/${student.student_id}`,
-    );
+    const response = await request(app)
+      .get(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual({
@@ -139,9 +142,9 @@ describe("GET /portfolio-personal/:user_id", () => {
       attachment_id: picture.attachment_id,
     });
 
-    const response = await request(app).get(
-      `/portfolio-personal/${student.student_id}`,
-    );
+    const response = await request(app)
+      .get(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.body.data.attachments).toEqual({
       attachment_id: picture.attachment_id,
@@ -150,15 +153,52 @@ describe("GET /portfolio-personal/:user_id", () => {
     });
   });
 
-  it("answers 404 for a user who does not exist", async () => {
-    // See BEHAVIOR-CHANGES.md. This used to be a 200 carrying null, because
-    // the 404 was commented out in the controller.
-    const response = await request(app).get("/portfolio-personal/99999999");
+  it("refuses a request with no session", async () => {
+    const student = await createStudent();
+    await createPortfolioPersonal({ user_id: student.student_id });
 
-    expect(response.status).toBe(404);
+    const response = await request(app).get(
+      `/portfolio-personal/${student.student_id}`,
+    );
+
+    expect(response.status).toBe(401);
     expect(response.body).toEqual({
       success: false,
-      message: "ไม่พบข้อมูลส่วนตัวของผู้ใช้รายนี้",
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
+    });
+  });
+
+  it("refuses another student's details", async () => {
+    // See BEHAVIOR-CHANGES.md. The path was the only thing that decided whose
+    // details came back — date of birth, telephone, email and all.
+    const owner = await createStudent();
+    const stranger = await createStudent();
+    await createPortfolioPersonal({ user_id: owner.student_id });
+
+    const response = await request(app)
+      .get(`/portfolio-personal/${owner.student_id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
+  it("refuses a user who does not exist", async () => {
+    // See BEHAVIOR-CHANGES.md. This used to be a 404 — and before #20, a 200
+    // carrying null. A session is now needed first, and requireUser will not
+    // hand one out for an account that is not there, so the controller's 404
+    // is no longer reachable through this route.
+    const response = await request(app)
+      .get("/portfolio-personal/99999999")
+      .set("Cookie", sessionCookie({ userId: "99999999" }));
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
   });
 });
@@ -169,7 +209,7 @@ describe("POST /portfolio-personal", () => {
 
     const response = await request(app)
       .post("/portfolio-personal")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("nationality", "ไทย")
       .field("github", "https://example.test/somying");
 
@@ -186,12 +226,31 @@ describe("POST /portfolio-personal", () => {
     expect(stored.nationality).toBe("ไทย");
   });
 
+  it("writes the details for the signed-in student, whatever the body says", async () => {
+    const caller = await createStudent();
+    const stranger = await createStudent();
+
+    const response = await request(app)
+      .post("/portfolio-personal")
+      .set("Cookie", sessionCookie({ userId: caller.student_id }))
+      .field("user_id", stranger.student_id)
+      .field("nationality", "ไทย");
+
+    expect(response.status).toBe(201);
+    expect(response.body.data.user_id).toBe(caller.student_id);
+    expect(
+      await prisma.portfolio_personal.count({
+        where: { user_id: stranger.student_id },
+      }),
+    ).toBe(0);
+  });
+
   it("uploads the profile picture and points the row at it", async () => {
     const student = await createStudent();
 
     const response = await request(app)
       .post("/portfolio-personal")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .attach("file", IMAGE, "profile.png");
 
     expect(response.status).toBe(201);
@@ -225,7 +284,7 @@ describe("POST /portfolio-personal", () => {
 
     const response = await request(app)
       .post("/portfolio-personal")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("github", "null")
       .field("race", "")
       .field("email", "")
@@ -242,22 +301,21 @@ describe("POST /portfolio-personal", () => {
     expect(stored.phone_number).toBe("");
   });
 
-  it("refuses a request that names no user", async () => {
+  it("stores nothing in the bucket when there is no session", async () => {
+    const before = await listStoredObjects("portfolio-personal/");
+
     const response = await request(app)
       .post("/portfolio-personal")
-      .field("github", "https://example.test/no-owner");
+      .field("github", "https://example.test/no-owner")
+      .attach("file", IMAGE, "profile.png");
 
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      success: false,
-      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [{ field: "user_id", location: "body", message: "ต้องระบุ" }],
-    });
+    expect(response.status).toBe(401);
     expect(
       await prisma.portfolio_personal.count({
         where: { github: "https://example.test/no-owner" },
       }),
     ).toBe(0);
+    expect(await listStoredObjects("portfolio-personal/")).toEqual(before);
   });
 
   it("fails when the student already has details", async () => {
@@ -269,7 +327,7 @@ describe("POST /portfolio-personal", () => {
 
     const response = await request(app)
       .post("/portfolio-personal")
-      .field("user_id", student.student_id)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("nationality", "ลาว");
 
     expect(response.status).toBe(500);
@@ -294,6 +352,7 @@ describe("PUT /portfolio-personal/:user_id", () => {
 
     const response = await request(app)
       .put(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("github", "https://example.test/new");
 
     expect(response.status).toBe(200);
@@ -313,6 +372,7 @@ describe("PUT /portfolio-personal/:user_id", () => {
 
     const response = await request(app)
       .put(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("date_of_birth", "เมื่อวาน");
 
     expect(response.status).toBe(400);
@@ -338,10 +398,34 @@ describe("PUT /portfolio-personal/:user_id", () => {
 
     const response = await request(app)
       .put(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("date_of_birth", "");
 
     expect(response.status).toBe(200);
     expect(response.body.data.date_of_birth).toBeNull();
+  });
+
+  it("refuses another student's details, and changes nothing", async () => {
+    const owner = await createStudent();
+    const stranger = await createStudent();
+    await createPortfolioPersonal({
+      user_id: owner.student_id,
+      nationality: "ไทย",
+    });
+
+    const response = await request(app)
+      .put(`/portfolio-personal/${owner.student_id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .field("nationality", "ลาว");
+
+    expect(response.status).toBe(403);
+    expect(
+      (
+        await prisma.portfolio_personal.findUniqueOrThrow({
+          where: { user_id: owner.student_id },
+        })
+      ).nationality,
+    ).toBe("ไทย");
   });
 
   it("fails for a student who has no details yet", async () => {
@@ -349,6 +433,7 @@ describe("PUT /portfolio-personal/:user_id", () => {
 
     const response = await request(app)
       .put(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("nationality", "ไทย");
 
     expect(response.status).toBe(500);
@@ -366,6 +451,7 @@ describe("POST /portfolio-personal/:user_id/upsert", () => {
 
     const response = await request(app)
       .post(`/portfolio-personal/${student.student_id}/upsert`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("nationality", "ไทย");
 
     expect(response.status).toBe(200);
@@ -390,6 +476,7 @@ describe("POST /portfolio-personal/:user_id/upsert", () => {
 
     const response = await request(app)
       .post(`/portfolio-personal/${student.student_id}/upsert`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("github", "https://example.test/new");
 
     expect(response.status).toBe(200);
@@ -404,12 +491,32 @@ describe("POST /portfolio-personal/:user_id/upsert", () => {
     ).toBe(1);
   });
 
-  it("fails for a user who does not exist", async () => {
+  it("refuses another student's details, and writes nothing", async () => {
+    const owner = await createStudent();
+    const stranger = await createStudent();
+
     const response = await request(app)
-      .post("/portfolio-personal/99999999/upsert")
+      .post(`/portfolio-personal/${owner.student_id}/upsert`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
       .field("nationality", "ไทย");
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(403);
+    expect(
+      await prisma.portfolio_personal.findUnique({
+        where: { user_id: owner.student_id },
+      }),
+    ).toBeNull();
+  });
+
+  it("refuses a user who does not exist", async () => {
+    // The write used to reach the table and come back as a 500 from the
+    // foreign key; there is no session to be had for an account that is gone.
+    const response = await request(app)
+      .post("/portfolio-personal/99999999/upsert")
+      .set("Cookie", sessionCookie({ userId: "99999999" }))
+      .field("nationality", "ไทย");
+
+    expect(response.status).toBe(401);
     expect(
       await prisma.portfolio_personal.findUnique({
         where: { user_id: "99999999" },
@@ -423,9 +530,9 @@ describe("DELETE /portfolio-personal/:user_id", () => {
     const student = await createStudent();
     await createPortfolioPersonal({ user_id: student.student_id });
 
-    const response = await request(app).delete(
-      `/portfolio-personal/${student.student_id}`,
-    );
+    const response = await request(app)
+      .delete(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeNull();
@@ -439,12 +546,29 @@ describe("DELETE /portfolio-personal/:user_id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses another student's details, and deletes nothing", async () => {
+    const owner = await createStudent();
+    const stranger = await createStudent();
+    await createPortfolioPersonal({ user_id: owner.student_id });
+
+    const response = await request(app)
+      .delete(`/portfolio-personal/${owner.student_id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(
+      await prisma.portfolio_personal.findUnique({
+        where: { user_id: owner.student_id },
+      }),
+    ).not.toBeNull();
+  });
+
   it("fails for a student who has no details", async () => {
     const student = await createStudent();
 
-    const response = await request(app).delete(
-      `/portfolio-personal/${student.student_id}`,
-    );
+    const response = await request(app)
+      .delete(`/portfolio-personal/${student.student_id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(500);
     expect(response.body.success).toBe(false);

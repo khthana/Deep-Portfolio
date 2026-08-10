@@ -85,7 +85,6 @@ const CreateCertificateForm = ({ messageApi }: CreateCertificateFormProps) => {
     try {
       setLoading(true);
       const payload: CreatePortfolioCertificateReq = {
-        user_id: studentId,
         date: values.date ? values.date.format("YYYY-MM-DD") : undefined,
         organize: values.organize,
         name: values.name,

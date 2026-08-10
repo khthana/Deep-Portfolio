@@ -10,11 +10,12 @@ import { createSubmission } from "./activity";
  * Two shapes recur across all of them and are worth knowing before reading any
  * of these factories:
  *
- * - Every row hangs off users.user_id, and the endpoints take that id from the
- *   query or the body rather than from the session. So a case is nearly always
- *   about *whose* row it is, which is why `user_id` is the first option
- *   everywhere and why every factory that is not given one invents a student
- *   rather than borrowing one.
+ * - Every row hangs off users.user_id, and since #31 the endpoints take that id
+ *   from the session — so a case is nearly always about *whose* row it is, and
+ *   the id these factories return is the one its cookie has to be signed for.
+ *   That is why `user_id` is the first option everywhere, and why every factory
+ *   that is not given one invents a student rather than borrowing one: two rows
+ *   made without it belong to two different people.
  * - Attachments are a join table away (portfolio_training_attachments,
  *   portfolio_certificate_attachments), never a column. `attachment_ids` here
  *   writes those join rows from attachments the case made with

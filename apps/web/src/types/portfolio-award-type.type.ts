@@ -19,7 +19,6 @@ export type PortfolioAwardResp = {
 };
 
 export type CreatePortfolioAwardReq = {
-  user_id: string;
   organize?: string;
   name?: string;
   award?: string;
@@ -28,8 +27,6 @@ export type CreatePortfolioAwardReq = {
   is_show?: boolean;
 };
 
-export type UpdatePortfolioAwardReq = Partial<
-  Omit<CreatePortfolioAwardReq, "user_id">
-> & {
+export type UpdatePortfolioAwardReq = Partial<CreatePortfolioAwardReq> & {
   ids_to_delete?: number[];
 };

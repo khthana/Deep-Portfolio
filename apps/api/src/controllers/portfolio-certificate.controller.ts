@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { sessionUserId } from "../middlewares/auth.middleware";
 import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
@@ -68,7 +69,7 @@ export default class PortfolioCertificateController {
     next: NextFunction,
   ) {
     try {
-      const { user_id, ...data } = validated(
+      const data = validated(
         req,
         createPortfolioCertificateBody,
       );
@@ -76,7 +77,7 @@ export default class PortfolioCertificateController {
 
       const result =
         await this.portfolioCertificateService.createPortfolioCertificate(
-          user_id,
+          sessionUserId(req),
           data,
           files,
         );

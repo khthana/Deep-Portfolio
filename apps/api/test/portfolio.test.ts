@@ -12,6 +12,7 @@ import {
   createPortfolioTraining,
   createStudent,
 } from "./factories";
+import { sessionCookie } from "./helpers/session";
 
 /**
  * The e-Portfolio itself — /portfolio.
@@ -22,12 +23,14 @@ import {
  * it. That is why the read endpoint returns a small camelCase object and the
  * public one returns everything the student has.
  *
- * Two things about this route group shape almost every case here:
+ * Three things about this route group shape almost every case here:
  *
- * - Nothing on it is behind any middleware. Every endpoint takes the user it
- *   is acting for from the query string or the body, so anyone at all can read
- *   or overwrite anyone's portfolio. That is #31, and it is why no case here
- *   sends a cookie — none is looked at.
+ * - Authorisation is the group's, and portfolio-education.test.ts carries those
+ *   cases in full: a session, and your own rows.
+ * - `GET /public/:token` is the exception, and the reason the group's rule had
+ *   to be written down rather than assumed. The token is the credential, so the
+ *   route has no session behind it at all and its cases send no cookie. See
+ *   docs/adr/0001-portfolio-access.md.
  * - The id is a uuid column. A well-formed id that belongs to nobody is a 404;
  *   a string that is not a uuid at all is refused by the schema before the
  *   lookup, which is what it used to reach — Postgres rejected the comparison
@@ -54,6 +57,7 @@ describe("GET /portfolio", () => {
 
     const response = await request(app)
       .get("/portfolio")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.status).toBe(200);
@@ -89,6 +93,7 @@ describe("GET /portfolio", () => {
 
     const response = await request(app)
       .get("/portfolio")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ user_id: student.student_id });
 
     expect(response.body.data.map((p: { id: string }) => p.id)).toEqual([
@@ -96,10 +101,32 @@ describe("GET /portfolio", () => {
     ]);
   });
 
+  it("refuses a student asking for somebody else's list", async () => {
+    // See BEHAVIOR-CHANGES.md. The query string was the only thing that decided
+    // whose portfolios came back.
+    const owner = await createStudent();
+    const stranger = await createStudent();
+    await createPortfolio({ user_id: owner.student_id });
+
+    const response = await request(app)
+      .get("/portfolio")
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .query({ user_id: owner.student_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
   it("refuses a request that names no user", async () => {
+    const student = await createStudent();
     await createPortfolio();
 
-    const response = await request(app).get("/portfolio");
+    const response = await request(app)
+      .get("/portfolio")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -111,18 +138,19 @@ describe("GET /portfolio", () => {
 });
 
 /**
- * The one endpoint in this group with no failure case to write. It takes no
- * input at all — no path parameter, no query, no body — so there is no request
- * that it can be sent and refuse, and nothing it depends on that a case can
- * take away. What follows is the success side twice over: what it returns, and
- * that it is still reachable at all.
+ * The templates belong to nobody, so a session is all this one asks for — there
+ * is no owner to compare the caller against. It takes no input either, which
+ * leaves the missing session as the only request it can refuse.
  */
 describe("GET /portfolio/templates", () => {
   it("returns every template there is, oldest first", async () => {
+    const student = await createStudent();
     const modern = await createPortfolioTemplate({ name: "โมเดิร์นบลู" });
     const classic = await createPortfolioTemplate({ name: "คลาสสิก" });
 
-    const response = await request(app).get("/portfolio/templates");
+    const response = await request(app)
+      .get("/portfolio/templates")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual(
@@ -144,10 +172,24 @@ describe("GET /portfolio/templates", () => {
     // looking up a portfolio whose id is the word "templates" and failing on
     // the uuid comparison. The order of the two registrations is the only
     // thing keeping this a 200.
-    const response = await request(app).get("/portfolio/templates");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio/templates")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.message).toBe("Fetched templates successfully");
+  });
+
+  it("refuses a request with no session", async () => {
+    const response = await request(app).get("/portfolio/templates");
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
+    });
   });
 });
 
@@ -157,7 +199,9 @@ describe("GET /portfolio/:id", () => {
       portfolio_name: "แฟ้มสะสมผลงานปีสี่",
     });
 
-    const response = await request(app).get(`/portfolio/${portfolio.id}`);
+    const response = await request(app)
+      .get(`/portfolio/${portfolio.id}`)
+      .set("Cookie", sessionCookie({ userId: portfolio.user_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
@@ -169,8 +213,30 @@ describe("GET /portfolio/:id", () => {
     });
   });
 
+  it("refuses another student's portfolio", async () => {
+    const stranger = await createStudent();
+    const portfolio = await createPortfolio();
+
+    const response = await request(app)
+      .get(`/portfolio/${portfolio.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    });
+  });
+
   it("answers 404 for an id that belongs to no portfolio", async () => {
-    const response = await request(app).get(`/portfolio/${UNUSED_ID}`);
+    // The ownership middleware lets a row that is not there through rather than
+    // answering 403 for it, so the caller still learns the difference between
+    // somebody else's portfolio and no portfolio at all.
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get(`/portfolio/${UNUSED_ID}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -183,7 +249,11 @@ describe("GET /portfolio/:id", () => {
     // See BEHAVIOR-CHANGES.md. This used to be a 500: the 404 above was only
     // reachable for a well-formed id, and anything else failed in Postgres
     // before the controller got to decide.
-    const response = await request(app).get("/portfolio/not-a-uuid");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/portfolio/not-a-uuid")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -196,6 +266,10 @@ describe("GET /portfolio/:id", () => {
   });
 });
 
+/**
+ * The share link, and the one route in the group that answers a caller nobody
+ * has signed in. None of these cases sends a cookie, and that is the point.
+ */
 describe("GET /portfolio/public/:token", () => {
   it("returns the whole portfolio to a caller with the link", async () => {
     const student = await createStudent({
@@ -342,6 +416,7 @@ describe("POST /portfolio/:id/generate-share-link", () => {
 
     const response = await request(app)
       .post(`/portfolio/${portfolio.id}/generate-share-link`)
+      .set("Cookie", sessionCookie({ userId: portfolio.user_id }))
       .send({});
 
     expect(response.status).toBe(200);
@@ -363,6 +438,7 @@ describe("POST /portfolio/:id/generate-share-link", () => {
 
     const response = await request(app)
       .post(`/portfolio/${portfolio.id}/generate-share-link`)
+      .set("Cookie", sessionCookie({ userId: portfolio.user_id }))
       .send({ expiresAt });
 
     expect(response.status).toBe(200);
@@ -376,11 +452,33 @@ describe("POST /portfolio/:id/generate-share-link", () => {
     ).toEqual(new Date(expiresAt));
   });
 
+  it("refuses to publish another student's portfolio", async () => {
+    // See BEHAVIOR-CHANGES.md. Anyone holding a portfolio id could mint a share
+    // link for it and read the whole thing through the public route.
+    const stranger = await createStudent();
+    const portfolio = await createPortfolio();
+
+    const response = await request(app)
+      .post(`/portfolio/${portfolio.id}/generate-share-link`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .send({});
+
+    expect(response.status).toBe(403);
+    expect(
+      (
+        await prisma.portfolio.findUniqueOrThrow({
+          where: { id: portfolio.id },
+        })
+      ).public_share_token,
+    ).toBe(portfolio.public_share_token);
+  });
+
   it("refuses an expiry it cannot read", async () => {
     const portfolio = await createPortfolio();
 
     const response = await request(app)
       .post(`/portfolio/${portfolio.id}/generate-share-link`)
+      .set("Cookie", sessionCookie({ userId: portfolio.user_id }))
       .send({ expiresAt: "สิ้นเดือน" });
 
     expect(response.status).toBe(400);
@@ -405,8 +503,11 @@ describe("POST /portfolio/:id/generate-share-link", () => {
   });
 
   it("fails for a portfolio that does not exist", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .post(`/portfolio/${UNUSED_ID}/generate-share-link`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({});
 
     expect(response.status).toBe(500);
@@ -419,13 +520,15 @@ describe("POST /portfolio", () => {
     const student = await createStudent();
     const template = await createPortfolioTemplate({ name: "คลาสสิก" });
 
-    const response = await request(app).post("/portfolio").send({
-      user_id: student.student_id,
-      template_id: template.id,
-      portfolio_name: "แฟ้มใหม่",
-      template_color: "#112233",
-      about_me: "แนะนำตัว",
-    });
+    const response = await request(app)
+      .post("/portfolio")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({
+        template_id: template.id,
+        portfolio_name: "แฟ้มใหม่",
+        template_color: "#112233",
+        about_me: "แนะนำตัว",
+      });
 
     expect(response.status).toBe(201);
     expect(response.body.data).toMatchObject({
@@ -457,10 +560,8 @@ describe("POST /portfolio", () => {
 
     const response = await request(app)
       .post("/portfolio")
-      .send({
-        user_id: student.student_id,
-        selectedSkillIds: [chosen.id, alsoChosen.id],
-      });
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({ selectedSkillIds: [chosen.id, alsoChosen.id] });
 
     expect(response.status).toBe(201);
     expect(response.body.data.selectedSkillIds.sort()).toEqual(
@@ -473,16 +574,44 @@ describe("POST /portfolio", () => {
     ).toBe(0);
   });
 
-  it("refuses a request that names no user", async () => {
+  it("refuses to put another student's skill on the cover page", async () => {
+    // See BEHAVIOR-CHANGES.md. The row being written is the caller's own, so the
+    // ownership middleware cannot see this one — the service checks the skills
+    // before it writes anything, the same refusal /assign-work gives.
+    const student = await createStudent();
+    const stranger = await createStudent();
+    const mine = await createPortfolioSkill({ user_id: student.student_id });
+    const theirs = await createPortfolioSkill({
+      user_id: stranger.student_id,
+    });
+
+    const response = await request(app)
+      .post("/portfolio")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({
+        portfolio_name: "แฟ้มที่ยืมทักษะคนอื่น",
+        selectedSkillIds: [mine.id, theirs.id],
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({
+      success: false,
+      message: "มีทักษะบางรายการที่ไม่ใช่ของผู้ใช้รายนี้",
+    });
+    expect(
+      await prisma.portfolio.count({ where: { user_id: student.student_id } }),
+    ).toBe(0);
+  });
+
+  it("refuses a request with no session", async () => {
     const response = await request(app)
       .post("/portfolio")
       .send({ portfolio_name: "แฟ้มไร้เจ้าของ" });
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(401);
     expect(response.body).toEqual({
       success: false,
-      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [{ field: "user_id", location: "body", message: "ต้องระบุ" }],
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
     expect(
       await prisma.portfolio.count({
@@ -496,8 +625,8 @@ describe("POST /portfolio", () => {
 
     const response = await request(app)
       .post("/portfolio")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({
-        user_id: student.student_id,
         template_id: "คลาสสิก",
         selectedSkillIds: ["ทักษะแรก"],
       });
@@ -516,12 +645,16 @@ describe("POST /portfolio", () => {
     ).toBe(0);
   });
 
-  it("fails for a user who does not exist", async () => {
+  it("refuses a session for a user who does not exist", async () => {
+    // See BEHAVIOR-CHANGES.md. The write used to go straight at the table and
+    // come back as a 500 from the foreign key; requireUser now looks the
+    // account up before anything is written.
     const response = await request(app)
       .post("/portfolio")
-      .send({ user_id: "99999999", portfolio_name: "แฟ้มผี" });
+      .set("Cookie", sessionCookie({ userId: "99999999" }))
+      .send({ portfolio_name: "แฟ้มผี" });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(401);
     expect(
       await prisma.portfolio.count({ where: { user_id: "99999999" } }),
     ).toBe(0);
@@ -537,6 +670,7 @@ describe("PUT /portfolio/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio/${portfolio.id}`)
+      .set("Cookie", sessionCookie({ userId: portfolio.user_id }))
       .send({ portfolio_name: "ชื่อใหม่", isShowThesis: false });
 
     expect(response.status).toBe(200);
@@ -566,6 +700,7 @@ describe("PUT /portfolio/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio/${portfolio.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ selectedSkillIds: [added.id] });
 
     expect(response.status).toBe(200);
@@ -587,14 +722,37 @@ describe("PUT /portfolio/:id", () => {
 
     const response = await request(app)
       .put(`/portfolio/${portfolio.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ portfolio_name: "ชื่อใหม่" });
 
     expect(response.body.data.selectedSkillIds).toEqual([skill.id]);
   });
 
+  it("refuses another student's portfolio, and changes nothing", async () => {
+    const stranger = await createStudent();
+    const portfolio = await createPortfolio({ portfolio_name: "ชื่อเดิม" });
+
+    const response = await request(app)
+      .put(`/portfolio/${portfolio.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .send({ portfolio_name: "ชื่อใหม่" });
+
+    expect(response.status).toBe(403);
+    expect(
+      (
+        await prisma.portfolio.findUniqueOrThrow({
+          where: { id: portfolio.id },
+        })
+      ).portfolio_name,
+    ).toBe("ชื่อเดิม");
+  });
+
   it("fails for a portfolio that does not exist", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .put(`/portfolio/${UNUSED_ID}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ portfolio_name: "ชื่อใหม่" });
 
     expect(response.status).toBe(500);
@@ -614,6 +772,7 @@ describe("PATCH /portfolio/:id", () => {
 
     const response = await request(app)
       .patch(`/portfolio/${portfolio.id}`)
+      .set("Cookie", sessionCookie({ userId: portfolio.user_id }))
       .send({ portfolio_name: "ชื่อใหม่" });
 
     expect(response.status).toBe(200);
@@ -623,9 +782,33 @@ describe("PATCH /portfolio/:id", () => {
     });
   });
 
+  it("refuses another student's portfolio, and changes nothing", async () => {
+    // The same middleware as PUT, on the same handler — the case is here
+    // because a verb registered separately can be wired separately too.
+    const stranger = await createStudent();
+    const portfolio = await createPortfolio({ portfolio_name: "ชื่อเดิม" });
+
+    const response = await request(app)
+      .patch(`/portfolio/${portfolio.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .send({ portfolio_name: "ชื่อใหม่" });
+
+    expect(response.status).toBe(403);
+    expect(
+      (
+        await prisma.portfolio.findUniqueOrThrow({
+          where: { id: portfolio.id },
+        })
+      ).portfolio_name,
+    ).toBe("ชื่อเดิม");
+  });
+
   it("fails for a portfolio that does not exist", async () => {
+    const student = await createStudent();
+
     const response = await request(app)
       .patch(`/portfolio/${UNUSED_ID}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ portfolio_name: "ชื่อใหม่" });
 
     expect(response.status).toBe(500);
@@ -643,7 +826,9 @@ describe("DELETE /portfolio/:id", () => {
     });
     const kept = await createPortfolio({ user_id: student.student_id });
 
-    const response = await request(app).delete(`/portfolio/${doomed.id}`);
+    const response = await request(app)
+      .delete(`/portfolio/${doomed.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toBeNull();
@@ -666,8 +851,26 @@ describe("DELETE /portfolio/:id", () => {
     ).not.toBeNull();
   });
 
+  it("refuses another student's portfolio, and deletes nothing", async () => {
+    const stranger = await createStudent();
+    const portfolio = await createPortfolio();
+
+    const response = await request(app)
+      .delete(`/portfolio/${portfolio.id}`)
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(
+      await prisma.portfolio.findUnique({ where: { id: portfolio.id } }),
+    ).not.toBeNull();
+  });
+
   it("fails for a portfolio that does not exist", async () => {
-    const response = await request(app).delete(`/portfolio/${UNUSED_ID}`);
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete(`/portfolio/${UNUSED_ID}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(500);
     expect(response.body.success).toBe(false);

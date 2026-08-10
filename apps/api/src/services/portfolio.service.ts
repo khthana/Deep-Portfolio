@@ -9,6 +9,7 @@ import {
 } from "../models/portfolio.model";
 
 import {
+  Prisma,
   portfolio,
   portfolio_template,
   portfolio_skill_mapping,
@@ -26,6 +27,33 @@ import PortfolioSkillService from "./portfolio-skill.service";
 import PortfolioThesisService from "./portfolio-thesis.service";
 import StudentService from "./student.service";
 import StudentActivityService from "./student-activity.service";
+
+/**
+ * A cover page may only put its own owner's skills on itself.
+ *
+ * `selectedSkillIds` arrives in the body, and a skill id says nothing about
+ * whose it is, so without this a student could hang another student's skills on
+ * their own portfolio and read the names off the page — the ownership
+ * middleware cannot see it, because the row being written is the caller's. Same
+ * refusal, in the same words, as assignWorkToSkills gives for the same reason
+ * (#31).
+ */
+async function assertOwnSkills(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  skillIds: number[],
+): Promise<void> {
+  const wanted = new Set(skillIds);
+
+  const owned = await tx.portfolio_skill.findMany({
+    where: { id: { in: [...wanted] }, user_id: userId },
+    select: { id: true },
+  });
+
+  if (owned.length !== wanted.size) {
+    throw new HttpError(403, "มีทักษะบางรายการที่ไม่ใช่ของผู้ใช้รายนี้");
+  }
+}
 
 type PortfolioWithRelations = portfolio & {
   portfolio_template?: portfolio_template | null;
@@ -280,9 +308,11 @@ export default class PortfolioService {
     };
   }
 
-  async createPortfolio(data: CreatePortfolioReqBody): Promise<PortfolioResp> {
+  async createPortfolio(
+    user_id: string,
+    data: CreatePortfolioReqBody,
+  ): Promise<PortfolioResp> {
     const {
-      user_id,
       template_id,
       portfolio_name,
       template_color,
@@ -292,6 +322,10 @@ export default class PortfolioService {
     } = data;
 
     const result = await prisma.$transaction(async (tx) => {
+      if (selectedSkillIds.length > 0) {
+        await assertOwnSkills(tx, user_id, selectedSkillIds);
+      }
+
       const portfolio = await tx.portfolio.create({
         data: {
           user_id,
@@ -332,13 +366,17 @@ export default class PortfolioService {
 
     const result = await prisma.$transaction(async (tx) => {
       // Update portfolio data
-      await tx.portfolio.update({
+      const updated = await tx.portfolio.update({
         where: { id },
         data: portfolioData,
       });
 
       // Sync skills: Wipe and Rebuild
       if (selectedSkillIds !== undefined) {
+        if (selectedSkillIds.length > 0) {
+          await assertOwnSkills(tx, updated.user_id, selectedSkillIds);
+        }
+
         await tx.portfolio_skill_mapping.deleteMany({
           where: { portfolio_id: id },
         });

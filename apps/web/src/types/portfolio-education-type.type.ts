@@ -14,7 +14,6 @@ export type PortfolioEducationResp = {
 };
 
 export type CreatePortfolioEducationReq = {
-  user_id: string;
   education_level: string;
   institution?: string;
   start_year?: number;

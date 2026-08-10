@@ -32,7 +32,6 @@ export const createPortfolioTraining = async (
   const formData = new FormData();
 
   // Append form fields
-  formData.append("user_id", data.user_id);
   if (data.year !== undefined) formData.append("year", data.year.toString());
   if (data.country) formData.append("country", data.country);
   if (data.organize) formData.append("organize", data.organize);

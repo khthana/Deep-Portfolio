@@ -3,10 +3,7 @@ import type {
   UpdatePortfolioEducationFields,
 } from "../validation/portfolio-sections.schema";
 
-export type CreatePortfolioEducationReqBody = Omit<
-  CreatePortfolioEducationFields,
-  "user_id"
->;
+export type CreatePortfolioEducationReqBody = CreatePortfolioEducationFields;
 
 export type UpdatePortfolioEducationReqBody = UpdatePortfolioEducationFields;
 

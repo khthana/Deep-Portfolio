@@ -67,7 +67,6 @@ const CreateEducationForm = ({ messageApi }: CreateEducationFormProps) => {
 
       setLoading(true);
       const payload: CreatePortfolioEducationReq = {
-        user_id: studentId,
         education_level: values.education_level,
         country: values.country,
         start_year: convertToCE(values.start_year),

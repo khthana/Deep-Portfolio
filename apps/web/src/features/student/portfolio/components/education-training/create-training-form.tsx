@@ -82,7 +82,6 @@ const CreateTrainingForm = ({ messageApi }: CreateTrainingFormProps) => {
     try {
       setLoading(true);
       const payload: CreatePortfolioTrainingReq = {
-        user_id: studentId,
         year: convertToCE(values.year),
         country: values.country,
         organize: values.organize,

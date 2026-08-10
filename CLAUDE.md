@@ -31,13 +31,13 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 781 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 819 API cases over
   39 files, 400 web cases over 24 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
 Open work is in the issue tracker: the README rewrite (#24) and the defects
-filed while testing (#25–#31, #33–#35). Everything else from the breakdown of
-#1 is closed, #20–#23 included.
+filed while testing (#25–#30, #33–#35). Everything else from the breakdown of
+#1 is closed, #20–#23 and #31 included.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on
@@ -102,6 +102,7 @@ The five canonical triage roles, each label named after its role. See `docs/agen
 
 ### Domain docs
 
-Single-context, but neither `CONTEXT.md` nor `docs/adr/` exists yet — the
-spec's D1–D13 and T1–T7 sections stand in for ADRs meanwhile. See
+Single-context. `CONTEXT.md` does not exist yet, and the spec's D1–D13 and
+T1–T7 sections stand in for ADRs on everything the refactor decided.
+`docs/adr/` holds decisions taken since, one file each. See
 `docs/agents/domain.md`.
