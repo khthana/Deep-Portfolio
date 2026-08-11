@@ -102,6 +102,27 @@ spans the whole system, or the decision belongs to someone else — pin it with
 a test that documents it, say so in the test, and record it in the same file
 under the "pinned" list.
 
+## Prose carries claims, and claims get checked
+
+This repo argues in prose — Thai ADRs, `BEHAVIOR-CHANGES.md`, long comments
+above services and tests. Every sentence that says what the code does, cites
+another ADR, names a frontend caller, or counts anything is a claim, and no
+test will catch it when it is wrong. Open the source and confirm it before you
+commit it; a wrong comment outlives the wrong code, because the next reader
+believes it.
+
+Two failure modes worth naming, both of which have happened here:
+
+- **Citing an ADR for a rule it does not contain.** If the decision you need
+  is not actually in the ADR you were about to point at, the new ADR owns the
+  decision itself and says why the older rule does not reach it.
+- **Trusting an issue's own acceptance criteria.** They are written before the
+  code is read and can be factually wrong. When one is, correct the issue —
+  don't implement to it and don't repeat it in the ADR.
+
+Issue state is a claim too: don't write "#N is closed" anywhere until it is.
+Put `Closes #N` in the commit message and let the push do it.
+
 ## Agent skills
 
 ### Issue tracker

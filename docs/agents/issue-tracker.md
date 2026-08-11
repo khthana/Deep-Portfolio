@@ -16,7 +16,21 @@ Repo: [`khthana/Deep-Portfolio`](https://github.com/khthana/Deep-Portfolio)
 Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
 
 Note for this repo: bodies are usually written in Thai. Pass them via `--body-file`
-rather than `--body`, so PowerShell quoting cannot mangle the encoding.
+rather than `--body`, so PowerShell quoting cannot mangle the encoding. The same
+goes for a `--comment` that has to carry Thai or quote marks: bind it to a
+single-quoted variable first (`$msg = '...'; gh issue close <n> --comment $msg`),
+because PowerShell 5.1 will otherwise split it into several arguments and `gh`
+rejects the call.
+
+**Closing is the commit's job, not a follow-up step.** Put `Closes #N` in the
+commit message that carries the fix, so pushing closes the issue. `gh issue
+close` is for the ones that slipped through, and for issues closed without a
+commit. Until the push lands, the issue is open — say so, and don't write
+"closed" into `CLAUDE.md` or the list below ahead of the fact.
+
+**An issue spun off while implementing another gets filed before the link to it
+is written**, not after. A dangling `#N` in `BEHAVIOR-CHANGES.md` or an ADR is a
+broken promise the next reader has no way to chase.
 
 ## Pull requests as a triage surface
 
