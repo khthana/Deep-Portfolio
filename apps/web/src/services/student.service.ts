@@ -23,16 +23,16 @@ export const getEnrolledSubjects = async () => {
   return resp.data;
 };
 
-export const getActivitiesBySectionId = async (
-  sectionId: number,
-  studentId: string,
-) => {
+/** The work in one section, with the signed-in student's own answers beside it.
+ *  Takes no id, for the same reason getEnrolledSubjects does not (#41). */
+export const getActivitiesBySectionId = async (sectionId: number) => {
   const resp = await axiosInstance.get<ResponseWrapper<ActivityOption[]>>(
     "/student/activities/list",
-    { params: { section_id: sectionId, student_id: studentId } },
+    { params: { section_id: sectionId } },
   );
   return resp.data;
 };
+
 export const getActivityDetails = async (studentActivityId: number) => {
   const resp = await axiosInstance.get<ResponseWrapper<any>>(
     `/student/activities/details/${studentActivityId}`,

@@ -197,7 +197,7 @@ const CreateWorkForm = () => {
     setFileList([]);
     setActivitiesLoading(true);
     try {
-      const res = await getActivitiesBySectionId(sectionId, studentId);
+      const res = await getActivitiesBySectionId(sectionId);
       if (res.success) setActivities(res.data);
     } catch {
       messageApi.error("ไม่สามารถโหลดชิ้นงานได้");

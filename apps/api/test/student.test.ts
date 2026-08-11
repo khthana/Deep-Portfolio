@@ -19,14 +19,16 @@ import { enrolledCourse, FAR_FUTURE, TERM } from "./helpers/classroom";
 /**
  * What a student can read about their own studies — /student.
  *
- * Eight read handlers, split by where they get the student from. Five take it
- * from the session and are about *me*: /course/list, /classwork/list,
- * /all/classwork/list, the calendar (which has its own file) and, since #40,
- * /enrolled/subjects. Three still take a student_id or a section_id from the
- * query, have no middleware at all, and will answer about anybody: /list,
- * /activities/list and /activities/details/:id. That difference is the single
- * most important thing in this group and every case below is written to make
- * it visible rather than to hide it. The three that remain are #41.
+ * Eight read handlers. Six are about *me* and take the student from the
+ * session: /course/list, /classwork/list, /all/classwork/list, the calendar
+ * (which has its own file), /enrolled/subjects since #40, and /activities/list
+ * since #41, which used to take a student_id from the query and hand back a
+ * classmate's whole submission history. Of the two that still name something in
+ * the request, /activities/details/:id names a row and must own it, and /list
+ * names a section and belongs to the teacher who teaches it.
+ *
+ * All eight require a session now. The cases below are written so that which
+ * rule guards which route is readable from the refusals themselves.
  *
  * Submitting work lives in student-submit.test.ts, the calendar in
  * student-calendar.test.ts.
@@ -34,7 +36,8 @@ import { enrolledCourse, FAR_FUTURE, TERM } from "./helpers/classroom";
 
 describe("GET /student/list", () => {
   it("returns the students enrolled in a section, by id", async () => {
-    const course = await createCourse();
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
     // Enrolled in the reverse of the order they come back in, so the sort is
     // doing the work rather than the insertion order. The ids are outside the
     // range nextStudentId() counts through, which every other case here uses.
@@ -53,6 +56,7 @@ describe("GET /student/list", () => {
 
     const response = await request(app)
       .get("/student/list")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .query({ section_id: course.section_id });
 
     expect(response.status).toBe(200);
@@ -73,10 +77,12 @@ describe("GET /student/list", () => {
   });
 
   it("returns an empty list for a section nobody is enrolled in", async () => {
-    const course = await createCourse();
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
 
     const response = await request(app)
       .get("/student/list")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .query({ section_id: course.section_id });
 
     expect(response.status).toBe(200);
@@ -84,8 +90,9 @@ describe("GET /student/list", () => {
   });
 
   it("leaves out students enrolled in a different section", async () => {
-    const course = await createCourse();
-    const other = await createCourse();
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const other = await createCourse({ teacher_id: teacher.user_id });
     const mine = await createStudent();
     const theirs = await createStudent();
     await enrolStudent(course.section_id, mine.student_id);
@@ -93,6 +100,7 @@ describe("GET /student/list", () => {
 
     const response = await request(app)
       .get("/student/list")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .query({ section_id: course.section_id });
 
     expect(
@@ -103,7 +111,11 @@ describe("GET /student/list", () => {
   it("answers 400 when the section_id is missing", async () => {
     // parseInt(undefined) was NaN, which Prisma sends as null against a NOT
     // NULL column — a 500 about a section the caller never named.
-    const response = await request(app).get("/student/list");
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .get("/student/list")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
     expect(response.status).toBe(400);
     expect(response.body.errors).toEqual([
@@ -111,10 +123,9 @@ describe("GET /student/list", () => {
     ]);
   });
 
-  it("serves a request with no session", async () => {
-    // No middleware: the whole roster of any section is readable by anyone who
-    // can guess a section id. #31.
-    const course = await createCourse();
+  it("refuses a request with no session", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
     const student = await createStudent();
     await enrolStudent(course.section_id, student.student_id);
 
@@ -122,8 +133,64 @@ describe("GET /student/list", () => {
       .get("/student/list")
       .query({ section_id: course.section_id });
 
-    expect(response.status).toBe(200);
-    expect(response.body.data).toHaveLength(1);
+    // The whole roster of any section used to be readable by anyone who could
+    // guess a section id — no middleware at all, pinned since #31 (#41).
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBe("ไม่พบ Token หรือ Token หมดอายุ");
+  });
+
+  it("refuses a student", async () => {
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const student = await createStudent();
+    await enrolStudent(course.section_id, student.student_id);
+
+    const response = await request(app)
+      .get("/student/list")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ section_id: course.section_id });
+
+    // A roster is the teacher's view of the class, and the only screen that
+    // asks for it is the teacher's. A classmate in the same section is refused
+    // as squarely as a stranger.
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe("สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น");
+  });
+
+  it("refuses a teacher who does not teach the section", async () => {
+    const colleague = await createTeacher();
+    // The teacher of record is nobody the case names: what matters is only
+    // that it is not the colleague whose session asks.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const student = await createStudent();
+    await enrolStudent(course.section_id, student.student_id);
+
+    const response = await request(app)
+      .get("/student/list")
+      .set("Cookie", sessionCookie({ userId: colleague.user_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe(
+      "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของกลุ่มเรียนนี้",
+    );
+  });
+
+  it("refuses a section that does not exist with the same 403", async () => {
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .get("/student/list")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .query({ section_id: 999999 });
+
+    // Not a 404: section ids are small integers, and a caller who could tell
+    // "no such section" from "not mine" could walk the range. ADR-0002.
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe(
+      "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของกลุ่มเรียนนี้",
+    );
   });
 });
 
@@ -783,7 +850,8 @@ describe("GET /student/activities/list", () => {
 
     const response = await request(app)
       .get("/student/activities/list")
-      .query({ section_id: course.section_id, student_id: student.student_id });
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ section_id: course.section_id });
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual([
@@ -808,10 +876,11 @@ describe("GET /student/activities/list", () => {
     ]);
   });
 
-  it("shows nulls for a student who submitted nothing", async () => {
+  it("shows nulls when the signed-in student submitted nothing", async () => {
     const student = await createStudent();
     const classmate = await createStudent();
     const course = await enrolledCourse(student.student_id);
+    await enrolStudent(course.section_id, classmate.student_id);
     const activity = await createActivity({ section_id: course.section_id });
     await createSubmission({
       student_id: classmate.student_id,
@@ -820,8 +889,11 @@ describe("GET /student/activities/list", () => {
 
     const response = await request(app)
       .get("/student/activities/list")
-      .query({ section_id: course.section_id, student_id: student.student_id });
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ section_id: course.section_id });
 
+    // The classmate's submission is in the same section and is not what this
+    // answers about: the student comes from the session now (#41).
     expect(response.body.data).toEqual([
       {
         activity_id: activity.id,
@@ -844,7 +916,7 @@ describe("GET /student/activities/list", () => {
 
     const response = await request(app)
       .get("/student/activities/list")
-      .query({ student_id: student.student_id });
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body.errors).toEqual([
@@ -860,7 +932,8 @@ describe("GET /student/activities/list", () => {
 
     const response = await request(app)
       .get("/student/activities/list")
-      .query({ section_id: "99999999999", student_id: student.student_id });
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ section_id: "99999999999" });
 
     expect(response.status).toBe(400);
     expect(response.body.errors).toEqual([
@@ -870,6 +943,97 @@ describe("GET /student/activities/list", () => {
         message: "ต้องไม่เกิน 2147483647",
       },
     ]);
+  });
+
+  it("ignores a student_id the caller sends anyway", async () => {
+    const student = await createStudent();
+    const classmate = await createStudent();
+    const course = await enrolledCourse(student.student_id);
+    await enrolStudent(course.section_id, classmate.student_id);
+    const activity = await createActivity({ section_id: course.section_id });
+    await createSubmission({
+      student_id: classmate.student_id,
+      activity_id: activity.id,
+      status: "GRADED",
+      score: 10,
+      feedback: "ความเห็นถึงเพื่อนร่วมชั้น",
+    });
+
+    const response = await request(app)
+      .get("/student/activities/list")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({
+        section_id: course.section_id,
+        student_id: classmate.student_id,
+      });
+
+    // The parameter is gone from the schema, and zod strips what it does not
+    // know — so naming a classmate is not refused, it is simply not read. What
+    // comes back is still the caller's own row, which is empty here.
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([
+      {
+        activity_id: activity.id,
+        activity_name: "งานตัวอย่าง",
+        student_activity_id: null,
+        status: null,
+        score: null,
+        feedback: null,
+      },
+    ]);
+  });
+
+  it("refuses a request with no session", async () => {
+    const student = await createStudent();
+    const course = await enrolledCourse(student.student_id);
+    await createActivity({ section_id: course.section_id });
+
+    const response = await request(app)
+      .get("/student/activities/list")
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBe("ไม่พบ Token หรือ Token หมดอายุ");
+  });
+
+  it("refuses a student who is not enrolled in the section", async () => {
+    const stranger = await createStudent();
+    const student = await createStudent();
+    const course = await enrolledCourse(student.student_id);
+    await createActivity({ section_id: course.section_id });
+
+    const response = await request(app)
+      .get("/student/activities/list")
+      .set("Cookie", sessionCookie({ userId: stranger.student_id }))
+      .query({ section_id: course.section_id });
+
+    // Without this the answer would be an empty list rather than a refusal —
+    // which reads as "this section has no work in it" for a class they are not
+    // in, and still confirms the section exists.
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe(
+      "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของกลุ่มเรียนนี้",
+    );
+  });
+
+  it("refuses a teacher", async () => {
+    const teacher = await createTeacher();
+    const student = await createStudent();
+    const course = await enrolledCourse(student.student_id, {
+      teacher_id: teacher.user_id,
+    });
+    await createActivity({ section_id: course.section_id });
+
+    // This read is "the work in this section, with my own answers beside it",
+    // and a teacher has no row of their own in it. What they need is the
+    // gradebook, which is a different endpoint with a different shape.
+    const response = await request(app)
+      .get("/student/activities/list")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe("สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น");
   });
 });
 
@@ -892,9 +1056,9 @@ describe("GET /student/activities/details/:student_activity_id", () => {
       feedback: "เรียบร้อยดี",
     });
 
-    const response = await request(app).get(
-      `/student/activities/details/${submission.id}`,
-    );
+    const response = await request(app)
+      .get(`/student/activities/details/${submission.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toMatchObject({
@@ -916,10 +1080,15 @@ describe("GET /student/activities/details/:student_activity_id", () => {
   });
 
   it("answers 404 for an id that belongs to no submission", async () => {
-    const response = await request(app).get(
-      "/student/activities/details/999999",
-    );
+    const student = await createStudent();
 
+    const response = await request(app)
+      .get("/student/activities/details/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
+
+    // Still a 404 rather than the 403 below: the ownership check reads the row
+    // first and lets a missing one through, so "there is no such submission"
+    // and "it is not yours" stay different answers here. ADR-0001.
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
       success: false,
@@ -932,7 +1101,11 @@ describe("GET /student/activities/details/:student_activity_id", () => {
     // findMany above, a unique lookup rejects it outright. So the caller who
     // mistyped a URL used to be told the server broke rather than that the id
     // is wrong.
-    const response = await request(app).get("/student/activities/details/abc");
+    const student = await createStudent();
+
+    const response = await request(app)
+      .get("/student/activities/details/abc")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(400);
     expect(response.body.errors).toEqual([
@@ -944,7 +1117,7 @@ describe("GET /student/activities/details/:student_activity_id", () => {
     ]);
   });
 
-  it("answers about anybody's submission, with no session", async () => {
+  it("refuses a request with no session", async () => {
     const classmate = await createStudent();
     const submission = await createSubmission({
       student_id: classmate.student_id,
@@ -955,7 +1128,45 @@ describe("GET /student/activities/details/:student_activity_id", () => {
       `/student/activities/details/${submission.id}`,
     );
 
-    expect(response.status).toBe(200);
-    expect(response.body.data.feedback).toBe("ความเห็นถึงเพื่อนร่วมชั้น");
+    // Anybody's submission, feedback and score included, used to be one guessed
+    // id away with no session at all (#41).
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBe("ไม่พบ Token หรือ Token หมดอายุ");
+  });
+
+  it("refuses another student's submission", async () => {
+    const classmate = await createStudent();
+    const student = await createStudent();
+    const submission = await createSubmission({
+      student_id: classmate.student_id,
+      feedback: "ความเห็นถึงเพื่อนร่วมชั้น",
+    });
+
+    const response = await request(app)
+      .get(`/student/activities/details/${submission.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe(
+      "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    );
+  });
+
+  it("refuses a teacher", async () => {
+    const teacher = await createTeacher();
+    const student = await createStudent();
+    const submission = await createSubmission({
+      student_id: student.student_id,
+    });
+
+    // The teacher's screens read a submission through /student-activity, which
+    // is a different endpoint. This one is the student's own view of their own
+    // work, and nothing on the teacher's side calls it.
+    const response = await request(app)
+      .get(`/student/activities/details/${submission.id}`)
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe("สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น");
   });
 });

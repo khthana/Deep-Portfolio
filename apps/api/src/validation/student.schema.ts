@@ -1,21 +1,20 @@
 import { z } from "zod";
 import { classworkType } from "./activity.schema";
 import { uploadUrl } from "./attachments.schema";
-import { id, integer, jsonField, text, userId } from "./fields";
+import { id, integer, jsonField, text } from "./fields";
 
 /**
  * `/student` — what a student can read about their own studies, and the two
  * endpoints they hand work in through.
  *
- * The reads split down the middle by where the student comes from. Five take
- * them from the session and are about *me*; three take a `student_id` or a
- * `section_id` from the query and will answer about anybody. Validation does
- * not change that — who may ask is #41's question now — but it does make the
- * parameter compulsory, because a read that filters on an absent one does not
- * answer about nobody, it answers about everybody.
+ * Nothing here says which person any more. Since #40 and #41 the student comes
+ * from the session on every read, so what is left to check is which section is
+ * being asked about, and a `section_id` is compulsory wherever it appears: a
+ * read that filters on an absent one does not answer about nobody, it answers
+ * about everybody.
  *
- * The half that is about *me* has no schema here at all: since #40 nothing in
- * it takes a parameter that says which person, so there is nothing to check.
+ * Who may ask about a given section is not this file's question — that is
+ * `requireOwnSection` and `requireEnrolledSection`, on the routes.
  */
 
 /** A term, as the term-aware reads take it: a query string, not a foreign key. */
@@ -35,16 +34,15 @@ export const studentClassworkListQuery = z.object({
 });
 
 /**
- * `where: { student_id: undefined }` is not a filter that matches nothing, it is
- * no filter at all — so leaving this out hands back every student's submission
- * status for the section rather than one student's. This route still takes the
- * student from the query because a teacher opens it to read somebody else's
- * work; who may do that is #41's question, and until it is answered this schema
- * is the only thing standing here.
+ * The section only. The student used to come from the query, and
+ * `where: { student_id: undefined }` is not a filter that matches nothing but
+ * no filter at all, so a caller who left it out was handed every student's
+ * submission status for the section. Since #41 the student comes from the
+ * session, which is the answer to both halves of that: nothing to leave out,
+ * and nobody else's name to put in.
  */
 export const sectionActivitiesQuery = z.object({
   section_id: id,
-  student_id: userId,
 });
 
 export const activityDetailsParams = z.object({

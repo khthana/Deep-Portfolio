@@ -169,11 +169,11 @@ export default class StudentController {
     next: NextFunction,
   ) {
     try {
-      const { section_id, student_id } = validated(req, sectionActivitiesQuery);
+      const { section_id } = validated(req, sectionActivitiesQuery);
 
       const activities = await this.studentService.getActivitiesBySectionId(
         section_id,
-        student_id,
+        sessionUserId(req),
       );
 
       successResponse(

@@ -13,7 +13,9 @@ import { errorResponse } from "../utils/response";
  *
  * - `requireSelf` / `requireOwnEntry` — the portfolio group's rule. Every row
  *   carries a user_id, and for all 56 endpoints the acting user is the
- *   session's, never whoever the request says.
+ *   session's, never whoever the request says. #41 put `requireOwnEntry` on one
+ *   row outside that group as well, a student's own submission, on the grounds
+ *   that it is the same rule about the same kind of thing.
  *   See docs/adr/0001-portfolio-access.md and issue #31.
  * - `requireOwnSection` — the teaching rule. A teacher acts on the sections
  *   they teach and no others.
@@ -331,13 +333,25 @@ type OwnerLookup = (id: string) => Promise<{ user_id: string } | null>;
  * One extra SELECT of one column per write. The alternative is for every
  * service to filter its update and delete by user_id as well as by id, which is
  * the same query cost spread over sixty call sites, each of which can forget.
+ *
+ * `param` is for the one route whose segment is not called `id`: `/student`
+ * spells it `:student_activity_id`, and its schema names that field in the 400
+ * a caller gets for a segment that is not a number. Reading the wrong name here
+ * is silent — an absent segment looks exactly like a row that is not there, and
+ * the guard waves the request through — so the name is passed, not guessed, and
+ * the type is the two names that exist rather than `string`, for the reason
+ * ADR-0011 gives for `requireSelf`: a third one has to be a decision and not a
+ * typo that compiles.
  */
-export function requireOwnEntry(find: OwnerLookup) {
+export function requireOwnEntry(
+  find: OwnerLookup,
+  param: "id" | "student_activity_id" = "id",
+) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const session = sessionUserId(req);
 
     try {
-      const row = await find(req.params.id);
+      const row = await find(req.params[param]);
 
       if (row && row.user_id !== session) {
         return errorResponse(res, 403, NOT_OWNER);
@@ -382,12 +396,17 @@ function byUuid(
 }
 
 /**
- * Where each kind of portfolio row keeps its owner, one entry per table the
- * group's `/:id` routes address.
+ * Where a row that a route addresses by id keeps its owner, one entry per
+ * table.
  *
- * Spelled out rather than derived from the table name because the last one is
+ * Every entry but the last is a portfolio row, one per table the group's
+ * `/:id` routes address; `studentActivity` joined them in #41 and says in its
+ * own comment how it differs.
+ *
+ * Spelled out rather than derived from the table name because two of them are
  * not derivable: a skill-to-work mapping has no user_id of its own and belongs
- * to whoever the skill belongs to.
+ * to whoever the skill belongs to, and a submission spells its owner column
+ * student_id.
  */
 export const entryOwner = {
   portfolio: byUuid((id) =>
@@ -460,5 +479,22 @@ export const entryOwner = {
     });
 
     return mapping?.portfolio_skill ?? null;
+  }),
+
+  /**
+   * A submission belongs to the student who handed it in (#41).
+   *
+   * The only entry here that is not a portfolio row, and the only one whose
+   * owner column is not called user_id: `student_activity` keys on student_id,
+   * which is a foreign key to users.user_id and is what a student's session
+   * carries, so the two compare directly once renamed.
+   */
+  studentActivity: byNumericId(async (id) => {
+    const submission = await prisma.student_activity.findUnique({
+      where: { id },
+      select: { student_id: true },
+    });
+
+    return submission && { user_id: submission.student_id };
   }),
 } satisfies Record<string, OwnerLookup>;
