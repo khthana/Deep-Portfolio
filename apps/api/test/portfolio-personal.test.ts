@@ -320,6 +320,9 @@ describe("POST /portfolio-personal", () => {
   });
 
   it("fails when the student already has details", async () => {
+    // Still a 500 where PUT and DELETE became 404s: user_id is unique, so this
+    // is P2002, and #42 mapped P2025 alone. A row that is already there is not
+    // a row that is missing, and it has no answer of its own yet.
     const student = await createStudent();
     await createPortfolioPersonal({
       user_id: student.student_id,
@@ -489,7 +492,7 @@ describe("PUT /portfolio-personal/:user_id", () => {
     ).toBe("ไทย");
   });
 
-  it("fails for a student who has no details yet", async () => {
+  it("answers 404 for a student who has no details yet", async () => {
     const student = await createStudent();
 
     const response = await request(app)
@@ -497,7 +500,15 @@ describe("PUT /portfolio-personal/:user_id", () => {
       .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("nationality", "ไทย");
 
-    expect(response.status).toBe(500);
+    // P2025 used to leave here as a 500, telling the caller the server had
+    // broken over a row that is merely absent (#42). It now says what GET says
+    // about the same missing row.
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลส่วนตัวของผู้ใช้รายนี้",
+    });
+
     expect(
       await prisma.portfolio_personal.findUnique({
         where: { user_id: student.student_id },
@@ -672,14 +683,17 @@ describe("DELETE /portfolio-personal/:user_id", () => {
     ).not.toBeNull();
   });
 
-  it("fails for a student who has no details", async () => {
+  it("answers 404 for a student who has no details", async () => {
     const student = await createStudent();
 
     const response = await request(app)
       .delete(`/portfolio-personal/${student.student_id}`)
       .set("Cookie", sessionCookie({ userId: student.student_id }));
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลส่วนตัวของผู้ใช้รายนี้",
+    });
   });
 });

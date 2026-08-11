@@ -439,6 +439,37 @@ describe("POST /activity", () => {
     ).toBe(0);
     expect(await listStoredObjects(ACTIVITY_PREFIX)).toEqual(before);
   });
+
+  it("answers 400 for a score category that does not exist", async () => {
+    // 400, not the 404 every other missing row now gets. The category arrives
+    // in the body and is connected to, so Prisma refused it with the same
+    // P2025 a missing activity throws — and #42 turns P2025 into 404 across
+    // the API. A value the caller sent that names nothing is their mistake to
+    // fix, not a resource they addressed (ADR-0009), so the service asks for
+    // the category first and this is the only reading P2025 is left with.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .post("/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("section_id", String(course.section_id))
+      .field("activity_name", "รายงานหมวดคะแนนผิด")
+      .field("activity_type", "INDIVIDUAL")
+      .field("score_ratio_id", "999999")
+      .field("rubric", JSON.stringify(RUBRIC));
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบประเภทสัดส่วนคะแนนที่เลือก",
+    });
+    expect(
+      await prisma.activities.count({
+        where: { section_id: course.section_id },
+      }),
+    ).toBe(0);
+  });
 });
 
 describe("PUT /activity", () => {
@@ -1095,7 +1126,7 @@ describe("PUT /activity", () => {
     ).not.toBeNull();
   });
 
-  it("fails for an activity that does not exist", async () => {
+  it("answers 404 for an activity that does not exist", async () => {
     const teacher = await createTeacher();
     const course = await createCourse({ teacher_id: teacher.user_id });
 
@@ -1108,7 +1139,46 @@ describe("PUT /activity", () => {
       .field("activity_type", "INDIVIDUAL")
       .field("rubric", JSON.stringify(RUBRIC));
 
-    expect(response.status).toBe(500);
+    // P2025 used to leave here as a 500, telling the caller the server had
+    // broken over a row that is merely absent (#42). These routes own no
+    // sentence of their own, so the error handler's general one stands.
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลที่ต้องการ",
+    });
+  });
+
+  it("answers 400 for a score category that does not exist", async () => {
+    // The activity above and the category here reach Prisma as one `update`
+    // call and used to come back as the same P2025. Only one of them is a row
+    // the caller addressed; this one is a value they sent. See the same case
+    // under POST.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const activity = await createActivity({
+      section_id: course.section_id,
+      activity_name: "รายงานเดิม",
+    });
+
+    const response = await request(app)
+      .put("/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("activity_id", String(activity.id))
+      .field("section_id", String(course.section_id))
+      .field("activity_name", "รายงานหมวดคะแนนผิด")
+      .field("activity_type", "INDIVIDUAL")
+      .field("score_ratio_id", "999999")
+      .field("rubric", JSON.stringify(RUBRIC));
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบประเภทสัดส่วนคะแนนที่เลือก",
+    });
+    expect(
+      await prisma.activities.findUniqueOrThrow({ where: { id: activity.id } }),
+    ).toMatchObject({ activity_name: "รายงานเดิม" });
   });
 
   it("answers 400 when no activity is named", async () => {
@@ -1226,7 +1296,7 @@ describe("DELETE /activity", () => {
     ).not.toBeNull();
   });
 
-  it("fails for an activity that does not exist", async () => {
+  it("answers 404 for an activity that does not exist", async () => {
     const teacher = await createTeacher();
 
     const response = await request(app)
@@ -1234,7 +1304,11 @@ describe("DELETE /activity", () => {
       .query({ activity_id: 999_999 })
       .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลที่ต้องการ",
+    });
   });
 
   it("answers 400 when no activity is named, and deletes nothing", async () => {

@@ -208,7 +208,9 @@ describe("POST /score-weight", () => {
 
   it("fails for a section that does not exist", async () => {
     // subject_score_ratio.section_id is a real foreign key, unlike most of the
-    // section columns in this schema.
+    // section columns in this schema — so this is P2003, and stays a 500 where
+    // PUT and DELETE below became 404s. Those two address a row that is gone;
+    // this one carries a section id in the body that names nothing (#42).
     const teacher = await createTeacher();
 
     const response = await request(app)
@@ -339,7 +341,7 @@ describe("PUT /score-weight", () => {
     });
   });
 
-  it("fails for a category that does not exist", async () => {
+  it("answers 404 for a category that does not exist", async () => {
     const teacher = await createTeacher();
 
     const response = await request(app)
@@ -347,7 +349,14 @@ describe("PUT /score-weight", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .send({ score_id: 999_999, score_category: "สอบกลางภาค", weight: 30 });
 
-    expect(response.status).toBe(500);
+    // P2025 used to leave here as a 500, telling the caller the server had
+    // broken over a row that is merely absent (#42). These routes own no
+    // sentence of their own, so the error handler's general one stands.
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลที่ต้องการ",
+    });
   });
 });
 
@@ -445,7 +454,7 @@ describe("DELETE /score-weight", () => {
     expect(remaining.map((weight) => weight.sequence_order)).toEqual([1, 3]);
   });
 
-  it("fails for a category that does not exist", async () => {
+  it("answers 404 for a category that does not exist", async () => {
     const teacher = await createTeacher();
 
     const response = await request(app)
@@ -453,7 +462,11 @@ describe("DELETE /score-weight", () => {
       .query({ scoreId: 999_999 })
       .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลที่ต้องการ",
+    });
   });
 });
 

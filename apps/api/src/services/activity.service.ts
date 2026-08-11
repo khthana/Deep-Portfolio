@@ -128,6 +128,7 @@ export default class ActivityService {
       // Asked before anything is written, for the reason updateActivity gives
       // below: createAttachments does not roll back with this transaction.
       assertRubricPositions(data.rubric);
+      await this.assertScoreRatioExists(tx, data.score_ratio_id);
 
       const activity = await tx.activities.create({
         data: {
@@ -194,6 +195,7 @@ export default class ActivityService {
       // this transaction, so a refusal after it would leave both behind.
       const existingRubric = await this.rubricOf(tx, data.activity_id);
       assertOwnRubric(data.rubric, existingRubric);
+      await this.assertScoreRatioExists(tx, data.score_ratio_id);
 
       const activity = await tx.activities.update({
         where: { id: data.activity_id },
@@ -257,6 +259,38 @@ export default class ActivityService {
     await this.uploadService.removeFiles(objects);
 
     return activity;
+  }
+
+  /**
+   * Refuse a score category the body names but the database does not have.
+   *
+   * `connect` to a missing row throws P2025 — the same code a missing activity
+   * throws, and since #42 that code is a 404 everywhere in the API. Only one of
+   * the two deserves it: the activity is the row the caller addressed, while
+   * the category is a value they sent, and a value that names nothing is a 400
+   * (ADR-0009). Asking first is what keeps the general rule true, rather than
+   * reading Prisma's `meta.cause` to tell the two apart after the fact.
+   */
+  private async assertScoreRatioExists(
+    tx: Prisma.TransactionClient,
+    score_ratio_id: number | undefined,
+  ): Promise<void> {
+    // `undefined`, not falsy: 0 is not a category the body may leave out, it is
+    // a category that does not exist, and the row this reads has to say so.
+    // Compare the pinned defect in activity-clo-mapping.service.ts, where a
+    // `?? 0` writes exactly that id and Postgres is left to refuse it.
+    if (score_ratio_id === undefined) {
+      return;
+    }
+
+    const existing = await tx.subject_score_ratio.findUnique({
+      where: { score_ratio_id },
+      select: { score_ratio_id: true },
+    });
+
+    if (!existing) {
+      throw new HttpError(400, "ไม่พบประเภทสัดส่วนคะแนนที่เลือก");
+    }
   }
 
   /** The rubric an activity has as it stands, down to the levels — what an

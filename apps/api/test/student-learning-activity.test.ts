@@ -121,6 +121,9 @@ describe("POST /student-learning-activity/grade", () => {
   });
 
   it("refuses to grade a group submission that is not in a group", async () => {
+    // Still a 500 after #42, for the reason the same case gives in
+    // student-activity.test.ts: a bare `Error("Group not found")`, thrown
+    // before Prisma, so there is no P2025 to map.
     const teacher = await createTeacher();
     const submission = await createLearningSubmission();
 
@@ -142,7 +145,7 @@ describe("POST /student-learning-activity/grade", () => {
     ).toMatchObject({ status: "SUBMITTED" });
   });
 
-  it("refuses a submission that does not exist", async () => {
+  it("answers 404 for a submission that does not exist", async () => {
     const teacher = await createTeacher();
 
     const response = await request(app)
@@ -155,7 +158,14 @@ describe("POST /student-learning-activity/grade", () => {
         remark: "",
       });
 
-    expect(response.status).toBe(500);
+    // P2025 used to leave here as a 500, telling the caller the server had
+    // broken over a row that is merely absent (#42). These routes own no
+    // sentence of their own, so the error handler's general one stands.
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลที่ต้องการ",
+    });
   });
 
   it("answers 400 when the request names no submission", async () => {
@@ -317,7 +327,7 @@ describe("PATCH /student-learning-activity/bookmark", () => {
     ).toEqual([{ is_bookmark: true }, { is_bookmark: true }]);
   });
 
-  it("refuses a submission that does not exist", async () => {
+  it("answers 404 for a submission that does not exist", async () => {
     const teacher = await createTeacher();
 
     const response = await request(app)
@@ -329,7 +339,11 @@ describe("PATCH /student-learning-activity/bookmark", () => {
         is_bookmark: true,
       });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลที่ต้องการ",
+    });
   });
 
   it("answers 400 when the request does not say which way to set it", async () => {

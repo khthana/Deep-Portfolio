@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { sessionUserId } from "../middlewares/auth.middleware";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
+import { orNotFound } from "../utils/record-not-found";
 import PortfolioService from "../services/portfolio.service";
 import {
   createPortfolioBody,
@@ -75,9 +76,9 @@ export default class PortfolioController {
       const { id } = validated(req, portfolioParams);
       const { expiresAt } = validated(req, generateShareLinkBody);
 
-      const result = await this.portfolioService.generateShareLink(
-        id,
-        expiresAt ?? null,
+      const result = await orNotFound(
+        this.portfolioService.generateShareLink(id, expiresAt ?? null),
+        NOT_FOUND,
       );
 
       successResponse(res, result, "Generated share link successfully");
@@ -106,7 +107,11 @@ export default class PortfolioController {
       const { id } = validated(req, portfolioParams);
       const data = validated(req, updatePortfolioBody);
 
-      const result = await this.portfolioService.updatePortfolio(id, data);
+      const result = await orNotFound(
+        this.portfolioService.updatePortfolio(id, data),
+        NOT_FOUND,
+      );
+
       successResponse(res, result, "Updated portfolio successfully");
     } catch (err) {
       next(err);
@@ -117,7 +122,8 @@ export default class PortfolioController {
     try {
       const { id } = validated(req, portfolioParams);
 
-      await this.portfolioService.deletePortfolio(id);
+      await orNotFound(this.portfolioService.deletePortfolio(id), NOT_FOUND);
+
       successResponse(res, null, "Deleted portfolio successfully");
     } catch (err) {
       next(err);

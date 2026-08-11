@@ -378,7 +378,7 @@ describe("PUT /learning-activity", () => {
     ).not.toBeNull();
   });
 
-  it("fails for an activity that does not exist", async () => {
+  it("answers 404 for an activity that does not exist", async () => {
     const teacher = await createTeacher();
     const course = await createCourse({ teacher_id: teacher.user_id });
 
@@ -390,7 +390,14 @@ describe("PUT /learning-activity", () => {
       .field("learning_activity_name", "ไม่มีอยู่จริง")
       .field("learning_activity_type", "INDIVIDUAL");
 
-    expect(response.status).toBe(500);
+    // P2025 used to leave here as a 500, telling the caller the server had
+    // broken over a row that is merely absent (#42). These routes own no
+    // sentence of their own, so the error handler's general one stands.
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลที่ต้องการ",
+    });
   });
 
   it("answers 400 when no activity is named", async () => {
@@ -496,7 +503,7 @@ describe("DELETE /learning-activity", () => {
     ).not.toBeNull();
   });
 
-  it("fails for an activity that does not exist", async () => {
+  it("answers 404 for an activity that does not exist", async () => {
     const teacher = await createTeacher();
 
     const response = await request(app)
@@ -504,7 +511,11 @@ describe("DELETE /learning-activity", () => {
       .query({ learning_activity_id: 999_999 })
       .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลที่ต้องการ",
+    });
   });
 
   it("answers 400 when no activity is named, and deletes nothing", async () => {

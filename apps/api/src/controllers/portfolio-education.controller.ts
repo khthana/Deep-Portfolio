@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { sessionUserId } from "../middlewares/auth.middleware";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
+import { orNotFound } from "../utils/record-not-found";
 import PortfolioEducationService from "../services/portfolio-education.service";
 import {
   createPortfolioEducationBody,
@@ -94,8 +95,10 @@ export default class PortfolioEducationController {
       const { id } = validated(req, portfolioEntryParams);
       const data = validated(req, updatePortfolioEducationBody);
 
-      const result =
-        await this.portfolioEducationService.updatePortfolioEducation(id, data);
+      const result = await orNotFound(
+        this.portfolioEducationService.updatePortfolioEducation(id, data),
+        NOT_FOUND,
+      );
 
       successResponse(res, result, "Updated portfolio education successfully");
     } catch (err) {
@@ -111,7 +114,10 @@ export default class PortfolioEducationController {
     try {
       const { id } = validated(req, portfolioEntryParams);
 
-      await this.portfolioEducationService.deletePortfolioEducation(id);
+      await orNotFound(
+        this.portfolioEducationService.deletePortfolioEducation(id),
+        NOT_FOUND,
+      );
 
       successResponse(res, null, "Deleted portfolio education successfully");
     } catch (err) {

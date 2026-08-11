@@ -277,6 +277,12 @@ describe("POST /student-activity/grade", () => {
   });
 
   it("refuses to grade a group submission that is not in a group", async () => {
+    // Still a 500 after #42, which mapped Prisma's P2025 and nothing else: the
+    // service throws a bare `Error("Group not found")` before Prisma is
+    // reached. The refusal is right and its status is not, but giving it one
+    // means deciding what it is — the body asked for GROUP marking on a
+    // submission that has no group, so 400 rather than 404 — and that is a
+    // decision, not a translation.
     const teacher = await createTeacher();
     const { activity, rubric, levels } = await gradableActivity();
     const student = await createStudent();
@@ -309,6 +315,9 @@ describe("POST /student-activity/grade", () => {
   });
 
   it("refuses a criterion that does not belong to the activity", async () => {
+    // Still a 500 after #42: a bare `Error("Invalid rubric data")`, thrown when
+    // the criterion is not among the activity's own, so no Prisma code reaches
+    // the handler to be mapped.
     const teacher = await createTeacher();
     const { activity, levels } = await gradableActivity();
     const student = await createStudent();
@@ -585,7 +594,7 @@ describe("PATCH /student-activity/bookmark", () => {
     ).toEqual([{ is_bookmark: true }, { is_bookmark: true }]);
   });
 
-  it("refuses a submission that does not exist", async () => {
+  it("answers 404 for a submission that does not exist", async () => {
     const teacher = await createTeacher();
 
     const response = await request(app)
@@ -597,7 +606,14 @@ describe("PATCH /student-activity/bookmark", () => {
         is_bookmark: true,
       });
 
-    expect(response.status).toBe(500);
+    // P2025 used to leave here as a 500, telling the caller the server had
+    // broken over a row that is merely absent (#42). These routes own no
+    // sentence of their own, so the error handler's general one stands.
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลที่ต้องการ",
+    });
   });
 
   it("answers 400 when the request does not say which way to set it", async () => {

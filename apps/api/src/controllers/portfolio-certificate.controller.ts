@@ -3,6 +3,7 @@ import { sessionUserId } from "../middlewares/auth.middleware";
 import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
+import { orNotFound } from "../utils/record-not-found";
 import PortfolioCertificateService from "../services/portfolio-certificate.service";
 import {
   createPortfolioCertificateBody,
@@ -103,12 +104,14 @@ export default class PortfolioCertificateController {
       const data = validated(req, updatePortfolioCertificateBody);
       const files = uploadedFiles(req);
 
-      const result =
-        await this.portfolioCertificateService.updatePortfolioCertificate(
+      const result = await orNotFound(
+        this.portfolioCertificateService.updatePortfolioCertificate(
           id,
           data,
           files,
-        );
+        ),
+        NOT_FOUND,
+      );
 
       successResponse(res, result, "Updated portfolio certificate successfully");
     } catch (err) {
@@ -124,7 +127,10 @@ export default class PortfolioCertificateController {
     try {
       const { id } = validated(req, portfolioEntryParams);
 
-      await this.portfolioCertificateService.deletePortfolioCertificate(id);
+      await orNotFound(
+        this.portfolioCertificateService.deletePortfolioCertificate(id),
+        NOT_FOUND,
+      );
 
       successResponse(res, null, "Deleted portfolio certificate successfully");
     } catch (err) {

@@ -477,7 +477,7 @@ describe("PUT /portfolio-activity/:id", () => {
     });
   });
 
-  it("fails for an activity that does not exist", async () => {
+  it("answers 404 for an activity that does not exist", async () => {
     const student = await createStudent();
 
     const response = await request(app)
@@ -485,8 +485,14 @@ describe("PUT /portfolio-activity/:id", () => {
       .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "ค่ายอาสาใหม่");
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    // P2025 used to leave here as a 500, telling the caller the server had
+    // broken over a row that is merely absent (#42). It now says what GET says
+    // about the same missing row.
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบกิจกรรมที่ต้องการ",
+    });
   });
 });
 
@@ -570,14 +576,17 @@ describe("DELETE /portfolio-activity/:id", () => {
     });
   });
 
-  it("fails for an activity that does not exist", async () => {
+  it("answers 404 for an activity that does not exist", async () => {
     const student = await createStudent();
 
     const response = await request(app)
       .delete("/portfolio-activity/999999")
       .set("Cookie", sessionCookie({ userId: student.student_id }));
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบกิจกรรมที่ต้องการ",
+    });
   });
 });

@@ -210,7 +210,10 @@ describe("POST /course/clo", () => {
   });
 
   it("fails when the section already has that outcome number", async () => {
-    // uq_subject_clo — (section_id, clo_number) is unique.
+    // uq_subject_clo — (section_id, clo_number) is unique. Still a 500 where
+    // PUT and DELETE became 404s: a unique collision is P2002, and #42 mapped
+    // P2025 alone. The two say opposite things — one that the row is already
+    // there, the other that it is not.
     const teacher = await createTeacher();
     const course = await createCourse({ teacher_id: teacher.user_id });
     await createCLO({ section_id: course.section_id, clo_number: "1" });
@@ -341,7 +344,7 @@ describe("PUT /course/clo", () => {
     expect(stored?.clo_number).toBe("3");
   });
 
-  it("fails for an outcome that does not exist", async () => {
+  it("answers 404 for an outcome that does not exist", async () => {
     const teacher = await createTeacher();
 
     const response = await request(app)
@@ -349,7 +352,14 @@ describe("PUT /course/clo", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .send({ id: 999_999, clo_detail: "ข้อความใหม่" });
 
-    expect(response.status).toBe(500);
+    // P2025 used to leave here as a 500, telling the caller the server had
+    // broken over a row that is merely absent (#42). These routes own no
+    // sentence of their own, so the error handler's general one stands.
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลที่ต้องการ",
+    });
   });
 });
 
@@ -438,7 +448,7 @@ describe("DELETE /course/clo", () => {
     expect(stored?.clo_number).toBe("7");
   });
 
-  it("fails for an outcome that does not exist", async () => {
+  it("answers 404 for an outcome that does not exist", async () => {
     const teacher = await createTeacher();
 
     const response = await request(app)
@@ -446,7 +456,11 @@ describe("DELETE /course/clo", () => {
       .query({ clo_id: 999_999 })
       .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบข้อมูลที่ต้องการ",
+    });
   });
 });
 

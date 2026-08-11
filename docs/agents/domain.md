@@ -24,13 +24,16 @@ caller's own, and everyone in it is in the class),
 `0009-submission-ownership.md` (the work you hand in is your own, or your
 group's) and `0011-self-read-parameter.md` (where the "which person" parameter
 of a self-read comes from — the session, or the request with an ownership
-check). Read all eight before adding an authorisation check anywhere. Three
+check). Read all eight before adding an authorisation check anywhere. Four
 more are about when or what rather than who: `0005-announcement-date.md` — a
 piece of work with no announcement date counts as announced, on every
 student-facing read — `0008-attachment-lifecycle.md`, which says an attachment
 dies with its last owner, so read it before writing any endpoint that deletes
-a row an attachment hangs on, and `0010-rubric-level-identity.md`, which says
-a rubric level is identified by its `id`, never by its position in the row.
+a row an attachment hangs on, `0010-rubric-level-identity.md`, which says
+a rubric level is identified by its `id`, never by its position in the row,
+and `0012-missing-row-status.md`, which says a row the caller addressed but
+which is not there answers 404 rather than 500, and draws the line between
+that and a value in the body that names nothing.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

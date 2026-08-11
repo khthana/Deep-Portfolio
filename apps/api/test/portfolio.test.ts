@@ -579,7 +579,7 @@ describe("POST /portfolio/:id/generate-share-link", () => {
     ).toBe(portfolio.public_share_token);
   });
 
-  it("fails for a portfolio that does not exist", async () => {
+  it("answers 404 for a portfolio that does not exist", async () => {
     const student = await createStudent();
 
     const response = await request(app)
@@ -587,8 +587,14 @@ describe("POST /portfolio/:id/generate-share-link", () => {
       .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({});
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    // P2025 used to leave here as a 500, telling the caller the server had
+    // broken over a row that is merely absent (#42). It now says what GET says
+    // about the same missing row.
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบแฟ้มสะสมผลงานที่ต้องการ",
+    });
   });
 });
 
@@ -862,7 +868,7 @@ describe("PUT /portfolio/:id", () => {
     ).toBe("ชื่อเดิม");
   });
 
-  it("fails for a portfolio that does not exist", async () => {
+  it("answers 404 for a portfolio that does not exist", async () => {
     const student = await createStudent();
 
     const response = await request(app)
@@ -870,8 +876,11 @@ describe("PUT /portfolio/:id", () => {
       .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ portfolio_name: "ชื่อใหม่" });
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบแฟ้มสะสมผลงานที่ต้องการ",
+    });
   });
 });
 
@@ -935,7 +944,7 @@ describe("PATCH /portfolio/:id", () => {
     ).toBe("ชื่อเดิม");
   });
 
-  it("fails for a portfolio that does not exist", async () => {
+  it("answers 404 for a portfolio that does not exist", async () => {
     const student = await createStudent();
 
     const response = await request(app)
@@ -943,8 +952,11 @@ describe("PATCH /portfolio/:id", () => {
       .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ portfolio_name: "ชื่อใหม่" });
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบแฟ้มสะสมผลงานที่ต้องการ",
+    });
   });
 });
 
@@ -1008,14 +1020,17 @@ describe("DELETE /portfolio/:id", () => {
     ).not.toBeNull();
   });
 
-  it("fails for a portfolio that does not exist", async () => {
+  it("answers 404 for a portfolio that does not exist", async () => {
     const student = await createStudent();
 
     const response = await request(app)
       .delete(`/portfolio/${UNUSED_ID}`)
       .set("Cookie", sessionCookie({ userId: student.student_id }));
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบแฟ้มสะสมผลงานที่ต้องการ",
+    });
   });
 });

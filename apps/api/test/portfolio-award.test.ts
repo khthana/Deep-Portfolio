@@ -523,7 +523,7 @@ describe("PUT /portfolio-award/:id", () => {
     });
   });
 
-  it("fails for a prize that does not exist", async () => {
+  it("answers 404 for a prize that does not exist", async () => {
     const student = await createStudent();
 
     const response = await request(app)
@@ -531,8 +531,14 @@ describe("PUT /portfolio-award/:id", () => {
       .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ name: "การแข่งขันใหม่" });
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    // The same sentence GET answers for the same missing row (#42). This used
+    // to be a 500 from Prisma's P2025 reaching the handler unrecognised, which
+    // told the caller the server had broken.
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบรางวัลที่ต้องการ",
+    });
   });
 });
 
@@ -612,14 +618,17 @@ describe("DELETE /portfolio-award/:id", () => {
     });
   });
 
-  it("fails for a prize that does not exist", async () => {
+  it("answers 404 for a prize that does not exist", async () => {
     const student = await createStudent();
 
     const response = await request(app)
       .delete("/portfolio-award/999999")
       .set("Cookie", sessionCookie({ userId: student.student_id }));
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบรางวัลที่ต้องการ",
+    });
   });
 });

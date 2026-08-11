@@ -424,7 +424,7 @@ describe("PUT /portfolio-certificate/:id", () => {
     ).toBe("ชื่อเดิม");
   });
 
-  it("fails for a certificate that does not exist", async () => {
+  it("answers 404 for a certificate that does not exist", async () => {
     const student = await createStudent();
 
     const response = await request(app)
@@ -432,8 +432,14 @@ describe("PUT /portfolio-certificate/:id", () => {
       .set("Cookie", sessionCookie({ userId: student.student_id }))
       .send({ name: "ชื่อใหม่" });
 
-    expect(response.status).toBe(500);
-    expect(response.body.success).toBe(false);
+    // P2025 used to leave here as a 500, telling the caller the server had
+    // broken over a row that is merely absent (#42). It now says what GET says
+    // about the same missing row.
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบเกียรติบัตรที่ต้องการ",
+    });
   });
 });
 
@@ -516,6 +522,20 @@ describe("DELETE /portfolio-certificate/:id", () => {
       success: false,
       message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: id ต้องเป็นตัวเลข",
       errors: [{ field: "id", location: "params", message: "ต้องเป็นตัวเลข" }],
+    });
+  });
+
+  it("answers 404 for a certificate that does not exist", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .delete("/portfolio-certificate/999999")
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบเกียรติบัตรที่ต้องการ",
     });
   });
 });

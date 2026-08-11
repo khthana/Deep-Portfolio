@@ -3,6 +3,7 @@ import { sessionUserId } from "../middlewares/auth.middleware";
 import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
+import { orNotFound } from "../utils/record-not-found";
 import PortfolioTrainingService from "../services/portfolio-training.service";
 import {
   createPortfolioTrainingBody,
@@ -93,10 +94,9 @@ export default class PortfolioTrainingController {
       const data = validated(req, updatePortfolioTrainingBody);
       const files = uploadedFiles(req);
 
-      const result = await this.portfolioTrainingService.updatePortfolioTraining(
-        id,
-        data,
-        files,
+      const result = await orNotFound(
+        this.portfolioTrainingService.updatePortfolioTraining(id, data, files),
+        NOT_FOUND,
       );
 
       successResponse(res, result, "Updated portfolio training successfully");
@@ -113,7 +113,10 @@ export default class PortfolioTrainingController {
     try {
       const { id } = validated(req, portfolioEntryParams);
 
-      await this.portfolioTrainingService.deletePortfolioTraining(id);
+      await orNotFound(
+        this.portfolioTrainingService.deletePortfolioTraining(id),
+        NOT_FOUND,
+      );
 
       successResponse(res, null, "Deleted portfolio training successfully");
     } catch (err) {

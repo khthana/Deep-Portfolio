@@ -3,6 +3,7 @@ import { sessionUserId } from "../middlewares/auth.middleware";
 import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
+import { orNotFound } from "../utils/record-not-found";
 import PortfolioAwardService from "../services/portfolio-award.service";
 import {
   createPortfolioAwardBody,
@@ -75,10 +76,9 @@ export default class PortfolioAwardController {
       const data = validated(req, updatePortfolioAwardBody);
       const files = uploadedFiles(req);
 
-      const result = await this.portfolioAwardService.updatePortfolioAward(
-        id,
-        data,
-        files,
+      const result = await orNotFound(
+        this.portfolioAwardService.updatePortfolioAward(id, data, files),
+        NOT_FOUND,
       );
 
       successResponse(res, result, "Updated portfolio award successfully");
@@ -91,7 +91,10 @@ export default class PortfolioAwardController {
     try {
       const { id } = validated(req, portfolioEntryParams);
 
-      await this.portfolioAwardService.deletePortfolioAward(id);
+      await orNotFound(
+        this.portfolioAwardService.deletePortfolioAward(id),
+        NOT_FOUND,
+      );
 
       successResponse(res, null, "Deleted portfolio award successfully");
     } catch (err) {

@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { sessionUserId } from "../middlewares/auth.middleware";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
+import { orNotFound } from "../utils/record-not-found";
 import PortfolioSkillService from "../services/portfolio-skill.service";
 import {
   assignWorkToSkillsBody,
@@ -87,9 +88,9 @@ export default class PortfolioSkillController {
       const { id } = validated(req, portfolioEntryParams);
       const data = validated(req, updatePortfolioSkillBody);
 
-      const result = await this.portfolioSkillService.updatePortfolioSkill(
-        id,
-        data,
+      const result = await orNotFound(
+        this.portfolioSkillService.updatePortfolioSkill(id, data),
+        SKILL_NOT_FOUND,
       );
 
       successResponse(res, result, "Updated portfolio skill successfully");
@@ -102,7 +103,10 @@ export default class PortfolioSkillController {
     try {
       const { id } = validated(req, portfolioEntryParams);
 
-      await this.portfolioSkillService.deletePortfolioSkill(id);
+      await orNotFound(
+        this.portfolioSkillService.deletePortfolioSkill(id),
+        SKILL_NOT_FOUND,
+      );
 
       successResponse(res, null, "Deleted portfolio skill successfully");
     } catch (err) {
@@ -154,7 +158,10 @@ export default class PortfolioSkillController {
     try {
       const { id } = validated(req, portfolioEntryParams);
 
-      await this.portfolioSkillService.deleteSkillMapping(id);
+      await orNotFound(
+        this.portfolioSkillService.deleteSkillMapping(id),
+        MAPPING_NOT_FOUND,
+      );
       successResponse(res, null, "Mapping deleted successfully");
     } catch (err) {
       next(err);

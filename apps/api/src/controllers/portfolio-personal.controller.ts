@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { sessionUserId } from "../middlewares/auth.middleware";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
+import { orNotFound } from "../utils/record-not-found";
 import PortfolioPersonalService from "../services/portfolio-personal.service";
 import {
   portfolioPersonalBody,
@@ -80,12 +81,14 @@ export default class PortfolioPersonalController {
       const data = validated(req, portfolioPersonalBody);
       const file = req.file;
 
-      const portfolio =
-        await this.portfolioPersonalService.updatePortfolioPersonal(
+      const portfolio = await orNotFound(
+        this.portfolioPersonalService.updatePortfolioPersonal(
           user_id,
           data,
           file,
-        );
+        ),
+        NOT_FOUND,
+      );
 
       successResponse(
         res,
@@ -105,7 +108,10 @@ export default class PortfolioPersonalController {
     try {
       const { user_id } = validated(req, portfolioPersonalParams);
 
-      await this.portfolioPersonalService.deletePortfolioPersonal(user_id);
+      await orNotFound(
+        this.portfolioPersonalService.deletePortfolioPersonal(user_id),
+        NOT_FOUND,
+      );
 
       successResponse(res, null, "Deleted portfolio personal successfully");
     } catch (err) {

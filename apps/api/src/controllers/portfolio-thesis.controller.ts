@@ -3,6 +3,7 @@ import { sessionUserId } from "../middlewares/auth.middleware";
 import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
+import { orNotFound } from "../utils/record-not-found";
 import PortfolioThesisService from "../services/portfolio-thesis.service";
 import {
   createPortfolioThesisBody,
@@ -80,10 +81,9 @@ export default class PortfolioThesisController {
       const data = validated(req, updatePortfolioThesisBody);
       const files = uploadedFiles(req);
 
-      const result = await this.portfolioThesisService.updatePortfolioThesis(
-        id,
-        data,
-        files,
+      const result = await orNotFound(
+        this.portfolioThesisService.updatePortfolioThesis(id, data, files),
+        NOT_FOUND,
       );
 
       successResponse(res, result, "Updated portfolio thesis successfully");
@@ -96,7 +96,10 @@ export default class PortfolioThesisController {
     try {
       const { id } = validated(req, portfolioEntryParams);
 
-      await this.portfolioThesisService.deletePortfolioThesis(id);
+      await orNotFound(
+        this.portfolioThesisService.deletePortfolioThesis(id),
+        NOT_FOUND,
+      );
 
       successResponse(res, null, "Deleted portfolio thesis successfully");
     } catch (err) {

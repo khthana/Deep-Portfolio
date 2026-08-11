@@ -153,6 +153,11 @@ describe("POST /mapping/activity", () => {
   });
 
   it("fails for an activity that does not exist", async () => {
+    // Still a 500, and #42 left it alone on purpose: the service throws a bare
+    // Error here rather than reaching Prisma, so there is no P2025 to catch —
+    // and the same throw also covers an activity that exists but carries no
+    // score, below. A 404 would be right for one of them and wrong for the
+    // other, so telling the two apart has to come first.
     const teacher = await createTeacher();
     const clo = await createCLO({ section_id: (await createCourse()).section_id });
 
@@ -168,7 +173,9 @@ describe("POST /mapping/activity", () => {
     // Worth knowing why: the service tests `!activity.score_number`, so an
     // activity worth nothing is reported as an activity that does not exist.
     // The message is wrong but the refusal is right — there is no score to
-    // divide between CLOs.
+    // divide between CLOs. Still a 500 after #42: this is a hand-written
+    // `throw new Error`, not a Prisma code, and it covers two different cases
+    // that would want two different statuses.
     const teacher = await createTeacher();
     const activity = await mappableActivity(0);
     const clo = await createCLO({ section_id: activity.section_id ?? 0 });
@@ -474,6 +481,10 @@ describe("POST /mapping/learning-activity", () => {
   });
 
   it("fails for a learning activity that does not exist", async () => {
+    // Still a 500. The row is written straight out, so what refuses it is the
+    // foreign key — P2003, not the P2025 #42 mapped onto 404. A foreign key
+    // says a value in the body names nothing, which is a different answer
+    // again, and #42 leaves it out of scope rather than guess at it.
     const teacher = await createTeacher();
     const clo = await createCLO({ section_id: (await createCourse()).section_id });
 

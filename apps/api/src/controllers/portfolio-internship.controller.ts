@@ -3,6 +3,7 @@ import { sessionUserId } from "../middlewares/auth.middleware";
 import { uploadedFiles } from "../utils/uploaded-files";
 import { successResponse } from "../utils/response";
 import { HttpError } from "../utils/http-error";
+import { orNotFound } from "../utils/record-not-found";
 import PortfolioInternshipService from "../services/portfolio-internship.service";
 import {
   createPortfolioInternshipBody,
@@ -98,12 +99,14 @@ export default class PortfolioInternshipController {
       const data = validated(req, updatePortfolioInternshipBody);
       const files = uploadedFiles(req);
 
-      const result =
-        await this.portfolioInternshipService.updatePortfolioInternship(
+      const result = await orNotFound(
+        this.portfolioInternshipService.updatePortfolioInternship(
           id,
           data,
           files,
-        );
+        ),
+        NOT_FOUND,
+      );
 
       successResponse(res, result, "Updated portfolio internship successfully");
     } catch (err) {
@@ -119,7 +122,10 @@ export default class PortfolioInternshipController {
     try {
       const { id } = validated(req, portfolioEntryParams);
 
-      await this.portfolioInternshipService.deletePortfolioInternship(id);
+      await orNotFound(
+        this.portfolioInternshipService.deletePortfolioInternship(id),
+        NOT_FOUND,
+      );
 
       successResponse(res, null, "Deleted portfolio internship successfully");
     } catch (err) {

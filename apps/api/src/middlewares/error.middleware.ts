@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { HttpError, statusOf } from "../utils/http-error";
 import { HEADLINE, ValidationError } from "../validation/validation-error";
 import { errorResponse } from "../utils/response";
+import { isRecordNotFound } from "../utils/record-not-found";
 
 /**
  * The last handler in the chain, and the only place a failure becomes a
@@ -18,6 +19,17 @@ import { errorResponse } from "../utils/response";
 /** What a caller is told when the failure was not one the code anticipated. */
 const UNEXPECTED = "เกิดข้อผิดพลาดภายในระบบ";
 
+/**
+ * What a caller is told when the row they addressed is not there and the route
+ * had no more particular way to say it. The routes that do own a sentence —
+ * every section of the portfolio — throw it themselves through `orNotFound`,
+ * and it arrives here as an `HttpError` that keeps its own words. Named for
+ * being the general one: every controller's own `NOT_FOUND` is a factory that
+ * builds a sentence about one resource, and this is what stands where there is
+ * no such factory.
+ */
+const GENERIC_NOT_FOUND = "ไม่พบข้อมูลที่ต้องการ";
+
 export function errorHandler(
   err: unknown,
   _req: Request,
@@ -28,6 +40,15 @@ export function errorHandler(
 
   if (err instanceof ValidationError) {
     return errorResponse(res, err.status, err.message, err.errors);
+  }
+
+  // Prisma throws rather than returning null when `update` or `delete` cannot
+  // find its target, and an unrecognised throw leaves as a 500 — the server
+  // reporting itself broken over a row that is merely absent (#42). Nothing of
+  // Prisma's own goes with it: P2025 carries a `meta.cause` that names the
+  // table in English, and this handler forwards no internals.
+  if (isRecordNotFound(err)) {
+    return errorResponse(res, 404, GENERIC_NOT_FOUND);
   }
 
   const status = statusOf(err) ?? 500;
