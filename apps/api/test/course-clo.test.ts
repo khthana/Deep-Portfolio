@@ -231,6 +231,31 @@ describe("POST /course/clo", () => {
     });
     expect(stored).toHaveLength(1);
   });
+
+  it("answers 400 when the request carries neither a number nor a detail", async () => {
+    // The failure above is a collision with an outcome that is already there;
+    // this one never gets that far. plo_id is not named because it is allowed
+    // to be absent — an outcome can be added before anyone has decided which
+    // programme outcome it serves (TC-12).
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .post("/course/clo")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ section_id: course.section_id });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "clo_number", location: "body", message: "ต้องระบุ" },
+      { field: "clo_detail", location: "body", message: "ต้องระบุ" },
+    ]);
+
+    const stored = await prisma.subject_clo.findMany({
+      where: { section_id: course.section_id },
+    });
+    expect(stored).toEqual([]);
+  });
 });
 
 describe("PUT /course/clo", () => {

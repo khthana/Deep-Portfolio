@@ -17,10 +17,14 @@ import { signedFileKey, signedFileUrl } from "./helpers/file-url";
  * The training section with one column changed: a date where training has a
  * year, which is the only reason the two are separate tables and the only
  * place their endpoints differ. Everything else — the join table for
- * attachments, `ids_to_delete`, the multipart write path, the shared error
- * paths — behaves as it does there, and is covered in full in
- * portfolio-training.test.ts and portfolio-education.test.ts (T5). What is
- * here is one success and one failure for each endpoint, plus the date.
+ * attachments, the multipart write path, the shared error paths — behaves as it
+ * does there, and is covered in full in portfolio-training.test.ts and
+ * portfolio-education.test.ts (T5). What is here is one success and one failure
+ * for each endpoint, plus the date.
+ *
+ * `ids_to_delete` is the exception: it is shared code like the rest, but TC-55
+ * is written against this route, so it has its own case here rather than a
+ * traceability entry pointing at another route's test (#35).
  *
  * Authorisation is the same everywhere in the group since #31 — a session, and
  * your own rows. T5 wants a refusal on every endpoint behind the middleware, so
@@ -325,6 +329,63 @@ describe("PUT /portfolio-certificate/:id", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data.date).toBeNull();
+  });
+
+  it("swaps an attachment out for a new one in a single request", async () => {
+    // The whole of TC-55 in one request, and its own case rather than
+    // training's, because TC-55 is written against this route — a table that
+    // points at another route's test is pointing at evidence for a different
+    // endpoint. What the request drops it drops for good: nothing else holds
+    // the file once its join row is gone, so the attachment and the object
+    // behind it go with it (#34, ADR-0008).
+    const student = await createStudent();
+    const created = await request(app)
+      .post("/portfolio-certificate")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .field("name", "ประกาศนียบัตรพร้อมไฟล์")
+      .attach("files", PDF, "dropped.pdf")
+      .attach("files", PDF, "kept.pdf");
+
+    const attachments = created.body.data.attachments as {
+      attachment_id: number;
+      original_filename: string;
+      file_path: string;
+    }[];
+    const dropped = attachments.find(
+      (a) => a.original_filename === "dropped.pdf",
+    )!;
+    const kept = attachments.find((a) => a.original_filename === "kept.pdf")!;
+    const droppedKey = signedFileKey(dropped.file_path);
+
+    const response = await request(app)
+      .put(`/portfolio-certificate/${created.body.data.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .field("name", "ประกาศนียบัตรฉบับแก้ไข")
+      .field("ids_to_delete", String(dropped.attachment_id))
+      .attach("files", PDF, "added.pdf");
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.name).toBe("ประกาศนียบัตรฉบับแก้ไข");
+    expect(
+      response.body.data.attachments
+        .map((a: { original_filename: string }) => a.original_filename)
+        .sort(),
+    ).toEqual(["added.pdf", "kept.pdf"]);
+    expect(
+      (
+        await prisma.portfolio_certificate_attachments.findMany({
+          where: { certificate_id: created.body.data.id },
+        })
+      ).map((link) => link.attachment_id),
+    ).toContain(kept.attachment_id);
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: dropped.attachment_id },
+      }),
+    ).toBeNull();
+    expect(await listStoredObjects("portfolio-certificate/")).not.toContain(
+      droppedKey,
+    );
   });
 
   it("refuses a request with no session, and changes nothing", async () => {

@@ -246,6 +246,31 @@ describe("POST /score-weight", () => {
     });
     expect(stored).toEqual([]);
   });
+
+  it("answers 400 when the request carries neither a category nor a weight", async () => {
+    // A different mistake from the case above, and worth its own: that one
+    // sends a weight of the wrong type, this one sends no weight at all. Both
+    // fields are named, so a form that posted nothing is told everything it
+    // owes rather than one field at a time (TC-08).
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .post("/score-weight")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ section_id: course.section_id });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "score_category", location: "body", message: "ต้องระบุ" },
+      { field: "weight", location: "body", message: "ต้องระบุ" },
+    ]);
+
+    const stored = await prisma.subject_score_ratio.findMany({
+      where: { section_id: course.section_id },
+    });
+    expect(stored).toEqual([]);
+  });
 });
 
 describe("PUT /score-weight", () => {

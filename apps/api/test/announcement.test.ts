@@ -423,6 +423,35 @@ describe("POST /announcement", () => {
     ).toBe(0);
   });
 
+  it("answers 400 when the post has no title and no content, and uploads nothing", async () => {
+    // The two fields the post is actually made of, as opposed to all_section
+    // above, which is a switch on how far it travels. A post carrying files and
+    // nothing else has to be turned away before any of them reach the bucket —
+    // multer has already read them by the time the body is looked at (TC-16).
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const storedBefore = await listStoredObjects(UPLOAD_FOLDER);
+
+    const response = await request(app)
+      .post("/announcement")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("section_id", String(course.section_id))
+      .field("all_section", "false")
+      .attach("files", PDF, "worksheet.pdf");
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "title", location: "body", message: "ต้องระบุ" },
+      { field: "content", location: "body", message: "ต้องระบุ" },
+    ]);
+    expect(
+      await prisma.announcements.count({
+        where: { section_id: course.section_id },
+      }),
+    ).toBe(0);
+    expect(await listStoredObjects(UPLOAD_FOLDER)).toEqual(storedBefore);
+  });
+
   it("answers 400 for content that is not JSON, and uploads nothing", async () => {
     // The field used to go to JSON.parse inside the controller's try block, so
     // a caller who sent plain text got a 500 quoting a position in a string
