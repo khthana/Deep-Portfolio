@@ -35,13 +35,18 @@ mostly correctness work on top of it.
   40 files, 415 web cases over 27 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
-The whole breakdown of #1 is done, #20–#42 included. No issue is open. What is
-left is the defects still pinned in
-[`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md) under "สิ่งที่ **ไม่ได้**
-เปลี่ยน", each of which has a test standing on the behaviour as it is. Read
-that list before starting anything: a pinned entry says why the fix was out of
-its ticket's reach, which is usually that it spans the API and the frontend
-together.
+The whole breakdown of #1 is done, #20–#42 included. What is left is **#43–#50**,
+the eight defects that survived an audit of the pinned list in
+[`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md) on 2026-08-11 — every entry under
+"สิ่งที่ **ไม่ได้** เปลี่ยน" was checked against the code, the ones already
+closed were marked so, and what genuinely remained got an issue. Each of the
+eight has a test standing on the behaviour as it is, and a pinned entry saying
+why the fix was out of its ticket's reach — usually that it needs a decision, or
+that it spans the API and the frontend together. Read that list before starting
+anything; entries with neither "ปิดแล้ว" nor an issue number are deliberate, not
+outstanding.
+
+#1 itself is still open as the umbrella spec.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on
