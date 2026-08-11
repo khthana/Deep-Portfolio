@@ -13,7 +13,7 @@ How the engineering skills should consume this repo's domain documentation when 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
 
 `CONTEXT.md` does not exist yet in this repo. `docs/adr/` does, and holds the
-decisions taken after the refactor. Nine of them are about who may act on
+decisions taken after the refactor. Ten of them are about who may act on
 what: `0001-portfolio-access.md` (a student's own rows),
 `0002-section-access.md` (a teacher's own sections),
 `0003-enrolment-access.md` (a student's own sections),
@@ -24,9 +24,11 @@ caller's own, and everyone in it is in the class),
 `0009-submission-ownership.md` (the work you hand in is your own, or your
 group's), `0011-self-read-parameter.md` (where the "which person" parameter
 of a self-read comes from — the session, or the request with an ownership
-check) and `0013-student-read-access.md` (the last three reads in `/student`,
+check), `0013-student-read-access.md` (the last three reads in `/student`,
 each of which took the rule of its neighbours rather than one rule for all
-three). Read all nine before adding an authorisation check anywhere. Four
+three) and `0014-shared-rubric-access.md` (the programme's shared rubrics
+belong to any teacher, and why the rule is not narrowed to the caller's own
+programme). Read all ten before adding an authorisation check anywhere. Four
 more are about when or what rather than who: `0005-announcement-date.md` — a
 piece of work with no announcement date counts as announced, on every
 student-facing read — `0008-attachment-lifecycle.md`, which says an attachment

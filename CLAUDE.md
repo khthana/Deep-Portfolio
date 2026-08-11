@@ -31,19 +31,20 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 988 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 993 API cases over
   40 files, 415 web cases over 27 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
-The whole breakdown of #1 is done, #20–#42 included. What is left is **#43–#50**,
-the eight defects that survived an audit of the pinned list in
+The whole breakdown of #1 is done, #20–#42 included. On top of that came
+**#43–#50**, the eight defects that survived an audit of the pinned list in
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md) on 2026-08-11 — every entry under
 "สิ่งที่ **ไม่ได้** เปลี่ยน" was checked against the code, the ones already
-closed were marked so, and what genuinely remained got an issue. Each of the
-eight has a test standing on the behaviour as it is, and a pinned entry saying
-why the fix was out of its ticket's reach — usually that it needs a decision, or
-that it spans the API and the frontend together. Read that list before starting
-anything; entries with neither "ปิดแล้ว" nor an issue number are deliberate, not
+closed were marked so, and what genuinely remained got an issue. **#49 is
+closed; #43–#48 and #50 are what is left.** Each still-open one has a test
+standing on the behaviour as it is, and a pinned entry saying why the fix was
+out of its ticket's reach — usually that it needs a decision, or that it spans
+the API and the frontend together. Read that list before starting anything;
+entries with neither "ปิดแล้ว" nor an issue number are deliberate, not
 outstanding.
 
 #1 itself is still open as the umbrella spec.

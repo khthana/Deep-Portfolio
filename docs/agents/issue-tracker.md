@@ -58,11 +58,12 @@ Run `gh issue view <number> --comments`.
   because each one needs a decision or reaches past the ticket that found it. They
   are not part of the #1 breakdown and carry no parent. `BEHAVIOR-CHANGES.md`
   records the same findings from the caller's point of view.
-  **#25–#42 are closed. #43–#50 are the open ones**, filed on 2026-08-11 after
-  every entry in that file's pinned list was checked against the code — half the
-  list had already been closed by a later ticket without anyone going back to say
-  so. Each of the eight names what has to be decided before it can be picked up,
-  so read the issue before assuming the fix is obvious.
+  **#25–#42 are closed. #43–#50 were filed on 2026-08-11** after every entry in
+  that file's pinned list was checked against the code — half the list had
+  already been closed by a later ticket without anyone going back to say so.
+  **#49 is now closed too; #43–#48 and #50 are the open ones.** Each names what
+  has to be decided before it can be picked up, so read the issue before
+  assuming the fix is obvious.
 
 ## Wayfinding operations
 

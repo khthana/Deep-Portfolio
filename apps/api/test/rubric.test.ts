@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import request from "supertest";
 import app from "../src/app";
 import { BASELINE } from "./seed";
-import { createSharedRubric, createSharedRubricDetail } from "./factories";
+import {
+  createSharedRubric,
+  createSharedRubricDetail,
+  createStudent,
+  createTeacher,
+} from "./factories";
+import { sessionCookie } from "./helpers/session";
 
 /**
  * The programme's shared rubrics — /rubric.
@@ -13,7 +19,17 @@ import { createSharedRubric, createSharedRubricDetail } from "./factories";
  * copies what they want into that activity's own rubric, which is a different
  * pair of tables entirely — see the note in test/factories/rubric.ts.
  *
- * Nothing here checks a session. The catalogue is the same for everyone.
+ * Both endpoints are the teacher's, since #49: this was the last router in the
+ * application with no middleware on it at all, and until then the catalogue of
+ * every programme's assessment criteria answered anyone who asked, logged in or
+ * not. The rule is the plain one — a teacher, any teacher — because "shared" is
+ * what these rubrics are, and because the column that would narrow it to a
+ * programme (`users.program_id`) is one the importer does not insist on. See
+ * docs/adr/0014-shared-rubric-access.md.
+ *
+ * Neither endpoint looks its own subject up, so an id belonging to nothing is
+ * answered with an empty list rather than a 404. That is deliberate and is the
+ * scope note in the same ADR — two cases below stand on it.
  */
 
 /** The ids in a response body, in the order the endpoint returned them. */
@@ -23,6 +39,7 @@ function ids(response: { body: { data: { id: number }[] } }): number[] {
 
 describe("GET /rubric/shared-rubric", () => {
   it("returns the programme's rubrics in display order", async () => {
+    const teacher = await createTeacher();
     const second = await createSharedRubric({
       rubric_name_th: "เกณฑ์การนำเสนอ",
       display_order: 2,
@@ -32,9 +49,9 @@ describe("GET /rubric/shared-rubric", () => {
       display_order: 1,
     });
 
-    // No cookie: this is a catalogue, not anyone's data.
     const response = await request(app)
       .get("/rubric/shared-rubric")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .query({ program_id: BASELINE.program.program_id });
 
     expect(response.status).toBe(200);
@@ -57,6 +74,7 @@ describe("GET /rubric/shared-rubric", () => {
   });
 
   it("returns only this programme's rubrics", async () => {
+    const teacher = await createTeacher();
     const mine = await createSharedRubric();
     const theirs = await createSharedRubric({
       program_id: BASELINE.otherProgram.program_id,
@@ -64,21 +82,75 @@ describe("GET /rubric/shared-rubric", () => {
 
     const response = await request(app)
       .get("/rubric/shared-rubric")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .query({ program_id: BASELINE.program.program_id });
 
     expect(ids(response)).toContain(mine.id);
     expect(ids(response)).not.toContain(theirs.id);
   });
 
+  it("answers any teacher, not only one of that programme", async () => {
+    // The teacher belongs to the baseline programme — that is what the factory
+    // writes into `users.program_id` — and asks for the other one's rubrics.
+    // Answering is the decision in ADR-0014, and this case is the one that
+    // would fail if a later change narrowed the rule to the caller's own
+    // programme without saying so.
+    const teacher = await createTeacher();
+    const rubric = await createSharedRubric({
+      program_id: BASELINE.otherProgram.program_id,
+    });
+
+    const response = await request(app)
+      .get("/rubric/shared-rubric")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .query({ program_id: BASELINE.otherProgram.program_id });
+
+    expect(response.status).toBe(200);
+    expect(ids(response)).toContain(rubric.id);
+  });
+
   it("returns an empty list for a programme that has nothing", async () => {
     // Nothing looks the programme up, so an id belonging to no programme at
     // all is answered the same way as one that simply has no rubrics yet.
+    const teacher = await createTeacher();
+
     const response = await request(app)
       .get("/rubric/shared-rubric")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .query({ program_id: "0000" });
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual([]);
+  });
+
+  it("refuses a caller with no session", async () => {
+    await createSharedRubric();
+
+    const response = await request(app)
+      .get("/rubric/shared-rubric")
+      .query({ program_id: BASELINE.program.program_id });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
+    });
+  });
+
+  it("refuses a student", async () => {
+    const student = await createStudent();
+    await createSharedRubric();
+
+    const response = await request(app)
+      .get("/rubric/shared-rubric")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ program_id: BASELINE.program.program_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
+    });
   });
 
   it("answers 400 when no programme is named", async () => {
@@ -86,12 +158,15 @@ describe("GET /rubric/shared-rubric", () => {
     // `where: { program_id: undefined }` as "do not filter on this column"
     // rather than "match null" — so leaving the parameter out used to widen the
     // query to every programme instead of narrowing it to one.
+    const teacher = await createTeacher();
     await createSharedRubric();
     await createSharedRubric({
       program_id: BASELINE.otherProgram.program_id,
     });
 
-    const response = await request(app).get("/rubric/shared-rubric");
+    const response = await request(app)
+      .get("/rubric/shared-rubric")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -106,6 +181,7 @@ describe("GET /rubric/shared-rubric", () => {
 
 describe("GET /rubric/shared-rubric/detail", () => {
   it("returns the rubric's criteria in display order", async () => {
+    const teacher = await createTeacher();
     const rubric = await createSharedRubric();
     const second = await createSharedRubricDetail({
       rubric_id: rubric.id,
@@ -121,6 +197,7 @@ describe("GET /rubric/shared-rubric/detail", () => {
 
     const response = await request(app)
       .get("/rubric/shared-rubric/detail")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .query({ rubric_id: rubric.id });
 
     expect(response.status).toBe(200);
@@ -143,11 +220,13 @@ describe("GET /rubric/shared-rubric/detail", () => {
   it("sends the criterion's weight as a number", async () => {
     // rubric_details.weight is Decimal(5,2) and used to reach the wire as the
     // string "2.5" (#33), the same shape as the gpa #16 converted.
+    const teacher = await createTeacher();
     const rubric = await createSharedRubric();
     await createSharedRubricDetail({ rubric_id: rubric.id, weight: 2.5 });
 
     const response = await request(app)
       .get("/rubric/shared-rubric/detail")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .query({ rubric_id: rubric.id });
 
     expect(response.status).toBe(200);
@@ -155,6 +234,7 @@ describe("GET /rubric/shared-rubric/detail", () => {
   });
 
   it("returns only this rubric's criteria", async () => {
+    const teacher = await createTeacher();
     const rubric = await createSharedRubric();
     const other = await createSharedRubric();
     const mine = await createSharedRubricDetail({ rubric_id: rubric.id });
@@ -162,6 +242,7 @@ describe("GET /rubric/shared-rubric/detail", () => {
 
     const response = await request(app)
       .get("/rubric/shared-rubric/detail")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .query({ rubric_id: rubric.id });
 
     expect(ids(response)).toEqual([mine.id]);
@@ -170,17 +251,55 @@ describe("GET /rubric/shared-rubric/detail", () => {
   it("returns an empty list for a rubric that does not exist", async () => {
     // The endpoint reads the detail table and never looks the rubric up, so a
     // wrong id is indistinguishable from a rubric with no criteria in it.
+    const teacher = await createTeacher();
+
     const response = await request(app)
       .get("/rubric/shared-rubric/detail")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .query({ rubric_id: 999_999 });
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual([]);
   });
 
-  it("answers 400 for a rubric id that is not a number", async () => {
+  it("refuses a caller with no session", async () => {
+    const rubric = await createSharedRubric();
+    await createSharedRubricDetail({ rubric_id: rubric.id });
+
     const response = await request(app)
       .get("/rubric/shared-rubric/detail")
+      .query({ rubric_id: rubric.id });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
+    });
+  });
+
+  it("refuses a student", async () => {
+    const student = await createStudent();
+    const rubric = await createSharedRubric();
+    await createSharedRubricDetail({ rubric_id: rubric.id });
+
+    const response = await request(app)
+      .get("/rubric/shared-rubric/detail")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ rubric_id: rubric.id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
+    });
+  });
+
+  it("answers 400 for a rubric id that is not a number", async () => {
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .get("/rubric/shared-rubric/detail")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .query({ rubric_id: "เกณฑ์แรก" });
 
     expect(response.status).toBe(400);
