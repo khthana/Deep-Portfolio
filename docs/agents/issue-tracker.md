@@ -61,8 +61,8 @@ Run `gh issue view <number> --comments`.
   **#25–#42 are closed. #43–#50 were filed on 2026-08-11** after every entry in
   that file's pinned list was checked against the code — half the list had
   already been closed by a later ticket without anyone going back to say so.
-  **#43 and #49 are fixed on `main` locally but still open on GitHub — close
-  them once the branch is pushed. #44–#48 and #50 are the ones still to do.**
+  **#43 and #49 are now closed too; #44–#48 and #50 are the ones still to do
+  from that batch.**
   Each names what has to be decided before it can be picked up, so read the
   issue before assuming the fix is obvious. **#51** was filed the same way on
   the same day, but out of #43 rather than out of the audit: the API's Thai
