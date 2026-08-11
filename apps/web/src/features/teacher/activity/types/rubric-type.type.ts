@@ -49,6 +49,10 @@ export type AddRubricDetail = {
 };
 
 export type RubricLevel = {
+  /** `rubric_levels.id`, on a level the edit form was given — what says which
+   *  level a row is once `level_no` has been renumbered under it (#39). A level
+   *  the teacher just added here has none until it is saved. */
+  id?: number;
   level_no: number;
   description: string;
 };

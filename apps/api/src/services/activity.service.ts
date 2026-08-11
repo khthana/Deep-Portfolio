@@ -12,15 +12,53 @@ import { HttpError } from "../utils/http-error";
 import AttachmentsService from "./attachments.service";
 import MinIOService from "./upload.service";
 
-/** The ids of the criteria the teacher kept — the ones that came back carrying
- *  the id `GET /activity` gave them. A criterion with no id is a new one. */
-const keptRubricIds = (rubric: UpdateActivityReqBody["rubric"]) =>
-  rubric.flatMap((criterion) =>
-    criterion.id === undefined ? [] : [criterion.id],
+/** A level as it stands in the database: what it is, and where in the scale it
+ *  currently sits. */
+type ExistingLevel = { id: number; level_no: number };
+
+/** An activity's rubric as it stands, criterion id to the levels hanging off
+ *  it — what the rubric in the body is reconciled against. */
+type ExistingRubric = ReadonlyMap<number, ExistingLevel[]>;
+
+/** The ids the sender declared, from rows that may or may not carry one — the
+ *  criteria the teacher kept, or the levels within one. A row with no id is a
+ *  new one, and drops out here. */
+const declaredIds = (rows: readonly { id?: number }[]) =>
+  rows.flatMap((row) => (row.id === undefined ? [] : [row.id]));
+
+/** The levels the criterion a level was sent under already has. A criterion
+ *  with no id of its own is a new one, and has none. */
+const levelIdsOf = (existing: ExistingRubric, criterion_id?: number) =>
+  new Set(
+    (criterion_id === undefined ? [] : (existing.get(criterion_id) ?? [])).map(
+      (level) => level.id,
+    ),
   );
 
 /**
- * Refuse a rubric that names criteria this activity was never given.
+ * Refuse a rubric no endpoint could write as it was sent.
+ *
+ * `level_no` is unique per criterion, so two levels sent at one position cannot
+ * both exist. Before the levels had ids the second quietly wrote over the
+ * first, and the teacher came away with one level fewer than the form showed
+ * them; now the two would collide on the constraint (#39). Creating an activity
+ * and updating one are alike in this, so both go through here.
+ */
+function assertRubricPositions(
+  rubric: readonly { levels: readonly { level_no: number }[] }[],
+) {
+  for (const criterion of rubric) {
+    const positions = criterion.levels.map((level) => level.level_no);
+
+    if (new Set(positions).size < positions.length) {
+      throw new HttpError(400, "มีระดับคะแนนซ้ำลำดับกันในเกณฑ์เดียวกัน");
+    }
+  }
+}
+
+/**
+ * Refuse a rubric that names criteria this activity was never given, or levels
+ * the criterion they are sent under was never given.
  *
  * A criterion id arrives in the body, and an id says nothing about which
  * activity it belongs to, so writing to one unchecked would let a save on one
@@ -30,6 +68,11 @@ const keptRubricIds = (rubric: UpdateActivityReqBody["rubric"]) =>
  * the teacher would come away with one criterion fewer than the form showed
  * them.
  *
+ * Both hold one level down (#39), against the levels of the criterion the level
+ * was sent under — a level id belongs to its criterion, not to the activity, so
+ * a criterion with no id of its own has no levels yet and any id sent under it
+ * is somebody else's.
+ *
  * Answered `400`, not the `403` of `assertOwnSkills` in
  * portfolio-skill.service.ts. There the question is whose the row is and the
  * answer is a permission; here any teacher may edit the activity, and what is
@@ -37,16 +80,37 @@ const keptRubricIds = (rubric: UpdateActivityReqBody["rubric"]) =>
  */
 function assertOwnRubric(
   rubric: UpdateActivityReqBody["rubric"],
-  existingIds: ReadonlySet<number>,
+  existing: ExistingRubric,
 ) {
-  const sentIds = keptRubricIds(rubric);
+  assertRubricPositions(rubric);
+
+  const sentIds = declaredIds(rubric);
 
   if (new Set(sentIds).size < sentIds.length) {
     throw new HttpError(400, "มีเกณฑ์เดียวกันถูกส่งมาซ้ำ");
   }
 
-  if (sentIds.some((id) => !existingIds.has(id))) {
+  if (sentIds.some((id) => !existing.has(id))) {
     throw new HttpError(400, "มีเกณฑ์บางรายการที่ไม่ใช่ของกิจกรรมนี้");
+  }
+
+  for (const criterion of rubric) {
+    assertOwnLevels(criterion.levels, levelIdsOf(existing, criterion.id));
+  }
+}
+
+function assertOwnLevels(
+  levels: UpdateActivityReqBody["rubric"][number]["levels"],
+  existingIds: ReadonlySet<number>,
+) {
+  const sentIds = declaredIds(levels);
+
+  if (new Set(sentIds).size < sentIds.length) {
+    throw new HttpError(400, "มีระดับคะแนนเดียวกันถูกส่งมาซ้ำ");
+  }
+
+  if (sentIds.some((id) => !existingIds.has(id))) {
+    throw new HttpError(400, "มีระดับคะแนนบางรายการที่ไม่ใช่ของเกณฑ์นี้");
   }
 }
 
@@ -61,6 +125,10 @@ export default class ActivityService {
 
   async createActivity(data: CreateActivityReqBody) {
     return prisma.$transaction(async (tx) => {
+      // Asked before anything is written, for the reason updateActivity gives
+      // below: createAttachments does not roll back with this transaction.
+      assertRubricPositions(data.rubric);
+
       const activity = await tx.activities.create({
         data: {
           announcement_date: data.announcement_date,
@@ -99,7 +167,7 @@ export default class ActivityService {
 
       // Nothing to reconcile against: the activity was made a moment ago, so
       // every criterion in the body is a new one.
-      await this.saveRubric(tx, activity.id, data.rubric, new Set<number>());
+      await this.saveRubric(tx, activity.id, data.rubric, new Map());
 
       const studentIds = await tx.student_course.findMany({
         where: { section_id: data.section_id },
@@ -124,8 +192,8 @@ export default class ActivityService {
       // Asked before anything is written, because not everything below rolls
       // back: createAttachments uploads to MinIO and writes its rows outside
       // this transaction, so a refusal after it would leave both behind.
-      const existingRubricIds = await this.rubricIdsOf(tx, data.activity_id);
-      assertOwnRubric(data.rubric, existingRubricIds);
+      const existingRubric = await this.rubricOf(tx, data.activity_id);
+      assertOwnRubric(data.rubric, existingRubric);
 
       const activity = await tx.activities.update({
         where: { id: data.activity_id },
@@ -181,7 +249,7 @@ export default class ActivityService {
         });
       }
 
-      await this.saveRubric(tx, activity.id, data.rubric, existingRubricIds);
+      await this.saveRubric(tx, activity.id, data.rubric, existingRubric);
 
       return { activity, objects };
     });
@@ -191,18 +259,24 @@ export default class ActivityService {
     return activity;
   }
 
-  /** The ids of the criteria an activity has as it stands — what an incoming
-   *  rubric is checked against, and then reconciled against. */
-  private async rubricIdsOf(
+  /** The rubric an activity has as it stands, down to the levels — what an
+   *  incoming rubric is checked against, and then reconciled against. Read once
+   *  and handed on, so both jobs work from the one picture. */
+  private async rubricOf(
     tx: Prisma.TransactionClient,
     activity_id: number,
-  ): Promise<ReadonlySet<number>> {
+  ): Promise<ExistingRubric> {
     const existing = await tx.rubric_activity_mapping.findMany({
       where: { activity_id },
-      select: { id: true },
+      select: {
+        id: true,
+        rubric_levels: { select: { id: true, level_no: true } },
+      },
     });
 
-    return new Set(existing.map((criterion) => criterion.id));
+    return new Map(
+      existing.map((criterion) => [criterion.id, criterion.rubric_levels]),
+    );
   }
 
   /**
@@ -221,7 +295,7 @@ export default class ActivityService {
    * Creating an activity is the same job with nothing to keep, which is why
    * `createActivity` comes through here too, with an empty `existingIds`.
    *
-   * The ids are `assertOwnRubric`'s to check; `existingIds` is what they were
+   * The ids are `assertOwnRubric`'s to check; `existing` is what they were
    * checked against, handed on so it is not read twice.
    *
    * What is not repaired here is the total: `student_activity.score` was worked
@@ -232,10 +306,10 @@ export default class ActivityService {
     tx: Prisma.TransactionClient,
     activity_id: number,
     rubric: UpdateActivityReqBody["rubric"],
-    existingIds: ReadonlySet<number>,
+    existing: ExistingRubric,
   ) {
-    const keptIds = new Set(keptRubricIds(rubric));
-    const removedIds = [...existingIds].filter((id) => !keptIds.has(id));
+    const keptIds = new Set(declaredIds(rubric));
+    const removedIds = [...existing.keys()].filter((id) => !keptIds.has(id));
 
     if (removedIds.length > 0) {
       await tx.rubric_activity_mapping.deleteMany({
@@ -269,39 +343,62 @@ export default class ActivityService {
         data: { criteria: criterion.criteria, weight: criterion.weight },
       });
 
-      await this.saveRubricLevels(tx, criterion.id, criterion.levels);
+      await this.saveRubricLevels(
+        tx,
+        criterion.id,
+        criterion.levels,
+        existing.get(criterion.id) ?? [],
+      );
     }
   }
 
   /**
-   * The same reconciliation one level down, keyed on `level_no`.
+   * The same reconciliation one level down, keyed on the level's own id.
    *
-   * The levels of a criterion have no id of their own in the form — the table
-   * is drawn a column per level and the teacher writes in the cells — so
-   * `level_no` is what identifies one, which the database agrees with: it is
-   * unique per criterion. A level that survives keeps its row, and with it the
-   * marks given at it.
+   * It used to be keyed on `level_no`, which the database agrees is unique per
+   * criterion — but unique is not the same as fixed. `level_no` is a position,
+   * and deleting a column in the edit form renumbers the ones under it
+   * (`deleteScoreColumn` in rubric-form.tsx). So a mark given at level 3 of
+   * four stayed on the row now numbered 3, and came to read as whatever the
+   * teacher had written a level up: the mark said something nobody had said
+   * (#39, ADR-0010). The form now sends each level back with its id, and the id
+   * is what says which level a row is.
    *
-   * Which is right only as far as `level_no` stays put, and it does not:
-   * deleting a column renumbers the ones under it (`deleteScoreColumn` in
-   * rubric-form.tsx), so a mark given at level 3 of four stays on the row now
-   * numbered 3 and comes to read as whatever the teacher wrote a level up.
-   * Pinned rather than fixed — the form has no level ids to send back, and
-   * giving it some changes what GET /activity returns. See BEHAVIOR-CHANGES.md.
+   * A level with no id is matched on `level_no` against a row no id claimed,
+   * and failing that is created. That fallback is what keeps every caller
+   * written before the ids working: a rubric sent back level-for-level with no
+   * ids at all reconciles exactly as it did, and only the case the ids were
+   * added for — a scale whose order changed — needs them.
+   *
+   * The writing is in two passes when anything moved, because `level_no` is
+   * unique per criterion and a renumber walks through positions that are still
+   * taken: level 3 becoming level 2 collides with the level 2 that has not been
+   * moved off it yet. So every kept row is parked above the top of the scale
+   * first, and only then given the number it is going to keep.
    */
   private async saveRubricLevels(
     tx: Prisma.TransactionClient,
     rubric_id: number,
     levels: UpdateActivityReqBody["rubric"][number]["levels"],
+    existing: readonly ExistingLevel[],
   ) {
-    const existing = await tx.rubric_levels.findMany({
-      where: { rubric_id },
-      select: { id: true, level_no: true },
-    });
+    const claimedIds = new Set(declaredIds(levels));
+    const unclaimedByPosition = new Map(
+      existing
+        .filter((level) => !claimedIds.has(level.id))
+        .map((level) => [level.level_no, level.id]),
+    );
 
-    const kept = new Set(levels.map((level) => level.level_no));
+    // Each incoming level and the row it is going to be written to, or none if
+    // there is no such row and it has to be created.
+    const assignments = levels.map((level) => ({
+      level,
+      id: level.id ?? unclaimedByPosition.get(level.level_no),
+    }));
+
+    const keptIds = new Set(declaredIds(assignments));
     const removedIds = existing
-      .filter((level) => !kept.has(level.level_no))
+      .filter((level) => !keptIds.has(level.id))
       .map((level) => level.id);
 
     if (removedIds.length > 0) {
@@ -316,15 +413,52 @@ export default class ActivityService {
       await tx.rubric_levels.deleteMany({ where: { id: { in: removedIds } } });
     }
 
-    for (const level of levels) {
-      await tx.rubric_levels.upsert({
-        where: { rubric_id_level_no: { rubric_id, level_no: level.level_no } },
-        create: {
-          rubric_id,
-          level_no: level.level_no,
-          description: level.description,
+    const positionOf = new Map(
+      existing.map((level) => [level.id, level.level_no]),
+    );
+    const moved = assignments.some(
+      (write) =>
+        write.id !== undefined &&
+        positionOf.get(write.id) !== write.level.level_no,
+    );
+
+    if (moved) {
+      const aboveTheScale =
+        1 +
+        Math.max(
+          ...existing.map((level) => level.level_no),
+          ...levels.map((level) => level.level_no),
+        );
+
+      for (const [index, write] of assignments.entries()) {
+        if (write.id === undefined) continue;
+
+        await tx.rubric_levels.update({
+          where: { id: write.id },
+          data: { level_no: aboveTheScale + index },
+        });
+      }
+    }
+
+    for (const write of assignments) {
+      if (write.id === undefined) {
+        await tx.rubric_levels.create({
+          data: {
+            rubric_id,
+            level_no: write.level.level_no,
+            description: write.level.description,
+          },
+        });
+
+        continue;
+      }
+
+      await tx.rubric_levels.update({
+        where: { id: write.id },
+        data: {
+          level_no: write.level.level_no,
+          description: write.level.description,
         },
-        update: { description: level.description },
       });
     }
   }

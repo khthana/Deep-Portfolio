@@ -36,28 +36,36 @@ export const classworkType = z.preprocess(
  * bottom of a scale and left the middle empty has still written a scale — but
  * a criterion with no name is nothing at all.
  */
+const rubricLevel = z.object({
+  level_no: z.int().positive(),
+  description: blankableText,
+});
+
 const rubricCriterion = z.object({
   criteria: text,
   weight: z.number(),
-  levels: z.array(
-    z.object({
-      level_no: z.int().positive(),
-      description: blankableText,
-    }),
-  ),
+  levels: z.array(rubricLevel),
 });
 
 /**
  * The same criterion on its way back in, carrying the id it was handed by
- * GET /activity.
+ * GET /activity — and so are its levels.
  *
  * The id is what tells an update which criterion a row is: with one, the row
  * already exists and is written over; without one, it is new. It is optional
  * because both are ordinary — a teacher adds a criterion as readily as they
  * edit one — and absent on every criterion the whole rubric is written afresh,
  * which is what every save did before #25.
+ *
+ * A level carries one for the same reason one level down. `level_no` used to
+ * stand in for it, but it is a position and positions move: deleting a column
+ * renumbers the ones under it, and a mark given at the old number came to read
+ * as the level above (#39).
  */
-const updatableRubricCriterion = rubricCriterion.extend({ id: optionalId });
+const updatableRubricCriterion = rubricCriterion.extend({
+  id: optionalId,
+  levels: z.array(rubricLevel.extend({ id: optionalId })),
+});
 
 /**
  * Multipart, so every field arrives as a string and the structured ones arrive

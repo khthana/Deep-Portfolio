@@ -148,6 +148,9 @@ const RubricForm = (props: Props) => {
       weight: r.weight ?? 0,
       levels: (r.rubric_levels || [])
         .map((lvl) => ({
+          // And the level's own id for the same reason, because the column this
+          // level is drawn in moves when another one is deleted (#39).
+          id: lvl.id,
           level_no: lvl.level_no,
           description: lvl.description,
         }))

@@ -102,6 +102,54 @@ async function markedActivity(teacher_id: string, section_id: number) {
   return { activity, rubric, levels, submission, mark, save };
 }
 
+/**
+ * The same thing with a scale of three, and one student marked at each level —
+ * so that deleting a level in the middle has both a mark to take with it and
+ * marks on either side that have to come through untouched (#39).
+ *
+ * `marks[i]` is the mark given at `levels[i]`.
+ */
+async function markedAtEveryLevel(section_id: number) {
+  const activity = await createActivity({ section_id });
+  const criterion = await createActivityRubric({
+    activity_id: activity.id,
+    criteria: RUBRIC[0].criteria,
+    weight: RUBRIC[0].weight,
+    levels: [
+      { level_no: 1, description: "ยังไม่ถูกต้อง" },
+      { level_no: 2, description: "ถูกต้องบางส่วน" },
+      { level_no: 3, description: "ถูกต้องครบถ้วน" },
+    ],
+  });
+  const levels = await prisma.rubric_levels.findMany({
+    where: { rubric_id: criterion.id },
+    orderBy: { level_no: "asc" },
+  });
+
+  const marks = [];
+
+  for (const level of levels) {
+    const submission = await createSubmission({
+      activity_id: activity.id,
+      status: "GRADED",
+      score: level.level_no,
+    });
+
+    marks.push(
+      await prisma.student_activity_rubric_score.create({
+        data: {
+          student_activity_id: submission.id,
+          rubric_activity_mapping_id: criterion.id,
+          rubric_level_id: level.id,
+          calculated_score: level.level_no,
+        },
+      }),
+    );
+  }
+
+  return { activity, criterion, levels, marks };
+}
+
 describe("POST /activity", () => {
   it("rejects a request with no session", async () => {
     const response = await request(app).post("/activity");
@@ -131,7 +179,9 @@ describe("POST /activity", () => {
       message: "สิทธิ์การเข้าถึงเฉพาะอาจารย์เท่านั้น",
     });
     expect(
-      await prisma.activities.count({ where: { section_id: course.section_id } }),
+      await prisma.activities.count({
+        where: { section_id: course.section_id },
+      }),
     ).toBe(0);
   });
 
@@ -183,7 +233,9 @@ describe("POST /activity", () => {
 
     const activity = await prisma.activities.findUniqueOrThrow({
       where: { id: response.body.data.id },
-      include: { rubric_activity_mapping: { include: { rubric_levels: true } } },
+      include: {
+        rubric_activity_mapping: { include: { rubric_levels: true } },
+      },
     });
     expect(activity).toMatchObject({
       section_id: course.section_id,
@@ -344,6 +396,49 @@ describe("POST /activity", () => {
     ]);
     expect(await listStoredObjects(ACTIVITY_PREFIX)).toEqual(before);
   });
+
+  it("answers 400 for two levels sent at the same position", async () => {
+    // `level_no` is unique per criterion, so the two cannot both be written.
+    // The same refusal PUT gives (#39): a rubric that cannot be stored as it
+    // was sent is refused whichever endpoint it arrived at, and refused before
+    // the file is uploaded.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const before = await listStoredObjects(ACTIVITY_PREFIX);
+
+    const response = await request(app)
+      .post("/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("section_id", String(course.section_id))
+      .field("activity_name", "รายงานสองระดับซ้ำ")
+      .field("activity_type", "INDIVIDUAL")
+      .field(
+        "rubric",
+        JSON.stringify([
+          {
+            criteria: "ความถูกต้อง",
+            weight: 100,
+            levels: [
+              { level_no: 1, description: "ยังไม่ถูกต้อง" },
+              { level_no: 1, description: "ถูกต้องครบถ้วน" },
+            ],
+          },
+        ]),
+      )
+      .attach("files", PDF, "brief.pdf");
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "มีระดับคะแนนซ้ำลำดับกันในเกณฑ์เดียวกัน",
+    });
+    expect(
+      await prisma.activities.count({
+        where: { section_id: course.section_id },
+      }),
+    ).toBe(0);
+    expect(await listStoredObjects(ACTIVITY_PREFIX)).toEqual(before);
+  });
 });
 
 describe("PUT /activity", () => {
@@ -359,8 +454,11 @@ describe("PUT /activity", () => {
 
     expect(response.status).toBe(401);
     expect(
-      (await prisma.activities.findUniqueOrThrow({ where: { id: activity.id } }))
-        .activity_name,
+      (
+        await prisma.activities.findUniqueOrThrow({
+          where: { id: activity.id },
+        })
+      ).activity_name,
     ).toBe(activity.activity_name);
   });
 
@@ -378,8 +476,11 @@ describe("PUT /activity", () => {
 
     expect(response.status).toBe(403);
     expect(
-      (await prisma.activities.findUniqueOrThrow({ where: { id: activity.id } }))
-        .activity_name,
+      (
+        await prisma.activities.findUniqueOrThrow({
+          where: { id: activity.id },
+        })
+      ).activity_name,
     ).toBe(activity.activity_name);
   });
 
@@ -410,7 +511,9 @@ describe("PUT /activity", () => {
 
     const updated = await prisma.activities.findUniqueOrThrow({
       where: { id: activity.id },
-      include: { rubric_activity_mapping: { include: { rubric_levels: true } } },
+      include: {
+        rubric_activity_mapping: { include: { rubric_levels: true } },
+      },
     });
     expect(updated).toMatchObject({
       activity_name: "รายงานบทที่ 1 (แก้ไข)",
@@ -446,8 +549,11 @@ describe("PUT /activity", () => {
 
     expect(response.status).toBe(200);
     expect(
-      (await prisma.activities.findUniqueOrThrow({ where: { id: activity.id } }))
-        .deadline_date,
+      (
+        await prisma.activities.findUniqueOrThrow({
+          where: { id: activity.id },
+        })
+      ).deadline_date,
     ).toEqual(new Date("2026-12-31T00:00:00.000Z"));
 
     // Same criterion, same levels, same mark — ids and all, because grading
@@ -634,53 +740,25 @@ describe("PUT /activity", () => {
     ).toBe(0);
   });
 
-  it("pins: a mark stays on its level_no when the form renumbers the levels", async () => {
-    // Levels are matched on level_no, and level_no is a position rather than an
-    // identity: deleting a column in the edit form renumbers the ones under it.
-    // So a mark keeps the number it was given while the wording on that number
-    // moves down a level, and the mark comes to say something the teacher never
-    // said. Pinned, not fixed — the form has no level ids to send back, and
-    // giving it some changes what GET /activity returns.
+  it("keeps a mark on the level it was given when the form renumbers", async () => {
+    // Deleting a column in the edit form renumbers the ones under it, so a
+    // level that stays comes back under a number another level used to hold.
+    // The id is what says which one it is (#39): the mark follows the level it
+    // was given, wording and all, wherever that level ends up in the order.
     const teacher = await createTeacher();
     const course = await createCourse({ teacher_id: teacher.user_id });
-    const activity = await createActivity({ section_id: course.section_id });
-    const criterion = await createActivityRubric({
-      activity_id: activity.id,
-      criteria: RUBRIC[0].criteria,
-      weight: RUBRIC[0].weight,
-      levels: [
-        { level_no: 1, description: "ยังไม่ถูกต้อง" },
-        { level_no: 2, description: "ถูกต้องบางส่วน" },
-        { level_no: 3, description: "ถูกต้องครบถ้วน" },
-      ],
-    });
-    const levels = await prisma.rubric_levels.findMany({
-      where: { rubric_id: criterion.id },
-      orderBy: { level_no: "asc" },
-    });
-    const submission = await createSubmission({
-      activity_id: activity.id,
-      status: "GRADED",
-      score: 5,
-    });
-    const mark = await prisma.student_activity_rubric_score.create({
-      data: {
-        student_activity_id: submission.id,
-        rubric_activity_mapping_id: criterion.id,
-        rubric_level_id: levels[1].id,
-        calculated_score: 5,
-      },
-    });
+    const { activity, criterion, levels, marks } = await markedAtEveryLevel(
+      course.section_id,
+    );
 
-    // The teacher deletes the middle column of three. The form renumbers what
-    // is left, so the top level comes back as level 2 — the number the mark
-    // sits on.
+    // The middle column of three goes. What was level 3 comes back as level 2,
+    // carrying the id it was given.
     const response = await request(app)
       .put("/activity")
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .field("activity_id", String(activity.id))
       .field("section_id", String(course.section_id))
-      .field("activity_name", activity.activity_name)
+      .field("activity_name", "งานที่แก้เกณฑ์แล้ว")
       .field("activity_type", "INDIVIDUAL")
       .field(
         "rubric",
@@ -690,24 +768,163 @@ describe("PUT /activity", () => {
             criteria: RUBRIC[0].criteria,
             weight: RUBRIC[0].weight,
             levels: [
-              { level_no: 1, description: "ยังไม่ถูกต้อง" },
-              { level_no: 2, description: "ถูกต้องครบถ้วน" },
+              { id: levels[0].id, level_no: 1, description: "ยังไม่ถูกต้อง" },
+              { id: levels[2].id, level_no: 2, description: "ถูกต้องครบถ้วน" },
             ],
           },
         ]),
       );
 
     expect(response.status).toBe(200);
+
+    // Two rows left, the two that were kept, each still the row it was.
+    expect(
+      await prisma.rubric_levels.findMany({
+        where: { rubric_id: criterion.id },
+        orderBy: { level_no: "asc" },
+        select: { id: true, level_no: true, description: true },
+      }),
+    ).toEqual([
+      { id: levels[0].id, level_no: 1, description: "ยังไม่ถูกต้อง" },
+      { id: levels[2].id, level_no: 2, description: "ถูกต้องครบถ้วน" },
+    ]);
+
+    // The mark given at the top level still points at it, and what that level
+    // says has not changed — which is the whole of the fix.
+    expect(
+      await prisma.student_activity_rubric_score.findUniqueOrThrow({
+        where: { id: marks[2].id },
+        select: { rubric_level_id: true },
+      }),
+    ).toEqual({ rubric_level_id: levels[2].id });
+
+    // The mark given at the deleted level goes with it, as ever.
+    expect(
+      await prisma.student_activity_rubric_score.count({
+        where: { id: marks[1].id },
+      }),
+    ).toBe(0);
+  });
+
+  it("answers 400 for the same level sent twice", async () => {
+    // Both entries would be written onto the one row, and the teacher would
+    // come away with one level fewer than the form showed them — the same
+    // reason a repeated criterion is refused, one level down.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const { rubric, levels, mark, save } = await markedActivity(
+      teacher.user_id,
+      course.section_id,
+    );
+
+    const response = await save([
+      {
+        id: rubric.id,
+        criteria: RUBRIC[0].criteria,
+        weight: RUBRIC[0].weight,
+        levels: [
+          { id: levels[0].id, level_no: 1, description: "ยังไม่ถูกต้อง" },
+          { id: levels[0].id, level_no: 2, description: "ถูกต้องครบถ้วน" },
+        ],
+      },
+    ]);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "มีระดับคะแนนเดียวกันถูกส่งมาซ้ำ",
+    });
+
+    // Refused before anything was written: the level the mark names is
+    // untouched, and so is the mark.
+    expect(
+      await prisma.rubric_levels.findUniqueOrThrow({
+        where: { id: levels[1].id },
+      }),
+    ).toMatchObject({
+      level_no: 2,
+      description: RUBRIC[0].levels[1].description,
+    });
     expect(
       await prisma.student_activity_rubric_score.count({
         where: { id: mark.id },
       }),
     ).toBe(1);
+  });
+
+  it("answers 400 for a level belonging to another criterion", async () => {
+    // A level id says nothing about which criterion it hangs off, so writing to
+    // one unchecked would let a save on one criterion renumber another's
+    // levels — and drag the marks given at them along.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const { rubric, save } = await markedActivity(
+      teacher.user_id,
+      course.section_id,
+    );
+    const other = await createActivityRubric({
+      activity_id: (await createActivity({ section_id: course.section_id })).id,
+      criteria: "ความสะอาด",
+      weight: 100,
+      levels: [{ level_no: 1, description: "เรียบร้อย" }],
+    });
+    const stranger = await prisma.rubric_levels.findFirstOrThrow({
+      where: { rubric_id: other.id },
+    });
+
+    const response = await save([
+      {
+        id: rubric.id,
+        criteria: RUBRIC[0].criteria,
+        weight: RUBRIC[0].weight,
+        levels: [
+          { id: stranger.id, level_no: 1, description: "ยังไม่ถูกต้อง" },
+        ],
+      },
+    ]);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "มีระดับคะแนนบางรายการที่ไม่ใช่ของเกณฑ์นี้",
+    });
     expect(
       await prisma.rubric_levels.findUniqueOrThrow({
-        where: { id: levels[1].id },
+        where: { id: stranger.id },
       }),
-    ).toMatchObject({ level_no: 2, description: "ถูกต้องครบถ้วน" });
+    ).toMatchObject({ rubric_id: other.id, description: "เรียบร้อย" });
+  });
+
+  it("answers 400 for two levels sent at the same position", async () => {
+    // `level_no` is unique per criterion, so the two cannot both be written.
+    // Before the ids, the second silently wrote over the first.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const { rubric, levels, save } = await markedActivity(
+      teacher.user_id,
+      course.section_id,
+    );
+
+    const response = await save([
+      {
+        id: rubric.id,
+        criteria: RUBRIC[0].criteria,
+        weight: RUBRIC[0].weight,
+        levels: [
+          { id: levels[0].id, level_no: 1, description: "ยังไม่ถูกต้อง" },
+          { id: levels[1].id, level_no: 1, description: "ถูกต้องครบถ้วน" },
+        ],
+      },
+    ]);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "มีระดับคะแนนซ้ำลำดับกันในเกณฑ์เดียวกัน",
+    });
+    expect(
+      await prisma.rubric_levels.count({ where: { rubric_id: rubric.id } }),
+    ).toBe(2);
   });
 
   it("answers 400 for the same criterion sent twice", async () => {
@@ -758,7 +975,9 @@ describe("PUT /activity", () => {
       section_id: course.section_id,
       activity_name: "ชื่อเดิม",
     });
-    const elsewhere = await createActivityRubric({ criteria: "ของกิจกรรมอื่น" });
+    const elsewhere = await createActivityRubric({
+      criteria: "ของกิจกรรมอื่น",
+    });
     const before = await listStoredObjects(ACTIVITY_PREFIX);
 
     const response = await request(app)
@@ -781,8 +1000,11 @@ describe("PUT /activity", () => {
     // through the transaction, so a file put away here would stay put away.
     expect(await listStoredObjects(ACTIVITY_PREFIX)).toEqual(before);
     expect(
-      (await prisma.activities.findUniqueOrThrow({ where: { id: activity.id } }))
-        .activity_name,
+      (
+        await prisma.activities.findUniqueOrThrow({
+          where: { id: activity.id },
+        })
+      ).activity_name,
     ).toBe("ชื่อเดิม");
     expect(
       await prisma.rubric_activity_mapping.findUniqueOrThrow({
@@ -982,7 +1204,9 @@ describe("DELETE /activity", () => {
       await prisma.rubric_levels.count({ where: { rubric_id: rubric.id } }),
     ).toBe(0);
     expect(
-      await prisma.student_activity.findUnique({ where: { id: submission.id } }),
+      await prisma.student_activity.findUnique({
+        where: { id: submission.id },
+      }),
     ).toBeNull();
 
     // Both sides of the work lose their last owner in the same cascade — what
@@ -1058,9 +1282,25 @@ describe("GET /activity", () => {
       id: rubric.id,
       criteria: "ความถูกต้อง",
     });
+    // Each level carries its own id. The edit form hands these back on a save,
+    // and that is what says which level a row is once the scale has been
+    // renumbered under it (#39) — so this is contract, not incidental.
+    const levels = await prisma.rubric_levels.findMany({
+      where: { rubric_id: rubric.id },
+      orderBy: { level_no: "asc" },
+      select: { id: true, level_no: true },
+    });
     expect(
       response.body.data.rubric_activity_mapping[0].rubric_levels,
     ).toHaveLength(4);
+    expect(
+      response.body.data.rubric_activity_mapping[0].rubric_levels.map(
+        (level: { id: number; level_no: number }) => ({
+          id: level.id,
+          level_no: level.level_no,
+        }),
+      ),
+    ).toEqual(expect.arrayContaining(levels));
   });
 
   it("answers with no data for an activity that does not exist", async () => {
@@ -1280,7 +1520,9 @@ describe("GET /activity/student/detail", () => {
       .query({ student_activity_id: 999_999 });
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toEqual({ submitted_files: { file: [], url: [] } });
+    expect(response.body.data).toEqual({
+      submitted_files: { file: [], url: [] },
+    });
   });
 
   it("answers 400 when no submission is named", async () => {

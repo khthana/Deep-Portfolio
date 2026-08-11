@@ -1,7 +1,4 @@
-import type {
-  RubricDetailForm,
-  RubricLevel,
-} from "../types/rubric-type.type";
+import type { RubricDetailForm, RubricLevel } from "../types/rubric-type.type";
 
 /** One criterion in the shape `POST`/`PUT /activity` is sent it. */
 export type RubricPayload = {
@@ -26,6 +23,11 @@ export type RubricPayload = {
  * has no id to send, and must not be given one; the field is left off rather
  * than sent empty.
  *
+ * A level carries its own id back for the same reason, one level down (#39).
+ * `level_no` cannot stand in for it: deleting a column renumbers the ones under
+ * it, so the number a level comes back under is not the number it went out
+ * with, and a mark matched on the number came to read as the level above.
+ *
  * Creating an activity goes through the same function: there is no id to carry
  * on that path, and nothing to say if there were.
  */
@@ -34,5 +36,9 @@ export const toRubricPayload = (rubrics: RubricDetailForm[]): RubricPayload[] =>
     ...(rubric.id === undefined ? {} : { id: rubric.id }),
     criteria: rubric.criteria,
     weight: rubric.weight,
-    levels: rubric.levels,
+    levels: rubric.levels.map((level) => ({
+      ...(level.id === undefined ? {} : { id: level.id }),
+      level_no: level.level_no,
+      description: level.description,
+    })),
   }));
