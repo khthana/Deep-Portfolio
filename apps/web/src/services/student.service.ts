@@ -14,10 +14,11 @@ export type ActivityOption = {
   status: string | null;
 };
 
-export const getEnrolledSubjects = async (studentId: string) => {
+/** The subjects the signed-in student is enrolled in. Takes no id: the API
+ *  reads it from the session (#40). */
+export const getEnrolledSubjects = async () => {
   const resp = await axiosInstance.get<ResponseWrapper<EnrolledSubject[]>>(
     "/student/enrolled/subjects",
-    { params: { student_id: studentId } },
   );
   return resp.data;
 };

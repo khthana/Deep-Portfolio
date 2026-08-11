@@ -19,14 +19,14 @@ import { enrolledCourse, FAR_FUTURE, TERM } from "./helpers/classroom";
 /**
  * What a student can read about their own studies — /student.
  *
- * Eight read handlers, split down the middle by where they get the student
- * from. Four take it from the session and are about *me*: /course/list,
- * /classwork/list, /all/classwork/list and the calendar (which has its own
- * file). Four take a student_id or a section_id from the query, have no
- * middleware at all, and will answer about anybody: /list, /enrolled/subjects,
+ * Eight read handlers, split by where they get the student from. Five take it
+ * from the session and are about *me*: /course/list, /classwork/list,
+ * /all/classwork/list, the calendar (which has its own file) and, since #40,
+ * /enrolled/subjects. Three still take a student_id or a section_id from the
+ * query, have no middleware at all, and will answer about anybody: /list,
  * /activities/list and /activities/details/:id. That difference is the single
  * most important thing in this group and every case below is written to make
- * it visible rather than to hide it.
+ * it visible rather than to hide it. The three that remain are #41.
  *
  * Submitting work lives in student-submit.test.ts, the calendar in
  * student-calendar.test.ts.
@@ -671,7 +671,7 @@ describe("GET /student/all/classwork/list", () => {
 });
 
 describe("GET /student/enrolled/subjects", () => {
-  it("returns the subjects the named student is enrolled in", async () => {
+  it("returns the subjects the signed-in student is enrolled in", async () => {
     const student = await createStudent();
     const course = await enrolledCourse(student.student_id, {
       subject_name_en: "Data Structures",
@@ -680,7 +680,7 @@ describe("GET /student/enrolled/subjects", () => {
 
     const response = await request(app)
       .get("/student/enrolled/subjects")
-      .query({ student_id: student.student_id });
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual([
@@ -700,7 +700,7 @@ describe("GET /student/enrolled/subjects", () => {
 
     const response = await request(app)
       .get("/student/enrolled/subjects")
-      .query({ student_id: student.student_id });
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.body.data).toHaveLength(2);
   });
@@ -710,60 +710,54 @@ describe("GET /student/enrolled/subjects", () => {
 
     const response = await request(app)
       .get("/student/enrolled/subjects")
-      .query({ student_id: student.student_id });
+      .set("Cookie", sessionCookie({ userId: student.student_id }));
 
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual([]);
   });
 
-  it("answers about whoever the query names, with no session at all", async () => {
-    // The gap this group's #31 is about, stated plainly: a classmate's
-    // timetable is one query parameter away. Nothing here is a session.
+  it("ignores a student_id in the query and answers for the session", async () => {
+    // A classmate's timetable used to be one query parameter away, with no
+    // session anywhere in the request. The parameter is gone (#40), and the
+    // route reads whoever is signed in — sending it changes nothing.
+    const student = await createStudent();
     const classmate = await createStudent();
     await enrolledCourse(classmate.student_id);
 
     const response = await request(app)
       .get("/student/enrolled/subjects")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query({ student_id: classmate.student_id });
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toHaveLength(1);
+    expect(response.body.data).toEqual([]);
   });
 
-  it("answers 400 when no student_id is sent", async () => {
-    // `where: { student_id: undefined }` in a findMany is not an error the way
-    // it is in a findUnique — it means "do not filter", so leaving the
-    // parameter off used to hand back everybody's timetable rather than
-    // nobody's. Same shape as GET /rubric/shared-rubric without a program_id.
-    const classmate = await createStudent();
-    await enrolledCourse(classmate.student_id);
+  it("refuses a request with no session", async () => {
+    const student = await createStudent();
+    await enrolledCourse(student.student_id);
 
     const response = await request(app).get("/student/enrolled/subjects");
 
-    expect(response.status).toBe(400);
-    expect(response.body.errors).toEqual([
-      { field: "student_id", location: "query", message: "ต้องระบุ" },
-    ]);
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
+    });
   });
 
-  it("answers 400 when student_id is sent twice", async () => {
-    // Express parses a repeated query parameter into an array, and an array is
-    // not something Prisma will compare a String column against — so this used
-    // to be a 500 about a type mismatch deep in a query.
-    const student = await createStudent();
+  it("refuses a teacher", async () => {
+    const teacher = await createTeacher();
 
     const response = await request(app)
       .get("/student/enrolled/subjects")
-      .query({ student_id: [student.student_id, "65000099"] });
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
-    expect(response.status).toBe(400);
-    expect(response.body.errors).toEqual([
-      {
-        field: "student_id",
-        location: "query",
-        message: "ต้องเป็นข้อความ",
-      },
-    ]);
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "สิทธิ์การเข้าถึงเฉพาะนักศึกษาเท่านั้น",
+    });
   });
 });
 

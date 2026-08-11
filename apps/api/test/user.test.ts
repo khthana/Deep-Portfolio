@@ -8,10 +8,11 @@ import { sessionCookie } from "./helpers/session";
 /**
  * Who the caller is — /user.
  *
- * Two handlers that look alike and are not. GET /user takes an id from the
- * query, has no middleware at all, and hands back the whole `users` row to
- * anybody who asks. GET /user/student ignores the query entirely, takes the id
- * from the session, and returns a narrowed profile assembled from four tables.
+ * Two handlers that look alike and are not, though they now agree on whose data
+ * a caller may read. GET /user still takes an id from the query, but the id has
+ * to be the session's own (#40). GET /user/student ignores the query entirely,
+ * takes the id from the session, and returns a narrowed profile assembled from
+ * four tables.
  *
  * The generated columns matter here (T6). student.full_name_th is stored by
  * Postgres as first_name_th + last_name_th, so it is read back rather than
@@ -19,7 +20,7 @@ import { sessionCookie } from "./helpers/session";
  */
 
 describe("GET /user", () => {
-  it("returns the user the id names", async () => {
+  it("returns the signed-in user's own row", async () => {
     const user = await createTeacher({
       first_name_th: "สมชาย",
       last_name_th: "ใจดี",
@@ -29,6 +30,7 @@ describe("GET /user", () => {
 
     const response = await request(app)
       .get("/user")
+      .set("Cookie", sessionCookie({ userId: user.user_id }))
       .query({ id: user.user_id });
 
     expect(response.status).toBe(200);
@@ -44,29 +46,62 @@ describe("GET /user", () => {
     });
   });
 
-  it("answers 200 with null for an id that belongs to nobody", async () => {
-    // findUnique returning null is not an error here, so the caller gets a
-    // success envelope wrapped around nothing rather than a 404. #20 is where
-    // the missing-row conventions get settled.
+  it("answers for a student too, not only a teacher", async () => {
+    // requireUser rather than requireRole: the row is `users`, which everybody
+    // signed in has one of, and reading your own is not a teacher's privilege.
+    const student = await createStudent();
+
     const response = await request(app)
       .get("/user")
-      .query({ id: "99999999" });
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ id: student.student_id });
 
     expect(response.status).toBe(200);
+    expect(response.body.data.user_id).toBe(student.student_id);
+  });
+
+  it("refuses an id that belongs to somebody else", async () => {
+    const user = await createTeacher();
+    const colleague = await createTeacher();
+
+    const response = await request(app)
+      .get("/user")
+      .set("Cookie", sessionCookie({ userId: user.user_id }))
+      .query({ id: colleague.user_id });
+
+    expect(response.status).toBe(403);
     expect(response.body).toEqual({
-      success: true,
-      message: "Fetched user successfully",
-      data: null,
+      success: false,
+      message: "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
     });
   });
 
+  it("refuses an id that belongs to nobody in the same words", async () => {
+    // It used to answer 200 with null here. Telling "no such user" apart from
+    // "not yours" would say which eight-character ids exist, which is the
+    // question the route was answering for free before #40.
+    const user = await createTeacher();
+
+    const response = await request(app)
+      .get("/user")
+      .set("Cookie", sessionCookie({ userId: user.user_id }))
+      .query({ id: "99999999" });
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe(
+      "คุณไม่มีสิทธิ์เข้าถึงข้อมูลของผู้ใช้อื่น",
+    );
+  });
+
   it("answers 400 when no id is sent at all", async () => {
-    // Not the same as an id that matches nobody. The parameter used to reach
+    // Not the same as an id that is not yours. The parameter used to reach
     // Prisma as `where: { user_id: undefined }`, which is not a question it
     // will answer, so the caller got a 500.
-    await createTeacher();
+    const user = await createTeacher();
 
-    const response = await request(app).get("/user");
+    const response = await request(app)
+      .get("/user")
+      .set("Cookie", sessionCookie({ userId: user.user_id }));
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -76,19 +111,20 @@ describe("GET /user", () => {
     });
   });
 
-  it("serves a request with no session", async () => {
-    // No middleware on this route: anyone who can guess an eight-character id
-    // reads that person's name, email and phone number. That is #31's remit,
-    // not something this ticket changes — the case is here so the hole is
-    // visible rather than implied.
+  it("refuses a request with no session", async () => {
+    // Anyone who could guess an eight-character id used to read that person's
+    // name, email and phone number without logging in at all (#40).
     const user = await createTeacher();
 
     const response = await request(app)
       .get("/user")
       .query({ id: user.user_id });
 
-    expect(response.status).toBe(200);
-    expect(response.body.data.email).toBe(user.email);
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
+    });
   });
 });
 

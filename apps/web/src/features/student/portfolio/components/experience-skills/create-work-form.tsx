@@ -110,7 +110,7 @@ const CreateWorkForm = () => {
     const load = async () => {
       setSubjectsLoading(true);
       try {
-        const res = await getEnrolledSubjects(studentId);
+        const res = await getEnrolledSubjects();
         if (res.success) setSubjects(res.data);
       } catch {
         messageApi.error("ไม่สามารถโหลดรายวิชาได้");
@@ -119,7 +119,9 @@ const CreateWorkForm = () => {
       }
     };
     load();
-  }, [studentId]);
+    // The API reads the student from the session (#40), so there is nothing
+    // here that a change of `studentId` would make stale.
+  }, []);
 
   // ── Fetch all skills on mount ───────────────────────────────────────────────
   useEffect(() => {

@@ -5,7 +5,6 @@ import { requireRole } from "../middlewares/auth.middleware";
 import { validate } from "../validation/validate";
 import {
   activityDetailsParams,
-  enrolledSubjectsQuery,
   sectionActivitiesQuery,
   studentClassworkListQuery,
   studentListQuery,
@@ -77,9 +76,12 @@ studentRouter.get(
   studentController.getActivityDetails.bind(studentController),
 );
 
+// The student comes from the session, like every other "about me" read in this
+// router. It used to come from the query with nothing guarding it, so a
+// classmate's whole timetable was one parameter away (#40).
 studentRouter.get(
   "/enrolled/subjects",
-  validate({ query: enrolledSubjectsQuery }),
+  requireRole("STUDENT"),
   studentController.getEnrolledSubjects.bind(studentController),
 );
 

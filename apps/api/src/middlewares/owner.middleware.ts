@@ -63,16 +63,22 @@ export const NOT_OWNER = "คุณไม่มีสิทธิ์เข้า
  * object, and a middleware that had to be handed the route's schema to do this
  * would be one more thing every route could wire up wrongly.
  *
- * The field is always `user_id` — every route in the group spells it that way,
- * and a parameter for a name nobody varies would be a second way to write the
- * same thing.
+ * The whole portfolio group spells the field `user_id`, so that is the default.
+ * `GET /user` calls it `id` and is the only route that does (#40) — renaming a
+ * live query parameter to save an argument here would be a change the callers
+ * pay for and nobody reads. The type lists both spellings rather than taking any
+ * string, because those are the only two that exist: a third one is a decision
+ * to make on purpose, not a typo to let through.
+ * See docs/adr/0011-self-read-parameter.md.
  */
 export function requireSelf(
   location: "params" | "query",
+  field: "user_id" | "id" = "user_id",
 ): (req: Request, res: Response, next: NextFunction) => void {
   return (req, res, next) => {
-    const named = (req[location] as Record<string, unknown> | undefined)
-      ?.user_id;
+    const named = (req[location] as Record<string, unknown> | undefined)?.[
+      field
+    ];
 
     if (named !== sessionUserId(req)) {
       return errorResponse(res, 403, NOT_OWNER);

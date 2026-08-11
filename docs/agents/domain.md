@@ -13,20 +13,24 @@ How the engineering skills should consume this repo's domain documentation when 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
 
 `CONTEXT.md` does not exist yet in this repo. `docs/adr/` does, and holds the
-decisions taken after the refactor. Six of them are about who may act on
+decisions taken after the refactor. Eight of them are about who may act on
 what: `0001-portfolio-access.md` (a student's own rows),
 `0002-section-access.md` (a teacher's own sections),
 `0003-enrolment-access.md` (a student's own sections),
 `0004-group-leader.md` (a group's own leader),
 `0006-file-access.md` (whoever may read the row an attachment hangs on, via a
-short-lived signed URL) and `0007-group-membership.md` (a new group is the
-caller's own, and everyone in it is in the class). Read all six before adding
-an authorisation check anywhere. The remaining two are about when rather than
-who: `0005-announcement-date.md` — a piece of work with no announcement date
-counts as announced, on every student-facing read — and
-`0008-attachment-lifecycle.md`, which says an attachment dies with its last
-owner, so read it before writing any endpoint that deletes a row an attachment
-hangs on.
+short-lived signed URL), `0007-group-membership.md` (a new group is the
+caller's own, and everyone in it is in the class),
+`0009-submission-ownership.md` (the work you hand in is your own, or your
+group's) and `0011-self-read-parameter.md` (where the "which person" parameter
+of a self-read comes from — the session, or the request with an ownership
+check). Read all eight before adding an authorisation check anywhere. Three
+more are about when or what rather than who: `0005-announcement-date.md` — a
+piece of work with no announcement date counts as announced, on every
+student-facing read — `0008-attachment-lifecycle.md`, which says an attachment
+dies with its last owner, so read it before writing any endpoint that deletes
+a row an attachment hangs on, and `0010-rubric-level-identity.md`, which says
+a rubric level is identified by its `id`, never by its position in the row.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

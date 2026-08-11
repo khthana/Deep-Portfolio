@@ -7,7 +7,6 @@ import { HttpError } from "../utils/http-error";
 import { validated } from "../validation/validate";
 import {
   activityDetailsParams,
-  enrolledSubjectsQuery,
   sectionActivitiesQuery,
   studentClassworkListQuery,
   studentListQuery,
@@ -153,7 +152,7 @@ export default class StudentController {
 
   async getEnrolledSubjects(req: Request, res: Response, next: NextFunction) {
     try {
-      const { student_id } = validated(req, enrolledSubjectsQuery);
+      const student_id = sessionUserId(req);
 
       const subjects =
         await this.studentService.getEnrolledSubjects(student_id);
