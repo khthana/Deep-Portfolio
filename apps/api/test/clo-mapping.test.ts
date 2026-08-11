@@ -152,12 +152,10 @@ describe("POST /mapping/activity", () => {
     ]);
   });
 
-  it("fails for an activity that does not exist", async () => {
-    // Still a 500, and #42 left it alone on purpose: the service throws a bare
-    // Error here rather than reaching Prisma, so there is no P2025 to catch —
-    // and the same throw also covers an activity that exists but carries no
-    // score, below. A 404 would be right for one of them and wrong for the
-    // other, so telling the two apart has to come first.
+  it("answers 404 for an activity that does not exist", async () => {
+    // The activity is what the request is about — the mapping is added to it,
+    // and clo_id is the value it points at — so an id matching nothing is the
+    // 404 of ADR-0012, not the 400 that a body value naming nothing gets.
     const teacher = await createTeacher();
     const clo = await createCLO({ section_id: (await createCourse()).section_id });
 
@@ -166,16 +164,22 @@ describe("POST /mapping/activity", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .send({ activity_id: 999_999, clo_id: clo.clo_id, weight: 100 });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบกิจกรรมที่ต้องการ",
+    });
+    expect(
+      await prisma.activity_clo_mapping.count({
+        where: { activity_id: 999_999 },
+      }),
+    ).toBe(0);
   });
 
-  it("refuses an activity that carries no score", async () => {
-    // Worth knowing why: the service tests `!activity.score_number`, so an
-    // activity worth nothing is reported as an activity that does not exist.
-    // The message is wrong but the refusal is right — there is no score to
-    // divide between CLOs. Still a 500 after #42: this is a hand-written
-    // `throw new Error`, not a Prisma code, and it covers two different cases
-    // that would want two different statuses.
+  it("answers 400 for an activity that carries no score", async () => {
+    // There is nothing to divide between CLOs. score_number defaults to 0, so
+    // an activity nobody has given a mark to reaches here worth zero rather
+    // than null — both are refused, and the same sentence covers both.
     const teacher = await createTeacher();
     const activity = await mappableActivity(0);
     const clo = await createCLO({ section_id: activity.section_id ?? 0 });
@@ -185,7 +189,11 @@ describe("POST /mapping/activity", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .send({ activity_id: activity.id, clo_id: clo.clo_id, weight: 100 });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "กิจกรรมนี้ยังไม่มีคะแนนให้แบ่งตามผลการเรียนรู้",
+    });
     expect(
       await prisma.activity_clo_mapping.count({
         where: { activity_id: activity.id },
@@ -193,18 +201,13 @@ describe("POST /mapping/activity", () => {
     ).toBe(0);
   });
 
-  it("fails when the activity has no score category", async () => {
-    // Recorded, not endorsed. score_ratio_id is NOT NULL with a real foreign
-    // key, and the service falls back to 0 when the activity has no category —
-    // an id no row ever has, so Postgres refuses it and the caller gets a 500
-    // that says nothing about the actual problem. #20 left this as it stands:
-    // the request is well formed, so no schema can catch it. See the pinned
-    // list in BEHAVIOR-CHANGES.md.
-    //
-    // It is also the suite's one genuine 500, so it is where the shape of an
-    // unexpected failure is asserted: the caller is told the server failed and
-    // nothing else. Prisma's message names the table and the constraint, and
-    // used to be forwarded verbatim.
+  it("answers 400 for an activity with no score category", async () => {
+    // score_ratio_id is NOT NULL here with a real foreign key, and the service
+    // used to fall back to 0 when the activity had no category — an id no row
+    // ever has, so Postgres refused it and the caller was told the server had
+    // failed. The request is well formed; what is missing is a fact in the
+    // database. ADR-0015 settles that on 400 — not 403, since no right is being
+    // refused, and not 404, since the row is there (#43).
     const teacher = await createTeacher();
     const course = await createCourse();
     const activity = await createActivity({
@@ -218,10 +221,39 @@ describe("POST /mapping/activity", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }))
       .send({ activity_id: activity.id, clo_id: clo.clo_id, weight: 100 });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "เกิดข้อผิดพลาดภายในระบบ",
+      message: "กิจกรรมนี้ยังไม่ได้เลือกประเภทสัดส่วนคะแนน",
+    });
+    expect(
+      await prisma.activity_clo_mapping.count({
+        where: { activity_id: activity.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("names the missing category first when both are missing", async () => {
+    // An activity can lack a category and a score at once, and the two
+    // refusals read differently. The category is asked about first, so the
+    // order is worth standing on rather than leaving to whoever edits next.
+    const teacher = await createTeacher();
+    const course = await createCourse();
+    const activity = await createActivity({
+      section_id: course.section_id,
+      score_number: 0,
+    });
+    const clo = await createCLO({ section_id: course.section_id });
+
+    const response = await request(app)
+      .post("/mapping/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ activity_id: activity.id, clo_id: clo.clo_id, weight: 100 });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "กิจกรรมนี้ยังไม่ได้เลือกประเภทสัดส่วนคะแนน",
     });
     expect(
       await prisma.activity_clo_mapping.count({
@@ -485,6 +517,11 @@ describe("POST /mapping/learning-activity", () => {
     // foreign key — P2003, not the P2025 #42 mapped onto 404. A foreign key
     // says a value in the body names nothing, which is a different answer
     // again, and #42 leaves it out of scope rather than guess at it.
+    //
+    // Since #43 it is also the file's one remaining 500, so it is where the
+    // shape of an unexpected failure is asserted: the caller is told the server
+    // failed and nothing else. Prisma's message names the table and the
+    // constraint, and used to be forwarded verbatim.
     const teacher = await createTeacher();
     const clo = await createCLO({ section_id: (await createCourse()).section_id });
 
@@ -494,6 +531,10 @@ describe("POST /mapping/learning-activity", () => {
       .send({ learning_activity_id: 999_999, clo_id: clo.clo_id });
 
     expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      message: "เกิดข้อผิดพลาดภายในระบบ",
+    });
     expect(
       await prisma.learning_activity_clo_mapping.count({
         where: { learning_activity_id: 999_999 },

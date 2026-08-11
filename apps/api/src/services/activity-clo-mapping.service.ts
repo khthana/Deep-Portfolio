@@ -1,8 +1,46 @@
 import prisma from "../config/prisma";
 import { CreateActivityCLOMappingBodyReq } from "../models/activity-clo-mapping.model";
+import { HttpError } from "../utils/http-error";
+
+/**
+ * The three ways an activity can turn out not to be mappable, and what the
+ * teacher is told about each (#43, ADR-0015).
+ *
+ * They used to reach the caller as 500s two different ways: one hand-written
+ * `Error("Activity not found")` covering both the missing activity and the
+ * scoreless one, and — for the activity with no category — no throw at all, just
+ * a `?? 0` that wrote an id owning no row and left Postgres to refuse it. All
+ * three said "the server failed" about a request that was well formed and about
+ * a database that was intact.
+ */
+const NOT_FOUND = () => new HttpError(404, "ไม่พบกิจกรรมที่ต้องการ");
+
+const NO_SCORE_CATEGORY = () =>
+  new HttpError(400, "กิจกรรมนี้ยังไม่ได้เลือกประเภทสัดส่วนคะแนน");
+
+const NO_SCORE = () =>
+  new HttpError(400, "กิจกรรมนี้ยังไม่มีคะแนนให้แบ่งตามผลการเรียนรู้");
 
 export default class ActivityCLOMappingService {
   async createActivityCLOMapping(data: CreateActivityCLOMappingBodyReq) {
+    const activity = await prisma.activities.findUnique({
+      where: { id: data.activity_id },
+    });
+
+    if (!activity) throw NOT_FOUND();
+
+    // Asked in this order because an activity can be short of both, and the
+    // category is the one the mapping's own column needs — the score only
+    // decides what the mapping is worth.
+    if (!activity.score_ratio_id) throw NO_SCORE_CATEGORY();
+
+    // Zero counts as no score: `score_number` defaults to 0, so an activity
+    // nobody has put a mark against arrives worth nothing, and there is as
+    // little to divide between CLOs as there is when the column is null.
+    if (!activity.score_number) throw NO_SCORE();
+
+    // Counted only once the activity is known to be mappable — the three
+    // refusals above write nothing, so there is no sequence to reserve.
     const lastSequence = await prisma.activity_clo_mapping.aggregate({
       where: {
         activity_id: data.activity_id,
@@ -14,13 +52,6 @@ export default class ActivityCLOMappingService {
 
     const nextSequence = (lastSequence._max.sequence_order ?? 0) + 1;
 
-    const activity = await prisma.activities.findUnique({
-      where: { id: data.activity_id },
-    });
-
-    if (!activity || !activity.score_number)
-      throw new Error("Activity not found");
-
     const score = activity.score_number * (data.weight / 100);
 
     const result = await prisma.activity_clo_mapping.create({
@@ -30,7 +61,7 @@ export default class ActivityCLOMappingService {
         clo_id: data.clo_id,
         sequence_order: nextSequence,
         score: score,
-        score_ratio_id: activity?.score_ratio_id ?? 0,
+        score_ratio_id: activity.score_ratio_id,
       },
     });
 
