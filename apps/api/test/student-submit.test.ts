@@ -34,9 +34,10 @@ import { listStoredObjects } from "./helpers/storage";
  * - The group path writes to everybody. One student's request marks every
  *   accepted member's submission SUBMITTED and gives them all the same
  *   attachments, so the assertions check a classmate's row too.
- * - The session decides who is submitting, but not *what*. student_activity_id
- *   comes from the body and nothing checks that it belongs to the caller — see
- *   the case that says so, and #31.
+ * - The session decides who is submitting *and* what. student_activity_id comes
+ *   from the body, so both halves are checked against the session before
+ *   anything is written: the submission has to be the caller's, and a group
+ *   submission has to be a group the caller accepted an invite to (#38).
  */
 
 /** A one-pixel PNG, so the upload is a real file rather than a renamed text
@@ -360,11 +361,12 @@ describe("POST /student/submit/activity", () => {
     expect(response.body.message).toBe("ไม่พบงานที่ต้องการส่ง");
   });
 
-  it("submits somebody else's work when handed their submission id", async () => {
-    // The session says who is asking; the body says what is being submitted,
-    // and nothing checks that the two agree. A student who knows a classmate's
-    // student_activity_id can hand their work in for them — and the classmate's
-    // own attachments are replaced by whatever this request carries. #31.
+  it("refuses a submission id that belongs to a classmate", async () => {
+    // The session says who is asking, the body says what is being submitted,
+    // and the two have to agree. A student who knows a classmate's
+    // student_activity_id used to be able to hand the work in for them — and
+    // the classmate's own attachments were replaced by whatever that request
+    // carried. #38.
     const student = await createStudent();
     const classmate = await createStudent();
     const course = await createCourse();
@@ -374,6 +376,10 @@ describe("POST /student/submit/activity", () => {
       activity_id: activity.id,
       status: "NOT_SUBMITTED",
     });
+    const kept = await createFileAttachment({ title: "งานของเพื่อน" });
+    await prisma.student_activity_attachments.create({
+      data: { student_activity_id: theirs.id, attachment_id: kept.attachment_id },
+    });
 
     const response = await request(app)
       .post("/student/submit/activity")
@@ -381,14 +387,113 @@ describe("POST /student/submit/activity", () => {
       .field("student_activity_id", String(theirs.id))
       .field("section_id", String(course.section_id))
       .field("activity_id", String(activity.id))
-      .field("type", "INDIVIDUAL");
+      .field("type", "INDIVIDUAL")
+      .attach("files", PNG, "งานที่ยัดให้เพื่อน.png");
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe("ส่งงานได้เฉพาะงานของตัวเองเท่านั้น");
+
+    // Nothing of the classmate's moved: not the status, not the attachment the
+    // request would have replaced, and nothing reached the bucket.
+    const untouched = await prisma.student_activity.findUniqueOrThrow({
+      where: { id: theirs.id },
+      include: { student_activity_attachments: true },
+    });
+    expect(untouched.status).toBe("NOT_SUBMITTED");
+    expect(
+      untouched.student_activity_attachments.map((a) => a.attachment_id),
+    ).toEqual([kept.attachment_id]);
+    expect(
+      await listStoredObjects(
+        `${course.section_id}/activity/${activity.id}/`,
+      ),
+    ).toEqual([]);
+  });
+
+  it("refuses a group the caller never joined", async () => {
+    // A group submission writes to every accepted member at once, so naming a
+    // group you are not in is naming other people's work — the same hole as
+    // above, one level up. #38.
+    const leader = await createStudent();
+    const outsider = await createStudent();
+    const course = await createCourse();
+    const activity = await createActivity({ section_id: course.section_id });
+    const group = await createActivityGroup({
+      activity_id: activity.id,
+      members: [{ student_id: leader.student_id, status: "ACCEPT" }],
+    });
+    // The outsider has their own submission for the same activity, so the id
+    // they name is genuinely theirs — only the group is not.
+    const own = await createSubmission({
+      student_id: outsider.student_id,
+      activity_id: activity.id,
+      status: "NOT_SUBMITTED",
+    });
+
+    const response = await request(app)
+      .post("/student/submit/activity")
+      .set("Cookie", sessionCookie({ userId: outsider.student_id }))
+      .field("student_activity_id", String(own.id))
+      .field("section_id", String(course.section_id))
+      .field("activity_id", String(activity.id))
+      .field("type", "GROUP")
+      .field("group_id", String(group.id));
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe(
+      "ส่งงานกลุ่มได้เฉพาะกลุ่มที่ตัวเองเป็นสมาชิกเท่านั้น",
+    );
+
+    const submissions = await prisma.student_activity.findMany({
+      where: { activity_id: activity.id },
+    });
+    expect(submissions.map((s) => s.status)).toEqual(
+      submissions.map(() => "NOT_SUBMITTED"),
+    );
+    expect(
+      (await prisma.student_activity_group.findUniqueOrThrow({
+        where: { id: group.id },
+      })).status,
+    ).not.toBe("SUBMITTED");
+  });
+
+  it("refuses a group member who names a teammate's submission id", async () => {
+    // Being in the group is not enough on its own: the reply carries the detail
+    // of whichever submission was named, so it has to be the caller's own. #38.
+    const leader = await createStudent();
+    const member = await createStudent();
+    const course = await createCourse();
+    const activity = await createActivity({ section_id: course.section_id });
+    const group = await createActivityGroup({
+      activity_id: activity.id,
+      members: [
+        { student_id: leader.student_id },
+        { student_id: member.student_id, status: "ACCEPT" },
+      ],
+    });
+    const leaderSubmission = group.student_activity_group_member.find(
+      (m) => m.student_id === leader.student_id,
+    )!;
+
+    const response = await request(app)
+      .post("/student/submit/activity")
+      .set("Cookie", sessionCookie({ userId: member.student_id }))
+      .field(
+        "student_activity_id",
+        String(leaderSubmission.student_activity_id),
+      )
+      .field("section_id", String(course.section_id))
+      .field("activity_id", String(activity.id))
+      .field("type", "GROUP")
+      .field("group_id", String(group.id));
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe("ส่งงานได้เฉพาะงานของตัวเองเท่านั้น");
     expect(
       (await prisma.student_activity.findUniqueOrThrow({
-        where: { id: theirs.id },
+        where: { id: leaderSubmission.student_activity_id! },
       })).status,
-    ).toBe("SUBMITTED");
+    ).toBe("NOT_SUBMITTED");
   });
 
   it("answers 400 for a group submission that names no group", async () => {
@@ -647,6 +752,85 @@ describe("POST /student/submit/learning-activity", () => {
 
     expect(response.status).toBe(404);
     expect(response.body.message).toBe("ไม่พบงานที่ต้องการส่ง");
+  });
+
+  it("refuses a submission id that belongs to a classmate", async () => {
+    // The twin of the activity case: same hole, same refusal (#38).
+    const student = await createStudent();
+    const classmate = await createStudent();
+    const course = await createCourse();
+    const learningActivity = await createLearningActivity({
+      section_id: course.section_id,
+    });
+    const theirs = await createLearningSubmission({
+      student_id: classmate.student_id,
+      learning_activity_id: learningActivity.id,
+      status: "NOT_SUBMITTED",
+    });
+
+    const response = await request(app)
+      .post("/student/submit/learning-activity")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .field("student_learning_activity_id", String(theirs.id))
+      .field("section_id", String(course.section_id))
+      .field("learning_activity_id", String(learningActivity.id))
+      .field("type", "INDIVIDUAL")
+      .attach("files", PNG, "งานที่ยัดให้เพื่อน.png");
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe("ส่งงานได้เฉพาะงานของตัวเองเท่านั้น");
+
+    const untouched =
+      await prisma.student_learning_activity.findUniqueOrThrow({
+        where: { id: theirs.id },
+        include: { student_learning_activity_attachments: true },
+      });
+    expect(untouched.status).toBe("NOT_SUBMITTED");
+    expect(untouched.student_learning_activity_attachments).toEqual([]);
+    expect(
+      await listStoredObjects(
+        `${course.section_id}/learning-activity/${learningActivity.id}/`,
+      ),
+    ).toEqual([]);
+  });
+
+  it("refuses a group the caller never joined", async () => {
+    const leader = await createStudent();
+    const outsider = await createStudent();
+    const course = await createCourse();
+    const learningActivity = await createLearningActivity({
+      section_id: course.section_id,
+    });
+    const group = await createLearningActivityGroup({
+      learning_activity_id: learningActivity.id,
+      members: [{ student_id: leader.student_id, status: "ACCEPT" }],
+    });
+    const own = await createLearningSubmission({
+      student_id: outsider.student_id,
+      learning_activity_id: learningActivity.id,
+      status: "NOT_SUBMITTED",
+    });
+
+    const response = await request(app)
+      .post("/student/submit/learning-activity")
+      .set("Cookie", sessionCookie({ userId: outsider.student_id }))
+      .field("student_learning_activity_id", String(own.id))
+      .field("section_id", String(course.section_id))
+      .field("learning_activity_id", String(learningActivity.id))
+      .field("type", "GROUP")
+      .field("group_id", String(group.id));
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe(
+      "ส่งงานกลุ่มได้เฉพาะกลุ่มที่ตัวเองเป็นสมาชิกเท่านั้น",
+    );
+
+    const submissions = await prisma.student_learning_activity.findMany({
+      where: { learning_activity_id: learningActivity.id },
+    });
+    expect(submissions.map((s) => s.status)).toEqual(
+      submissions.map(() => "NOT_SUBMITTED"),
+    );
   });
 
   it("answers 400 for a type the endpoint does not have", async () => {

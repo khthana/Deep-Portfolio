@@ -26,13 +26,14 @@ import { GetStudentLearningActivityDetailResp } from "../models/student-learning
 import { HttpError } from "../utils/http-error";
 
 /**
- * The four ways handing work in can fail on something the caller named.
+ * The ways handing work in can fail on something the caller named.
  *
- * All four used to be a bare `Error`, which the middleware answers with a 500
- * and — now that it forwards a message only when a status says the message was
- * meant for the caller — with "เกิดข้อผิดพลาดภายในระบบ". None of them is the
- * server breaking: the submission id names nothing, or the group does. Written
- * once each because both halves of the endpoint pair raise the same two.
+ * The first three used to be a bare `Error`, which the middleware answers with
+ * a 500 and — now that it forwards a message only when a status says the
+ * message was meant for the caller — with "เกิดข้อผิดพลาดภายในระบบ". None of
+ * them is the server breaking: the submission id names nothing, or the group
+ * does. Written once each because both halves of the endpoint pair raise the
+ * same ones.
  */
 const SUBMISSION_NOT_FOUND = () =>
   new HttpError(404, "ไม่พบงานที่ต้องการส่ง");
@@ -42,6 +43,22 @@ const GROUP_HAS_NO_MEMBERS = () =>
 
 const GROUP_HAS_NO_SUBMISSIONS = () =>
   new HttpError(404, "ไม่พบงานของสมาชิกในกลุ่ม");
+
+/**
+ * The last two are the caller's right being refused rather than a value being
+ * wrong, so they are 403s (ADR-0007, ADR-0009): the session says who is asking,
+ * the body says what is being submitted, and the two have to agree.
+ *
+ * A submission id that names nothing is still a 404. Telling the two apart says
+ * only that some row carries that id, which every classmate's classwork list
+ * already implies — and a student who is refused deserves to know which of the
+ * two they hit.
+ */
+const NOT_YOUR_SUBMISSION = () =>
+  new HttpError(403, "ส่งงานได้เฉพาะงานของตัวเองเท่านั้น");
+
+const NOT_YOUR_GROUP = () =>
+  new HttpError(403, "ส่งงานกลุ่มได้เฉพาะกลุ่มที่ตัวเองเป็นสมาชิกเท่านั้น");
 
 export default class StudentService {
   private readonly courseService: CourseService;
@@ -212,6 +229,10 @@ export default class StudentService {
         throw SUBMISSION_NOT_FOUND();
       }
 
+      if (activity.student_id !== data.student_id) {
+        throw NOT_YOUR_SUBMISSION();
+      }
+
       // 2. ถ้าเคย submit แล้ว → ลบงานเดิม
       // if (activity.status === "SUBMITTED") {
       // ลบ relation ก่อน
@@ -291,6 +312,12 @@ export default class StudentService {
         throw GROUP_HAS_NO_MEMBERS();
       }
 
+      // Submitting for a group writes to every accepted member at once, so a
+      // group the caller never joined is other people's work (#38).
+      if (!members.some((m) => m.student_id === data.student_id)) {
+        throw NOT_YOUR_GROUP();
+      }
+
       const studentIds = members.map((m) => m.student_id);
 
       // 2. ดึง student_activity ของทุกคน
@@ -306,6 +333,14 @@ export default class StudentService {
 
       if (activities.length === 0) {
         throw GROUP_HAS_NO_SUBMISSIONS();
+      }
+
+      // Being in the group is not enough on its own: the reply carries the
+      // detail of whichever submission was named, so it has to be the caller's.
+      const own = activities.find((a) => a.id === data.student_activity_id);
+
+      if (!own || own.student_id !== data.student_id) {
+        throw NOT_YOUR_SUBMISSION();
       }
 
       // 3. ลบ attachment เดิม (ถ้าเคย submit)
@@ -406,6 +441,10 @@ export default class StudentService {
         throw SUBMISSION_NOT_FOUND();
       }
 
+      if (existingActivity.student_id !== data.student_id) {
+        throw NOT_YOUR_SUBMISSION();
+      }
+
       // if (existingActivity.status === "SUBMITTED") {
       await tx.student_learning_activity_attachments.deleteMany({
         where: {
@@ -479,6 +518,12 @@ export default class StudentService {
         throw GROUP_HAS_NO_MEMBERS();
       }
 
+      // Submitting for a group writes to every accepted member at once, so a
+      // group the caller never joined is other people's work (#38).
+      if (!members.some((m) => m.student_id === data.student_id)) {
+        throw NOT_YOUR_GROUP();
+      }
+
       const studentIds = members.map((m) => m.student_id);
 
       // 2. ดึง student_learning_activity ของทุกคน
@@ -494,6 +539,16 @@ export default class StudentService {
 
       if (activities.length === 0) {
         throw GROUP_HAS_NO_SUBMISSIONS();
+      }
+
+      // Being in the group is not enough on its own: the reply carries the
+      // detail of whichever submission was named, so it has to be the caller's.
+      const own = activities.find(
+        (a) => a.id === data.student_learning_activity_id,
+      );
+
+      if (!own || own.student_id !== data.student_id) {
+        throw NOT_YOUR_SUBMISSION();
       }
 
       // 3. ลบ attachment เดิม (ถ้าเคย submit)
