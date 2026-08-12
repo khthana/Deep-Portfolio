@@ -79,14 +79,17 @@ Run `gh issue view <number> --comments`.
   **All eight are now closed too.**
   Each names what has to be decided before it can be picked up, so read the
   issue before assuming the fix is obvious. Three were filed out of those eight
-  rather than out of the audit, and all three are closed. **#51** came out of
+  rather than out of the audit, and all three are closed, as is the one that
+  came out of *them*. **#51** came out of
   #43 on the same day — the API's Thai error sentences were dropped by every
   `createAsyncThunk` on the way to the screen. **#52** came out
   of #50 on 2026-08-12 — the four submission paths in `student.service.ts` left
   the uploaded files in MinIO when the transaction rolled their `attachments`
   rows back. **#53** came out of #45 the same day — no teacher-facing endpoint
   reported a group member who never answered the invitation, which matters
-  because grading passes over them.
+  because grading passes over them. **#54** came out of #53 the same day and
+  closed on 2026-08-12 — #53 stopped at the API on purpose, so the two teacher
+  marking tables were still not showing anyone the API had started sending.
 
   **Only #1 is open.** A new defect gets a new issue on the same terms: say
   what has to be decided, and record the caller's view of it in

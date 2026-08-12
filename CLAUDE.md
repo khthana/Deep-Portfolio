@@ -52,13 +52,13 @@ answered the invitation. Both `submitted/list` endpoints now carry
 or `REJECTED`; `members` still means who the score lands on. ADR-0023 has that
 reasoning.
 
-**#54 is the frontend following it, and is the only issue besides #1 that is
-open.** Both teacher marking tables now carry a "ยังไม่ตอบรับ" column of their
-own, worded by `apps/web/src/utils/format-unaccepted-member.ts`, so that the
-two columns naming who is being marked read the same as they always did. The
-work is on `main` and the issue closes when it is pushed.
+**#54 was the frontend following it, and is closed too.** Both teacher marking
+tables now carry a "ยังไม่ตอบรับ" column of their own, worded by
+`apps/web/src/utils/format-unaccepted-member.ts`, so that the two columns
+naming who is being marked read the same as they always did — those two come
+from `format-marked-students.ts`, which both pages share.
 
-Read the pinned list in
+Nothing from that line of work is open. Read the pinned list in
 `BEHAVIOR-CHANGES.md` before starting anything: entries with neither "ปิดแล้ว"
 nor an issue number are deliberate, not outstanding. Two that a teacher-facing
 change might reach are that groups still holding `NOT_SUBMITTED` never appear
