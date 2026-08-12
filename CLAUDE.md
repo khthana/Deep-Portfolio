@@ -31,7 +31,7 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1015 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 1019 API cases over
   40 files, 427 web cases over 28 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
@@ -40,22 +40,26 @@ The whole breakdown of #1 is done, #20–#42 included. On top of that came
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md) on 2026-08-11 — every entry under
 "สิ่งที่ **ไม่ได้** เปลี่ยน" was checked against the code, the ones already
 closed were marked so, and what genuinely remained got an issue. **All eight
-are closed**, and so are two of the three they spun off: **#52**, where a failed
-submission left its upload in MinIO; and **#51**, where the API's Thai
+are closed**, and so are all three they spun off: **#52**, where a failed
+submission left its upload in MinIO; **#51**, where the API's Thai
 sentences did not survive the frontend's thunks — the axios response
 interceptor now writes the sentence from the body onto `error.message` and
 erases what axios wrote when there is none, so a screen's own Thai fallback
-gets its turn. ADR-0022 has that reasoning and the two options it rules out.
+gets its turn (ADR-0022 has that reasoning and the two options it rules out);
+and **#53**, where no teacher-facing endpoint showed a group member who never
+answered the invitation. Both `submitted/list` endpoints now carry
+`group.unaccepted_members` beside `group.members`, each row saying `PENDING`
+or `REJECTED`; `members` still means who the score lands on. ADR-0023 has that
+reasoning, and `apps/web` has deliberately not followed yet —
+[`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md) names the four files that must.
 
-**One is left: #53**, from #45. No teacher-facing endpoint shows a group
-member who never answered the invitation, so nothing tells the teacher a name
-is missing from the list they are marking, which `student-activity.test.ts`
-says in the comment on "bookmarks every member's submission for group work".
-It had a pinned entry in `BEHAVIOR-CHANGES.md` saying why the fix was out of
-its ticket's reach — usually that it needs a decision, or that it spans the
-API and the frontend together. Read that list before starting anything;
-entries with neither "ปิดแล้ว" nor an issue number are deliberate, not
-outstanding.
+Nothing from that line of work is open. Read the pinned list in
+`BEHAVIOR-CHANGES.md` before starting anything: entries with neither "ปิดแล้ว"
+nor an issue number are deliberate, not outstanding. Two that a teacher-facing
+change might reach are that groups still holding `NOT_SUBMITTED` never appear
+to the teacher at all — so their unanswered invitations do not either — and
+that there is still no way to send an invitation again after its seven days
+run out.
 
 #1 itself is still open as the umbrella spec.
 

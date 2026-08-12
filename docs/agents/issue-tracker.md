@@ -79,14 +79,18 @@ Run `gh issue view <number> --comments`.
   **All eight are now closed too.**
   Each names what has to be decided before it can be picked up, so read the
   issue before assuming the fix is obvious. Three were filed out of those eight
-  rather than out of the audit, and two of them are closed. **#51** came out of
+  rather than out of the audit, and all three are closed. **#51** came out of
   #43 on the same day — the API's Thai error sentences were dropped by every
-  `createAsyncThunk` on the way to the screen — and is closed. **#52** came out
+  `createAsyncThunk` on the way to the screen. **#52** came out
   of #50 on 2026-08-12 — the four submission paths in `student.service.ts` left
   the uploaded files in MinIO when the transaction rolled their `attachments`
-  rows back — and is closed. **#53** came out of #45 the same day and is the
-  one still open: no teacher-facing endpoint reports a group member who never
-  answered the invitation, which now matters because grading passes over them.
+  rows back. **#53** came out of #45 the same day — no teacher-facing endpoint
+  reported a group member who never answered the invitation, which matters
+  because grading passes over them.
+
+  **Only #1 is open.** A new defect gets a new issue on the same terms: say
+  what has to be decided, and record the caller's view of it in
+  `BEHAVIOR-CHANGES.md`.
 
 ## Wayfinding operations
 
