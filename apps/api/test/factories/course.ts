@@ -34,8 +34,11 @@ export interface CourseOptions {
   description_en?: string;
   program_id?: string;
   section_number?: string;
-  /** users.user_id. Note that GET /course returns null for a section with no
-   *  teacher, so a case about course detail has to pass one. */
+  /** users.user_id. Optional since #48 — a section with no teacher is returned
+   *  with the five `teacher_*` fields null — so pass one only when the case
+   *  reads a teacher out of the response. The column has no foreign key, so an
+   *  id belonging to nobody is writable, and answers exactly as no teacher at
+   *  all does. */
   teacher_id?: string;
   schedule?: ScheduleOptions;
 }

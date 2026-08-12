@@ -262,6 +262,28 @@ describe("GET /course", () => {
       teacher_phone: null,
     });
   });
+
+  it("returns a section whose teacher is not a user, with the teacher unnamed", async () => {
+    // course_sections_teacher.user_id has no foreign key to users, so "the
+    // section has a teacher row" and "the section has a teacher" are different
+    // questions. Both are answered with the same five nulls.
+    const dangling = await createCourse({ teacher_id: "00000000" });
+
+    const response = await request(app)
+      .get("/course")
+      .query({ section_id: dangling.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toMatchObject({
+      section_id: dangling.section_id,
+
+      teacher_id: null,
+      teacher_name_th: null,
+      teacher_name_en: null,
+      teacher_email: null,
+      teacher_phone: null,
+    });
+  });
 });
 
 describe("POST /course/schedule", () => {
