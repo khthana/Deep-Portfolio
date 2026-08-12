@@ -89,7 +89,11 @@ export default class PortfolioSkillController {
       const data = validated(req, updatePortfolioSkillBody);
 
       const result = await orNotFound(
-        this.portfolioSkillService.updatePortfolioSkill(id, data),
+        this.portfolioSkillService.updatePortfolioSkill(
+          sessionUserId(req),
+          id,
+          data,
+        ),
         SKILL_NOT_FOUND,
       );
 

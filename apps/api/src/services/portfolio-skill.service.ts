@@ -45,6 +45,46 @@ export async function assertOwnSkills(
   return wanted;
 }
 
+/**
+ * The other half of the same question: a mapping names a submission as well as
+ * a skill, and the id arrives in the body just as the skill's does (#47).
+ *
+ * Two refusals, because they are two different mistakes. An id that names
+ * nothing is a value inside the row being written that cannot be resolved —
+ * 400, the answer ADR-0012 §2 gives score_ratio_id, not the 404 ADR-0009 gives
+ * a submission that is itself the row being written to. An id that names
+ * somebody else's submission resolves fine and is refused on permission — 403,
+ * and it is a refusal worth making: /works reads the feedback off every
+ * submission the caller's mappings point at, so a mapping onto a stranger's
+ * work would put their teacher's words on this student's page.
+ *
+ * The foreign key added alongside this check says the same thing at the
+ * database, but only the first half of it, and only as an error the caller
+ * cannot read.
+ * See docs/adr/0020-mapping-names-own-submission.md.
+ */
+export async function assertOwnSubmissions(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  submissionIds: number[],
+): Promise<void> {
+  const wanted = [...new Set(submissionIds)];
+  if (wanted.length === 0) return;
+
+  const found = await tx.student_activity.findMany({
+    where: { id: { in: wanted } },
+    select: { student_id: true },
+  });
+
+  if (found.length !== wanted.length) {
+    throw new HttpError(400, "ไม่พบชิ้นงานที่เลือก");
+  }
+
+  if (found.some((submission) => submission.student_id !== userId)) {
+    throw new HttpError(403, "มีชิ้นงานบางรายการที่ไม่ใช่ของผู้ใช้รายนี้");
+  }
+}
+
 const mapToMappingData = (skillId: number, m: SkillMappingReqBody) => ({
   skill_id: skillId,
   student_activity_id: m.student_activity_id,
@@ -165,6 +205,12 @@ export default class PortfolioSkillService {
       });
 
       if (mappings.length > 0) {
+        await assertOwnSubmissions(
+          tx,
+          userId,
+          mappings.map((m) => m.student_activity_id),
+        );
+
         await tx.portfolio_skill_activity_mapping.createMany({
           data: mappings.map((m) => mapToMappingData(skill.id, m)),
         });
@@ -187,6 +233,7 @@ export default class PortfolioSkillService {
   }
 
   async updatePortfolioSkill(
+    userId: string,
     id: number,
     data: UpdatePortfolioSkillReqBody,
   ): Promise<PortfolioSkillResp> {
@@ -201,6 +248,15 @@ export default class PortfolioSkillService {
       }
 
       if (mappings !== undefined) {
+        // The replacement is a delete followed by a write, and both are inside
+        // this transaction, so the mappings the skill already has survive a
+        // refusal wherever it is raised. Asking first only saves the work.
+        await assertOwnSubmissions(
+          tx,
+          userId,
+          mappings.map((m) => m.student_activity_id),
+        );
+
         await tx.portfolio_skill_activity_mapping.deleteMany({
           where: { skill_id: id },
         });
@@ -271,6 +327,7 @@ export default class PortfolioSkillService {
 
     await prisma.$transaction(async (tx) => {
       const skillIds = await assertOwnSkills(tx, user_id, skill_ids);
+      await assertOwnSubmissions(tx, user_id, [student_activity_id]);
 
       await tx.portfolio_skill_activity_mapping.deleteMany({
         where: {

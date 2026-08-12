@@ -27,14 +27,18 @@ import { sessionCookie } from "./helpers/session";
  *   the submission before writing the new set. That is what makes editing a
  *   work's skill list a single call.
  *
- * portfolio_skill_activity_mapping.student_activity_id has no foreign key, so a
- * mapping can name a submission that does not exist.
- *
  * Ownership is two-layered here since #31: a skill owns itself, and a mapping
  * is owned by the skill it hangs off. /assign-work is the one route in the
  * group whose check is not the middleware's — it names skills in the body, and
  * the service refuses the transaction unless every one of them is the caller's.
  * See docs/adr/0001-portfolio-access.md.
+ *
+ * The submission a mapping names is checked the same way, on all three routes
+ * that write mappings, since #47: an id that names nothing is refused with 400
+ * and an id that names somebody else's submission with 403, because /works
+ * would otherwise read that submission's feedback into the caller's page. The
+ * column carries a foreign key now as well, so the two cannot drift apart.
+ * See docs/adr/0020-mapping-names-own-submission.md.
  */
 
 describe("GET /portfolio-skill", () => {
@@ -353,7 +357,9 @@ describe("POST /portfolio-skill", () => {
 
   it("writes the mappings the request carries along with the skill", async () => {
     const student = await createStudent();
-    const submission = await createSubmission();
+    const submission = await createSubmission({
+      student_id: student.student_id,
+    });
 
     const response = await request(app)
       .post("/portfolio-skill")
@@ -435,6 +441,63 @@ describe("POST /portfolio-skill", () => {
     ).toBe(0);
   });
 
+  it("refuses a mapping onto a submission that does not exist, and writes nothing", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .post("/portfolio-skill")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({
+        name: "การเขียนโปรแกรม",
+        mappings: [{ student_activity_id: 999999 }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      success: false,
+      message: "ไม่พบชิ้นงานที่เลือก",
+    });
+    // The skill is written before the mappings are, so the refusal has to take
+    // the whole transaction back with it.
+    expect(
+      await prisma.portfolio_skill.count({
+        where: { user_id: student.student_id },
+      }),
+    ).toBe(0);
+  });
+
+  it("refuses a mapping onto another student's submission, and writes nothing", async () => {
+    const student = await createStudent();
+    const stranger = await createStudent();
+    const theirs = await createSubmission({
+      student_id: stranger.student_id,
+    });
+
+    const response = await request(app)
+      .post("/portfolio-skill")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({
+        name: "การเขียนโปรแกรม",
+        mappings: [{ student_activity_id: theirs.id }],
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({
+      success: false,
+      message: "มีชิ้นงานบางรายการที่ไม่ใช่ของผู้ใช้รายนี้",
+    });
+    expect(
+      await prisma.portfolio_skill.count({
+        where: { user_id: student.student_id },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.portfolio_skill_activity_mapping.count({
+        where: { student_activity_id: theirs.id },
+      }),
+    ).toBe(0);
+  });
+
   it("refuses a session for a user who does not exist", async () => {
     const response = await request(app)
       .post("/portfolio-skill")
@@ -472,9 +535,10 @@ describe("PUT /portfolio-skill/:id", () => {
   });
 
   it("replaces the mappings rather than adding to them", async () => {
-    const skill = await createPortfolioSkill();
-    const old = await createSubmission();
-    const fresh = await createSubmission();
+    const student = await createStudent();
+    const skill = await createPortfolioSkill({ user_id: student.student_id });
+    const old = await createSubmission({ student_id: student.student_id });
+    const fresh = await createSubmission({ student_id: student.student_id });
     await createPortfolioSkillActivityMapping({
       skill_id: skill.id,
       student_activity_id: old.id,
@@ -531,6 +595,77 @@ describe("PUT /portfolio-skill/:id", () => {
     expect(response.body.data.mappings.map((m: { id: number }) => m.id)).toEqual(
       [mapping.id],
     );
+  });
+
+  it("refuses a mapping onto a submission that does not exist, and keeps the ones it had", async () => {
+    const student = await createStudent();
+    const skill = await createPortfolioSkill({
+      user_id: student.student_id,
+      name: "ชื่อเดิม",
+    });
+    const mapping = await createPortfolioSkillActivityMapping({
+      skill_id: skill.id,
+    });
+
+    const response = await request(app)
+      .put(`/portfolio-skill/${skill.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({
+        name: "ชื่อใหม่",
+        mappings: [{ student_activity_id: 999999 }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      success: false,
+      message: "ไม่พบชิ้นงานที่เลือก",
+    });
+    // The update deletes the old mappings before writing the new ones, so a
+    // refusal that did not take the transaction back would leave the skill
+    // with none at all — and rename it on the way.
+    expect(
+      await prisma.portfolio_skill_activity_mapping.findUnique({
+        where: { id: mapping.id },
+      }),
+    ).not.toBeNull();
+    expect(
+      (
+        await prisma.portfolio_skill.findUniqueOrThrow({
+          where: { id: skill.id },
+        })
+      ).name,
+    ).toBe("ชื่อเดิม");
+  });
+
+  it("refuses a mapping onto another student's submission, and keeps the ones it had", async () => {
+    const student = await createStudent();
+    const stranger = await createStudent();
+    const skill = await createPortfolioSkill({ user_id: student.student_id });
+    const mapping = await createPortfolioSkillActivityMapping({
+      skill_id: skill.id,
+    });
+    const theirs = await createSubmission({ student_id: stranger.student_id });
+
+    const response = await request(app)
+      .put(`/portfolio-skill/${skill.id}`)
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({ mappings: [{ student_activity_id: theirs.id }] });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({
+      success: false,
+      message: "มีชิ้นงานบางรายการที่ไม่ใช่ของผู้ใช้รายนี้",
+    });
+    expect(
+      await prisma.portfolio_skill_activity_mapping.findMany({
+        where: { skill_id: skill.id },
+      }),
+    ).toHaveLength(1);
+    expect(
+      await prisma.portfolio_skill_activity_mapping.findUnique({
+        where: { id: mapping.id },
+      }),
+    ).not.toBeNull();
   });
 
   it("refuses a request with no session, and changes nothing", async () => {
@@ -868,9 +1003,10 @@ describe("POST /portfolio-skill/assign-work", () => {
     ).toEqual([skill.id]);
   });
 
-  it("accepts a submission id that names nothing", async () => {
-    // Recorded, not endorsed: student_activity_id carries no foreign key, so
-    // the mapping is written and /works simply finds no feedback for it.
+  it("refuses a submission id that names nothing, and writes nothing", async () => {
+    // See BEHAVIOR-CHANGES.md. The mapping used to be written: nothing checked
+    // the id and no foreign key stood behind it, so the work page listed a
+    // skill whose evidence did not exist (#47).
     const student = await createStudent();
     const skill = await createPortfolioSkill({ user_id: student.student_id });
 
@@ -882,12 +1018,44 @@ describe("POST /portfolio-skill/assign-work", () => {
         skill_ids: [skill.id],
       });
 
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      success: false,
+      message: "ไม่พบชิ้นงานที่เลือก",
+    });
     expect(
       await prisma.portfolio_skill_activity_mapping.count({
         where: { student_activity_id: 999999 },
       }),
-    ).toBe(1);
+    ).toBe(0);
+  });
+
+  it("refuses a submission that belongs to somebody else, and writes nothing", async () => {
+    // /works pulls the submission's feedback in beside the skills, so mapping
+    // a stranger's work would put their teacher's words on this page.
+    const student = await createStudent();
+    const stranger = await createStudent();
+    const skill = await createPortfolioSkill({ user_id: student.student_id });
+    const theirs = await createSubmission({ student_id: stranger.student_id });
+
+    const response = await request(app)
+      .post("/portfolio-skill/assign-work")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({
+        student_activity_id: theirs.id,
+        skill_ids: [skill.id],
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toMatchObject({
+      success: false,
+      message: "มีชิ้นงานบางรายการที่ไม่ใช่ของผู้ใช้รายนี้",
+    });
+    expect(
+      await prisma.portfolio_skill_activity_mapping.count({
+        where: { student_activity_id: theirs.id },
+      }),
+    ).toBe(0);
   });
 
   it("refuses to map a skill that belongs to somebody else", async () => {

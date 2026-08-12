@@ -7,6 +7,7 @@ import {
   createActivityRubric,
   createCourse,
   createLinkAttachment,
+  createPortfolioSkillActivityMapping,
   createScoreWeight,
   createStudent,
   createSubmission,
@@ -1252,6 +1253,9 @@ describe("DELETE /activity", () => {
       activity_id: activity.id,
       attachment_ids: [handedIn.attachment_id],
     });
+    const mapping = await createPortfolioSkillActivityMapping({
+      student_activity_id: submission.id,
+    });
     const survivor = await createActivity();
 
     const response = await request(app)
@@ -1278,6 +1282,18 @@ describe("DELETE /activity", () => {
         where: { id: submission.id },
       }),
     ).toBeNull();
+    // The student's portfolio goes with it: a mapping is evidence of a skill,
+    // and the work it points at is gone (#47). The skill itself stays.
+    expect(
+      await prisma.portfolio_skill_activity_mapping.findUnique({
+        where: { id: mapping.id },
+      }),
+    ).toBeNull();
+    expect(
+      await prisma.portfolio_skill.findUnique({
+        where: { id: mapping.skill_id },
+      }),
+    ).not.toBeNull();
 
     // Both sides of the work lose their last owner in the same cascade — what
     // the teacher handed out and what the student handed in — so the
