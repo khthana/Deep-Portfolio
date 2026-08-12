@@ -3,6 +3,7 @@ import { AttachmentDetailResp } from "./announcement.model";
 import {
   StudentActivityStatus,
   StudentActivityStatusDB,
+  SubmissionGroup,
 } from "./student-activity.model";
 import { ClassworkType } from "./student.model";
 import { GetLearningActivityDetailResp } from "./learning-activity.model";
@@ -76,14 +77,9 @@ export type Submission = {
     last_name_th: string;
   };
 
-  group?: {
-    group_id: number;
-    members: {
-      student_id: string;
-      first_name_th: string;
-      last_name_th: string;
-    }[];
-  };
+  // Same roster as the graded half, and for the same reason — see
+  // SubmissionGroup in student-activity.model.ts.
+  group?: SubmissionGroup;
 };
 
 //-------------------------------

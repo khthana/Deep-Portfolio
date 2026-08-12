@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { AttachmentDetailResp } from "./announcement.model";
 import { ClassworkType } from "./student.model";
 import { GetActivityDetailResp } from "./activity.model";
+import type { MemberStatus } from "./student-activity-group.model";
 import type {
   BookmarkStudentActivityBody,
   GradeStudentActivityBody,
@@ -106,14 +107,35 @@ export type Submission = {
     last_name_th: string;
   };
 
-  group?: {
-    group_id: number;
-    members: {
-      student_id: string;
-      first_name_th: string;
-      last_name_th: string;
-    }[];
-  };
+  group?: SubmissionGroup;
+};
+
+/**
+ * The group behind a group submission, as a teacher's roster screen sees it.
+ *
+ * The two lists are deliberately separate. `members` means "who this score
+ * lands on", which since ADR-0017 is the ACCEPT members and nobody else;
+ * `unaccepted_members` is everyone who was invited and has not accepted, which
+ * is information the teacher has no other way to get — invitations expire after
+ * seven days and there is no resend endpoint, so a student who never clicked is
+ * silently missing from the marking list (#53).
+ */
+export type SubmissionGroup = {
+  group_id: number;
+  members: GroupMemberDetail[];
+  unaccepted_members: UnacceptedGroupMember[];
+};
+
+export type GroupMemberDetail = {
+  student_id: string;
+  first_name_th: string;
+  last_name_th: string;
+};
+
+/** ACCEPT is what `members` is; what is left is the two kinds of silence, and
+ *  the caller is told which one it is looking at. */
+export type UnacceptedGroupMember = GroupMemberDetail & {
+  status: Exclude<MemberStatus, "ACCEPT">;
 };
 
 //----------------------------------

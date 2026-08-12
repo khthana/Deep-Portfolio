@@ -10,6 +10,7 @@ import {
   GradeStudentActivityData,
   Submission,
 } from "../models/student-activity.model";
+import { splitByAcceptance } from "../utils/group-members";
 import { isAnnounced } from "../utils/is-announced";
 import ActivityService from "./activity.service";
 import AttachmentsService from "./attachments.service";
@@ -113,8 +114,9 @@ export default class StudentActivityService {
         status: { not: "NOT_SUBMITTED" },
       },
       select: {
+        // Every member, not only the ACCEPT ones: the split happens below,
+        // because the teacher is shown both lists (#53).
         student_activity_group_member: {
-          where: { status: "ACCEPT" },
           include: {
             student: {
               select: {
@@ -145,11 +147,10 @@ export default class StudentActivityService {
 
     if (groups.length <= 0) return [];
     return groups
-      .filter((g) => g.student_activity_group_member.length > 0)
-      .map((g) => {
-        const activity = g.student_activity_group_member[0].student_activity!;
-
-        // if (!activity) return [];
+      .map((g) => splitByAcceptance(g.student_activity_group_member))
+      .filter((g) => g.accepted.length > 0)
+      .map(({ accepted, unaccepted }) => {
+        const activity = accepted[0].student_activity!;
 
         return {
           submission_type: "GROUP",
@@ -161,8 +162,9 @@ export default class StudentActivityService {
           remark: activity.remark,
           id: activity.id,
           group: {
-            group_id: g.student_activity_group_member[0].group_id,
-            members: g.student_activity_group_member.map((m) => m.student),
+            group_id: accepted[0].group_id,
+            members: accepted.map((m) => m.student),
+            unaccepted_members: unaccepted,
           },
         };
       });

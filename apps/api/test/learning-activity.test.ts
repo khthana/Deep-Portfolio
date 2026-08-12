@@ -5,6 +5,7 @@ import prisma from "../src/config/prisma";
 import {
   createCourse,
   createLearningActivity,
+  createLearningActivityGroup,
   createLearningSubmission,
   createLessonPlan,
   createLinkAttachment,
@@ -819,6 +820,91 @@ describe("GET /learning-activity/submitted/list", () => {
     ]);
     // No score anywhere in the payload: this work is done or not done.
     expect(response.body.data.submissions[0]).not.toHaveProperty("score");
+  });
+
+  it("names the group members who never answered the invitation", async () => {
+    const teacher = await createTeacher();
+    const activity = await createLearningActivity({
+      learning_activity_type: "group",
+    });
+    const leader = await createStudent({ first_name_th: "สมชาย" });
+    const pending = await createStudent({ first_name_th: "สมหญิง" });
+    const declined = await createStudent({ first_name_th: "สมศรี" });
+    const group = await createLearningActivityGroup({
+      learning_activity_id: activity.id,
+      status: "SUBMITTED",
+      members: [
+        { student_id: leader.student_id },
+        { student_id: pending.student_id, status: "PENDING" },
+        { student_id: declined.student_id, status: "REJECTED" },
+      ],
+    });
+    await prisma.student_learning_activity.updateMany({
+      where: { learning_activity_id: activity.id },
+      data: { status: "SUBMITTED" },
+    });
+
+    const response = await request(app)
+      .get("/learning-activity/submitted/list")
+      .query({ learning_activity_id: activity.id })
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(200);
+    const [submission] = response.body.data.submissions;
+    expect(submission.submission_type).toBe("GROUP");
+    expect(submission.group.group_id).toBe(group.id);
+    expect(submission.group.members).toEqual([
+      expect.objectContaining({
+        student_id: leader.student_id,
+        first_name_th: "สมชาย",
+      }),
+    ]);
+    expect(submission.group.unaccepted_members).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          student_id: pending.student_id,
+          first_name_th: "สมหญิง",
+          status: "PENDING",
+        }),
+        expect.objectContaining({
+          student_id: declined.student_id,
+          first_name_th: "สมศรี",
+          status: "REJECTED",
+        }),
+      ]),
+    );
+    expect(submission.group.unaccepted_members).toHaveLength(2);
+  });
+
+  it("leaves the unanswered list empty when the whole group accepted", async () => {
+    const teacher = await createTeacher();
+    const activity = await createLearningActivity({
+      learning_activity_type: "group",
+    });
+    const leader = await createStudent();
+    const member = await createStudent();
+    await createLearningActivityGroup({
+      learning_activity_id: activity.id,
+      status: "SUBMITTED",
+      members: [
+        { student_id: leader.student_id },
+        { student_id: member.student_id, status: "ACCEPT" },
+      ],
+    });
+    await prisma.student_learning_activity.updateMany({
+      where: { learning_activity_id: activity.id },
+      data: { status: "SUBMITTED" },
+    });
+
+    const response = await request(app)
+      .get("/learning-activity/submitted/list")
+      .query({ learning_activity_id: activity.id })
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(200);
+    const [submission] = response.body.data.submissions;
+    expect(submission.group.members).toHaveLength(2);
+    expect(submission.group.unaccepted_members).toEqual([]);
   });
 
   it("answers null for an activity that does not exist", async () => {

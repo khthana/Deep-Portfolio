@@ -10,6 +10,7 @@ import {
   GradeStudentLearningActivityData,
   Submission,
 } from "../models/student-learning-activity.model";
+import { splitByAcceptance } from "../utils/group-members";
 import { isAnnounced } from "../utils/is-announced";
 import ActivityService from "./activity.service";
 import AttachmentsService from "./attachments.service";
@@ -111,8 +112,9 @@ export default class StudentLearningActivityService {
         status: { not: "NOT_SUBMITTED" },
       },
       select: {
+        // Every member, not only the ACCEPT ones: the split happens below,
+        // because the teacher is shown both lists (#53).
         student_learning_activity_group_member: {
-          where: { status: "ACCEPT" },
           include: {
             student: {
               select: {
@@ -142,28 +144,23 @@ export default class StudentLearningActivityService {
 
     if (groups.length <= 0) return [];
     return groups
-      .filter((g) => g.student_learning_activity_group_member.length > 0)
-      .map((g) => {
-        const activity =
-          g.student_learning_activity_group_member[0]
-            .student_learning_activity!;
-
-        // if (!activity) return [];
+      .map((g) => splitByAcceptance(g.student_learning_activity_group_member))
+      .filter((g) => g.accepted.length > 0)
+      .map(({ accepted, unaccepted }) => {
+        const activity = accepted[0].student_learning_activity!;
 
         return {
           submission_type: "GROUP",
           status: activity.status,
           submitted_at: activity.submitted_at,
-          // score: activity.score ? Number(activity.score) : null,
           feedback: activity.feedback,
           remark: activity.remark,
           is_bookmark: activity.is_bookmark,
           id: activity.id,
           group: {
-            group_id: g.student_learning_activity_group_member[0].group_id,
-            members: g.student_learning_activity_group_member.map(
-              (m) => m.student,
-            ),
+            group_id: accepted[0].group_id,
+            members: accepted.map((m) => m.student),
+            unaccepted_members: unaccepted,
           },
         };
       });
