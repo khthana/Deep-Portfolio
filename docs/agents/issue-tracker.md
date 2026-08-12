@@ -61,9 +61,10 @@ Run `gh issue view <number> --comments`.
   and carries `ready-for-agent`. Blocking edges use GitHub's native issue
   dependencies, so the frontier query below is the authoritative "what can I
   pick up next" — don't infer readiness from the issue number.
-  **#2–#23 are closed.** The only one left is #24 (README). #23 (importer) was
-  `needs-info` until the project owner handed over the real data on 2026-08-09;
-  that label is gone and the ticket is done.
+  **#2–#24 are all closed** — #24 (README) went on 2026-08-10, which is the whole
+  breakdown done. #23 (importer) was `needs-info` until the project owner handed
+  over the real data on 2026-08-09; that label is gone and the ticket is done.
+  #1 itself stays open as the umbrella.
 - Issues #12–#18 (the endpoint test batches) were deliberately chained one after
   another even though they are technically independent. They all edit the same test
   factory files, so running them in parallel would have conflicted. All are closed
