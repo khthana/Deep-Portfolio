@@ -2171,7 +2171,7 @@ importer ตอนนี้ห้า field ของอาจารย์เป�
 | **ของเดิม** | ลบ join row เดิม → ผูกไฟล์ที่ส่งซ้ำกลับเข้าไป → `deleteUnreferenced` → `removeFiles` หลัง commit |
 | **ของใหม่** | เหมือนเดิมทุกขั้น `transactionWithUploads` ห่อ `prisma.$transaction` เฉย ๆ และเพิ่มการเก็บคืนเฉพาะบน path ที่ล้ม |
 | **เหตุผล** | ระหว่างสองจุดนั้นไฟล์ที่นักศึกษาเลือกเก็บไว้ยังไม่มีใครชี้ถึงชั่วคราว กวาดตรงนั้นคือลบงานที่เขาตั้งใจเก็บ (#34) |
-| **ที่ยืนยัน** | เคส `keeps the file a resubmission names again, object and all` ใน `student-submit.test.ts` ส่งซ้ำแล้วนับ object ในถัง ไม่ใช่เชื่อตามที่เขียนไว้ |
+| **ที่ยืนยัน** | สี่เคส `keeps the file a (group) resubmission names again, object and all` ใน `student-submit.test.ts` หนึ่งเคสต่อหนึ่งเมธอด ทุกเคสส่งงานซ้ำโดยตั้งชื่อไฟล์เดิมกลับเข้าไปใน `existing_files_ids` แล้วนับ object ที่ยังอยู่ในถัง ไม่ใช่เชื่อตามที่เขียนไว้ |
 
 ### 3. `createAttachments` รับ `tx` กับ `uploads` เป็นก้อนเดียว
 

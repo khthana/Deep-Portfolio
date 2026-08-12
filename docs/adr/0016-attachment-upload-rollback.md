@@ -91,11 +91,16 @@ throw ต่อ ซึ่งเป็นสิ่งที่ต้องกา�
 
 **(#52) ทั้งสี่จุดห่อด้วย `transactionWithUploads` แล้ว** และลำดับของ ADR-0008 ไม่
 ขยับเลย — สิ่งที่เพิ่มเข้ามาทำงานเฉพาะตอนที่ transaction ไม่ commit ส่วน
-`deleteUnreferenced` ทำงานเฉพาะตอนที่ commit สองชุดนี้จึงไม่มีวันทับกัน ที่ยืนยัน
-คือเคส `keeps the file a resubmission names again, object and all` ใน
-`student-submit.test.ts` ซึ่งส่งงานซ้ำแล้วนับ object ที่ยังอยู่ในถัง บวกกับสี่เคส
-ที่ล้มกลางคันแล้ววัดว่าถังว่าง หนึ่งเคสต่อหนึ่งเมธอด รวมแล้วสิบเอ็ดจุดที่เรียก
-`createAttachments` จากใน transaction ส่งครบทั้ง `tx` และ `uploads` ทุกจุด
+`deleteUnreferenced` ทำงานเฉพาะตอนที่ commit สองชุดนี้จึงไม่มีวันทับกัน
+
+ที่ยืนยันมีแปดเคสใน `student-submit.test.ts` — สองเคสต่อหนึ่งเมธอด เคสหนึ่งส่งงาน
+ซ้ำโดยตั้งชื่อไฟล์เดิมกลับเข้าไปแล้วนับ object ที่ยังอยู่ในถัง อีกเคสหนึ่งล้มกลางคัน
+แล้ววัดว่าถังว่าง ก่อนหน้านี้มีแต่ `submitActivity` ที่มีเคสส่งซ้ำโดยตั้งชื่อไฟล์
+เดิมกลับเข้าไป และเป็นการวัดที่แถว ส่วน `submitGroupLearningActivity` ไม่มีเคสส่ง
+ซ้ำเลย
+
+รวมแล้วสิบเอ็ดจุดที่เรียก `createAttachments` จากใน transaction ส่งครบทั้ง `tx` และ
+`uploads` ทุกจุด
 
 **จุดที่อยู่นอก transaction ไม่นับ** 13 จุดที่เหลืออยู่ใน service ของ e-Portfolio
 ทั้งเจ็ดตัว (`portfolio-{activity,award,certificate,internship,thesis,training}`

@@ -241,6 +241,13 @@ describe("POST /student/submit/activity", () => {
     // (#52). The failure is a file the student names again that is not there
     // any more: it reaches the join table as a foreign key nothing satisfies,
     // which is after the upload.
+    //
+    // An empty bucket is also what a request that never uploaded would leave,
+    // and nothing here can tell the two apart from outside — the object's key
+    // is never in the response. What holds the case honest is where the
+    // failure is: move the refusal above `createAttachments` and this stops
+    // being a rollback case, so it is the order that has to be kept, not the
+    // assertion.
     const student = await createStudent();
     const course = await createCourse();
     const activity = await createActivity({ section_id: course.section_id });
@@ -406,6 +413,66 @@ describe("POST /student/submit/activity", () => {
         first.attachment_id,
       );
     }
+  });
+
+  it("keeps the file a group resubmission names again, object and all", async () => {
+    // The group twin of the same order (#34, ADR-0008): the sweep counts
+    // references after every member has been linked back, so the file named
+    // again survives for all of them. Counted in the bucket, because #52 gave
+    // a failed request a second way to remove objects.
+    const leader = await createStudent();
+    const member = await createStudent();
+    const course = await createCourse();
+    const activity = await createActivity({ section_id: course.section_id });
+    const group = await createActivityGroup({
+      activity_id: activity.id,
+      members: [
+        { student_id: leader.student_id },
+        { student_id: member.student_id, status: "ACCEPT" },
+      ],
+    });
+    const leaderSubmission = group.student_activity_group_member.find(
+      (m) => m.student_id === leader.student_id,
+    )!;
+    const groupPrefix = `${course.section_id}/activity/${activity.id}/group-${group.id}`;
+
+    const submit = (filename: string, keep: number[]) =>
+      request(app)
+        .post("/student/submit/activity")
+        .set("Cookie", sessionCookie({ userId: leader.student_id }))
+        .field(
+          "student_activity_id",
+          String(leaderSubmission.student_activity_id),
+        )
+        .field("section_id", String(course.section_id))
+        .field("activity_id", String(activity.id))
+        .field("type", "GROUP")
+        .field("group_id", String(group.id))
+        .field("existing_files_ids", JSON.stringify(keep))
+        .attach("files", PNG, filename);
+
+    expect((await submit("งานกลุ่มฉบับแรก.png", [])).status).toBe(200);
+    const first = await prisma.attachments.findFirstOrThrow({
+      where: { title: "งานกลุ่มฉบับแรก.png" },
+    });
+
+    expect(
+      (await submit("งานกลุ่มฉบับสอง.png", [first.attachment_id])).status,
+    ).toBe(200);
+
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: first.attachment_id },
+      }),
+    ).not.toBeNull();
+    const submissions = await prisma.student_activity.findMany({
+      where: { activity_id: activity.id },
+      include: { student_activity_attachments: true },
+    });
+    for (const submission of submissions) {
+      expect(submission.student_activity_attachments).toHaveLength(2);
+    }
+    expect(await listStoredObjects(groupPrefix)).toHaveLength(2);
   });
 
   it("takes the group's upload back out of the bucket when it fails", async () => {
@@ -894,6 +961,114 @@ describe("POST /student/submit/learning-activity", () => {
       `${course.section_id}/learning-activity/${learningActivity.id}/group-${group.id}`,
     );
     expect(objects).toHaveLength(1);
+  });
+
+  it("keeps the file a resubmission names again, object and all", async () => {
+    // ADR-0008's order again, on the learning-activity side (#34).
+    const student = await createStudent();
+    const course = await createCourse();
+    const learningActivity = await createLearningActivity({
+      section_id: course.section_id,
+    });
+    const submission = await createLearningSubmission({
+      student_id: student.student_id,
+      learning_activity_id: learningActivity.id,
+      status: "NOT_SUBMITTED",
+    });
+    const prefix = `${course.section_id}/learning-activity/${learningActivity.id}/${student.student_id}`;
+
+    const submit = (filename: string, keep: number[]) =>
+      request(app)
+        .post("/student/submit/learning-activity")
+        .set("Cookie", sessionCookie({ userId: student.student_id }))
+        .field("student_learning_activity_id", String(submission.id))
+        .field("section_id", String(course.section_id))
+        .field("learning_activity_id", String(learningActivity.id))
+        .field("type", "INDIVIDUAL")
+        .field("existing_files_ids", JSON.stringify(keep))
+        .attach("files", PNG, filename);
+
+    expect((await submit("กิจกรรมฉบับแรก.png", [])).status).toBe(200);
+    const first = await prisma.attachments.findFirstOrThrow({
+      where: { title: "กิจกรรมฉบับแรก.png" },
+    });
+
+    expect(
+      (await submit("กิจกรรมฉบับสอง.png", [first.attachment_id])).status,
+    ).toBe(200);
+
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: first.attachment_id },
+      }),
+    ).not.toBeNull();
+    expect(
+      await prisma.student_learning_activity_attachments.count({
+        where: { student_learning_activity_id: submission.id },
+      }),
+    ).toBe(2);
+    expect(await listStoredObjects(prefix)).toHaveLength(2);
+  });
+
+  it("keeps the file a group resubmission names again, object and all", async () => {
+    // And the fourth: the group learning-activity path had no resubmission
+    // case of its own until #52, so the order it shares with the other three
+    // was the only one nothing stood on (#34, ADR-0008).
+    const leader = await createStudent();
+    const member = await createStudent();
+    const course = await createCourse();
+    const learningActivity = await createLearningActivity({
+      section_id: course.section_id,
+    });
+    const group = await createLearningActivityGroup({
+      learning_activity_id: learningActivity.id,
+      members: [
+        { student_id: leader.student_id },
+        { student_id: member.student_id, status: "ACCEPT" },
+      ],
+    });
+    const leaderMembership = group.student_learning_activity_group_member.find(
+      (m) => m.student_id === leader.student_id,
+    )!;
+    const groupPrefix = `${course.section_id}/learning-activity/${learningActivity.id}/group-${group.id}`;
+
+    const submit = (filename: string, keep: number[]) =>
+      request(app)
+        .post("/student/submit/learning-activity")
+        .set("Cookie", sessionCookie({ userId: leader.student_id }))
+        .field(
+          "student_learning_activity_id",
+          String(leaderMembership.student_learning_activity_id),
+        )
+        .field("section_id", String(course.section_id))
+        .field("learning_activity_id", String(learningActivity.id))
+        .field("type", "GROUP")
+        .field("group_id", String(group.id))
+        .field("existing_files_ids", JSON.stringify(keep))
+        .attach("files", PNG, filename);
+
+    expect((await submit("กิจกรรมกลุ่มฉบับแรก.png", [])).status).toBe(200);
+    const first = await prisma.attachments.findFirstOrThrow({
+      where: { title: "กิจกรรมกลุ่มฉบับแรก.png" },
+    });
+
+    expect(
+      (await submit("กิจกรรมกลุ่มฉบับสอง.png", [first.attachment_id])).status,
+    ).toBe(200);
+
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: first.attachment_id },
+      }),
+    ).not.toBeNull();
+    const submissions = await prisma.student_learning_activity.findMany({
+      where: { learning_activity_id: learningActivity.id },
+      include: { student_learning_activity_attachments: true },
+    });
+    for (const submission of submissions) {
+      expect(submission.student_learning_activity_attachments).toHaveLength(2);
+    }
+    expect(await listStoredObjects(groupPrefix)).toHaveLength(2);
   });
 
   it("takes the uploaded file back out of the bucket when it fails", async () => {
