@@ -39,12 +39,11 @@ The whole breakdown of #1 is done, #20–#42 included. On top of that came
 **#43–#50**, the eight defects that survived an audit of the pinned list in
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md) on 2026-08-11 — every entry under
 "สิ่งที่ **ไม่ได้** เปลี่ยน" was checked against the code, the ones already
-closed were marked so, and what genuinely remained got an issue. **#43 and #49
-are closed; #50 is fixed here but stays open until the commit carrying it is
-pushed; #44–#48 are what is left**, plus **#51**, which #43 spun off — the
-API's Thai sentences do not survive the frontend's thunks — and **#52**, which
-#50 spun off: the four submission paths in `student.service.ts` roll their
-`attachments` rows back but leave the uploaded files in MinIO. Each
+closed were marked so, and what genuinely remained got an issue. **#43, #49 and
+#50 are closed; #44–#48 are what is left**, plus **#51**, which #43 spun off —
+the API's Thai sentences do not survive the frontend's thunks — and **#52**,
+which #50 spun off: the four submission paths in `student.service.ts` roll
+their `attachments` rows back but leave the uploaded files in MinIO. Each
 still-open one from the audit has a test
 standing on the behaviour as it is, and a pinned entry saying why the fix was
 out of its ticket's reach — usually that it needs a decision, or that it spans
