@@ -28,14 +28,17 @@ check), `0013-student-read-access.md` (the last three reads in `/student`,
 each of which took the rule of its neighbours rather than one rule for all
 three) and `0014-shared-rubric-access.md` (the programme's shared rubrics
 belong to any teacher, and why the rule is not narrowed to the caller's own
-programme). Read all ten before adding an authorisation check anywhere. Five
+programme). Read all ten before adding an authorisation check anywhere. Six
 more are about when or what rather than who: `0005-announcement-date.md` — a
 piece of work with no announcement date counts as announced, on every
 student-facing read — `0008-attachment-lifecycle.md`, which says an attachment
 dies with its last owner, so read it before writing any endpoint that deletes
-a row an attachment hangs on, `0010-rubric-level-identity.md`, which says
-a rubric level is identified by its `id`, never by its position in the row,
-`0012-missing-row-status.md`, which says a row the caller addressed but
+a row an attachment hangs on, and its counterpart
+`0016-attachment-upload-rollback.md`, which says an upload is taken back out of
+the bucket when the transaction around it does not commit, so read that one
+before writing an endpoint that creates one, `0010-rubric-level-identity.md`,
+which says a rubric level is identified by its `id`, never by its position in
+the row, `0012-missing-row-status.md`, which says a row the caller addressed but
 which is not there answers 404 rather than 500, and draws the line between
 that and a value in the body that names nothing, and
 `0015-unmappable-activity.md`, which applies that line to

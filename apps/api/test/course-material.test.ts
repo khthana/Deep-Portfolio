@@ -336,11 +336,11 @@ describe("POST /course-material", () => {
     );
   });
 
-  it("fails for a week that does not exist, leaving the attachment behind", async () => {
-    // Recorded, not endorsed. The attachment row is written by a service that
-    // was handed no transaction, so it is already committed by the time the
-    // foreign key on course_material rejects the week — the failed request
-    // leaves an attachment nothing points at.
+  it("fails for a week that does not exist, keeping no attachment", async () => {
+    // The attachment used to survive the failure: it was written by a service
+    // handed no transaction, so it was already committed by the time the
+    // foreign key on course_material rejected the week, and nothing pointed at
+    // it afterwards or ever could (#50).
     //
     // Still a 500 after #42: a foreign key is P2003, not the P2025 that became
     // a 404, and the two are different news — one says a value in the body
@@ -370,7 +370,79 @@ describe("POST /course-material", () => {
       await prisma.attachments.findFirst({
         where: { url: "https://example.test/orphan" },
       }),
-    ).not.toBeNull();
+    ).toBeNull();
+  });
+
+  it("takes the uploaded file back out of the bucket when it fails", async () => {
+    // The other half of the same failure. A rollback reaches the rows and not
+    // the bucket, so the object has to be removed by hand once the transaction
+    // is known to have failed — otherwise it stays there for good, with the
+    // only record of its key gone (#50).
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .post("/course-material")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("course_syllabus_id", "999999")
+      .field("section_id", String(course.section_id))
+      .attach("lecture_files", PDF, "week-1.pdf");
+
+    expect(response.status).toBe(500);
+    expect(await listStoredObjects(sectionPrefix(course.section_id))).toEqual(
+      [],
+    );
+    // Scoped by key rather than by filename: every case in this file uploads
+    // the same PDF, and only the key says which section it was for.
+    expect(
+      await prisma.attachments.count({
+        where: { file_path: { startsWith: sectionPrefix(course.section_id) } },
+      }),
+    ).toBe(0);
+  });
+
+  it("keeps neither half of a request whose second half fails", async () => {
+    // Lecture and recording are two rounds of the same upload-then-link under
+    // one transaction. The week here is real and the lecture round succeeds
+    // outright — row, object and link — and is then rolled back by a failure
+    // in the recording round, which it had nothing to do with. That lecture
+    // row is the orphan #50 is about: made, and then left pointed at by
+    // nothing.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const week = await createLessonPlan({ section_id: course.section_id });
+
+    const response = await request(app)
+      .post("/course-material")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .field("course_syllabus_id", String(week.id))
+      .field("section_id", String(course.section_id))
+      .attach("lecture_files", PDF, "week-1.pdf")
+      .field(
+        "record_urls",
+        JSON.stringify([
+          // Longer than the 255 characters the title column holds, and
+          // nothing checks the length before Postgres does — so the record
+          // round fails after the lecture round has written both its row and
+          // its object.
+          { title: "ยาว".repeat(200), url: "https://example.test/too-long" },
+        ]),
+      );
+
+    expect(response.status).toBe(500);
+    expect(
+      await prisma.course_material.count({
+        where: { course_syllabus_id: week.id },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.attachments.count({
+        where: { file_path: { startsWith: sectionPrefix(course.section_id) } },
+      }),
+    ).toBe(0);
+    expect(await listStoredObjects(sectionPrefix(course.section_id))).toEqual(
+      [],
+    );
   });
 
   it("answers 400 when no week is named, and uploads nothing", async () => {

@@ -3,7 +3,9 @@ import {
   CreateCourseMaterialReqBody,
   GetCourseMaterialDetailResp,
 } from "../models/course-material.model";
-import AttachmentsService from "./attachments.service";
+import AttachmentsService, {
+  transactionWithUploads,
+} from "./attachments.service";
 import MinIOService from "./upload.service";
 
 export default class CourseMaterialService {
@@ -16,11 +18,19 @@ export default class CourseMaterialService {
   }
 
   async createCourseMaterial(data: CreateCourseMaterialReqBody) {
-    return prisma.$transaction(async (tx) => {
+    const folder = `course-material/${data.section_id}/${data.course_syllabus_id}`;
+
+    // Two rounds of upload-then-link under one transaction, so a week that
+    // does not exist takes back the lecture files as well as the recordings —
+    // the foreign key on course_material only refuses once the attachments
+    // have been made (#50).
+    return transactionWithUploads(async (tx, uploads) => {
       if (data.lecture.urls.length > 0 || data.lecture.files.length > 0) {
         const attachmentIds = await this.attachmentsService.createAttachments(
           data.lecture,
-          `course-material/${data.section_id}/${data.course_syllabus_id}/lecture`,
+          `${folder}/lecture`,
+          tx,
+          uploads,
         );
 
         if (attachmentIds.length > 0) {
@@ -37,7 +47,9 @@ export default class CourseMaterialService {
       if (data.record.urls.length > 0 || data.record.files.length > 0) {
         const attachmentIds = await this.attachmentsService.createAttachments(
           data.record,
-          `course-material/${data.section_id}/${data.course_syllabus_id}/record`,
+          `${folder}/record`,
+          tx,
+          uploads,
         );
 
         if (attachmentIds.length > 0) {

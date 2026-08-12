@@ -7,7 +7,9 @@ import {
   URLDetail,
 } from "../models/announcement.model";
 import { formatFileType } from "../utils/format-file-type";
-import AttachmentsService from "./attachments.service";
+import AttachmentsService, {
+  transactionWithUploads,
+} from "./attachments.service";
 import MinIOService from "./upload.service";
 
 export default class AnnouncementService {
@@ -22,7 +24,7 @@ export default class AnnouncementService {
   async createAnnouncement(
     data: CreateAnnouncementReqBody
   ): Promise<{ announcement_id: number }> {
-    return prisma.$transaction(async (tx) => {
+    return transactionWithUploads(async (tx, uploads) => {
       let targetSectionIds = [data.section_id];
 
       if (data.all_section) {
@@ -54,12 +56,16 @@ export default class AnnouncementService {
         }
       }
 
+      // One set of attachments serves every section the announcement fans out
+      // to, so the rows have to live or die with the whole fan-out (#50).
       const attachmentIds = await this.attachmentsService.createAttachments(
         {
           urls: data.urls,
           files: data.files,
         },
-        "announcements"
+        "announcements",
+        tx,
+        uploads
       );
 
       let firstAnnouncementId: number | null = null;

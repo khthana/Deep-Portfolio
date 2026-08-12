@@ -6,6 +6,48 @@ import { formatFileType } from "../utils/format-file-type";
 import { signFileUrl } from "../utils/file-url";
 import MinIOService from "./upload.service";
 
+/**
+ * Runs `work` as one transaction and, if it does not commit, takes back out of
+ * the bucket every object `createAttachments` uploaded inside it.
+ *
+ * A transaction covers rows and nothing else. An upload has already left the
+ * process by the time the row naming it is written, so a refusal further down
+ * rolled the rows back and left the object in the bucket for good —
+ * unreachable, because the only address anybody had for it was the row that
+ * went away (#50).
+ *
+ * `work` is handed the array `createAttachments` records its uploads in. Pass
+ * it on as the fourth argument, with `tx` as the third; a call given neither
+ * writes outside the transaction and is not swept up after. The array belongs
+ * to this call rather than to a service, so two requests uploading at once
+ * cannot take away each other's files.
+ *
+ * Passing `tx` and forgetting `uploads` rolls the rows back and leaves the
+ * files — half a fix, and nothing in the types says so. The two would be one
+ * parameter if the four submission paths in `student.service.ts` did not still
+ * pass `tx` alone; they close in #52, and the signature can tighten with them.
+ *
+ * This is the mirror of the delete side (ADR-0008): there the rows go first
+ * and the objects follow once the transaction has committed, because an object
+ * outliving its row only costs space while a row outliving its object is
+ * something the reader sees. Here the object cannot be written last, so it is
+ * written first and taken back when the rows never arrive.
+ */
+export async function transactionWithUploads<T>(
+  work: (tx: Prisma.TransactionClient, uploads: string[]) => Promise<T>,
+): Promise<T> {
+  const uploads: string[] = [];
+
+  try {
+    // Awaited inside the try, not returned out of it: a promise handed back
+    // unawaited settles where nothing is catching it.
+    return await prisma.$transaction((tx) => work(tx, uploads));
+  } catch (error) {
+    await new MinIOService().removeFiles(uploads);
+    throw error;
+  }
+}
+
 export default class AttachmentsService {
   private readonly uploadService: MinIOService;
 
@@ -17,6 +59,7 @@ export default class AttachmentsService {
     data: UploadAttachments,
     folder: string,
     tx?: Prisma.TransactionClient,
+    uploads?: string[],
   ) {
     const prismaClient = tx ?? prisma;
 
@@ -52,6 +95,11 @@ export default class AttachmentsService {
             },
             folder,
           );
+
+          // Recorded before the row, and whether or not the row is ever made:
+          // the object is in the bucket from here on, and only this array
+          // remembers where. See transactionWithUploads.
+          if (fileUrl) uploads?.push(fileUrl);
 
           const attachment = await prismaClient.attachments.create({
             data: {

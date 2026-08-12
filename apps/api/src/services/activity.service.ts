@@ -9,7 +9,9 @@ import {
 import { AttachmentDetailResp } from "../models/announcement.model";
 import { ClassworkType } from "../models/student.model";
 import { HttpError } from "../utils/http-error";
-import AttachmentsService from "./attachments.service";
+import AttachmentsService, {
+  transactionWithUploads,
+} from "./attachments.service";
 import MinIOService from "./upload.service";
 
 /** A level as it stands in the database: what it is, and where in the scale it
@@ -124,9 +126,10 @@ export default class ActivityService {
   }
 
   async createActivity(data: CreateActivityReqBody) {
-    return prisma.$transaction(async (tx) => {
-      // Asked before anything is written, for the reason updateActivity gives
-      // below: createAttachments does not roll back with this transaction.
+    return transactionWithUploads(async (tx, uploads) => {
+      // Still asked before anything is written. Since #50 a refusal after the
+      // upload does undo it, but the cheapest refusal is the one that never
+      // put a file in the bucket to take back out.
       assertRubricPositions(data.rubric);
       await this.assertScoreRatioExists(tx, data.score_ratio_id);
 
@@ -155,6 +158,8 @@ export default class ActivityService {
           files: data.files,
         },
         "activity",
+        tx,
+        uploads,
       );
 
       if (attachmentIds.length > 0) {
@@ -189,72 +194,77 @@ export default class ActivityService {
   }
 
   async updateActivity(data: UpdateActivityReqBody) {
-    const { activity, objects } = await prisma.$transaction(async (tx) => {
-      // Asked before anything is written, because not everything below rolls
-      // back: createAttachments uploads to MinIO and writes its rows outside
-      // this transaction, so a refusal after it would leave both behind.
-      const existingRubric = await this.rubricOf(tx, data.activity_id);
-      assertOwnRubric(data.rubric, existingRubric);
-      await this.assertScoreRatioExists(tx, data.score_ratio_id);
+    const { activity, objects } = await transactionWithUploads(
+      async (tx, uploads) => {
+        // Asked before anything is written. Since #50 a refusal after the
+        // upload takes the file back out of the bucket, but not uploading it
+        // in the first place is still the cheaper way to say no.
+        const existingRubric = await this.rubricOf(tx, data.activity_id);
+        assertOwnRubric(data.rubric, existingRubric);
+        await this.assertScoreRatioExists(tx, data.score_ratio_id);
 
-      const activity = await tx.activities.update({
-        where: { id: data.activity_id },
-        data: {
-          announcement_date: data.announcement_date,
-          deadline_date: data.deadline_date,
-          course_syllabus_id: data.course_syllabus_id,
-          activity_name: data.activity_name,
-          score_number: data.score_number,
-          activity_type: data.activity_type.toLowerCase(),
-          detail: data.detail,
-          is_average_score: data.is_average_score,
-          is_self_assessment: data.is_self_assessment,
-          section_id: data.section_id,
-          expected_level: data.expected_level,
-          subject_score_ratio: data.score_ratio_id
-            ? { connect: { score_ratio_id: data.score_ratio_id } }
-            : undefined,
-        },
-      });
-
-      // Scoped by the activity being edited: the id of an attachment says
-      // nothing about who owns it, and matching on it alone unlinked the file
-      // from every other activity that had it too. See BEHAVIOR-CHANGES.md.
-      await tx.activity_attachments.deleteMany({
-        where: {
-          activity_id: activity.id,
-          attachment_id: { in: data.remove_attachment_ids },
-        },
-      });
-
-      // A join row is what makes an attachment reachable. Dropping the last
-      // one strands it, so it goes with the link (#34).
-      const objects = await this.attachmentsService.deleteUnreferenced(
-        data.remove_attachment_ids,
-        tx,
-      );
-
-      const attachmentIds = await this.attachmentsService.createAttachments(
-        {
-          urls: data.urls,
-          files: data.files,
-        },
-        "activity",
-      );
-
-      if (attachmentIds.length > 0) {
-        await tx.activity_attachments.createMany({
-          data: attachmentIds.map((attId) => ({
-            activity_id: activity.id,
-            attachment_id: attId,
-          })),
+        const activity = await tx.activities.update({
+          where: { id: data.activity_id },
+          data: {
+            announcement_date: data.announcement_date,
+            deadline_date: data.deadline_date,
+            course_syllabus_id: data.course_syllabus_id,
+            activity_name: data.activity_name,
+            score_number: data.score_number,
+            activity_type: data.activity_type.toLowerCase(),
+            detail: data.detail,
+            is_average_score: data.is_average_score,
+            is_self_assessment: data.is_self_assessment,
+            section_id: data.section_id,
+            expected_level: data.expected_level,
+            subject_score_ratio: data.score_ratio_id
+              ? { connect: { score_ratio_id: data.score_ratio_id } }
+              : undefined,
+          },
         });
-      }
 
-      await this.saveRubric(tx, activity.id, data.rubric, existingRubric);
+        // Scoped by the activity being edited: the id of an attachment says
+        // nothing about who owns it, and matching on it alone unlinked the
+        // file from every other activity that had it too. See
+        // BEHAVIOR-CHANGES.md.
+        await tx.activity_attachments.deleteMany({
+          where: {
+            activity_id: activity.id,
+            attachment_id: { in: data.remove_attachment_ids },
+          },
+        });
 
-      return { activity, objects };
-    });
+        // A join row is what makes an attachment reachable. Dropping the last
+        // one strands it, so it goes with the link (#34).
+        const objects = await this.attachmentsService.deleteUnreferenced(
+          data.remove_attachment_ids,
+          tx,
+        );
+
+        const attachmentIds = await this.attachmentsService.createAttachments(
+          {
+            urls: data.urls,
+            files: data.files,
+          },
+          "activity",
+          tx,
+          uploads,
+        );
+
+        if (attachmentIds.length > 0) {
+          await tx.activity_attachments.createMany({
+            data: attachmentIds.map((attId) => ({
+              activity_id: activity.id,
+              attachment_id: attId,
+            })),
+          });
+        }
+
+        await this.saveRubric(tx, activity.id, data.rubric, existingRubric);
+
+        return { activity, objects };
+      },
+    );
 
     await this.uploadService.removeFiles(objects);
 

@@ -76,13 +76,15 @@ Run `gh issue view <number> --comments`.
   **#25–#42 are closed. #43–#50 were filed on 2026-08-11** after every entry in
   that file's pinned list was checked against the code — half the list had
   already been closed by a later ticket without anyone going back to say so.
-  **#43 and #49 are now closed too; #44–#48 and #50 are the ones still to do
-  from that batch.**
+  **#43 and #49 are now closed too. #50 is fixed but stays open until the
+  commit carrying it is pushed, leaving #44–#48 to do from that batch.**
   Each names what has to be decided before it can be picked up, so read the
   issue before assuming the fix is obvious. **#51** was filed the same way on
   the same day, but out of #43 rather than out of the audit: the API's Thai
   error sentences are dropped by every `createAsyncThunk` on the way to the
-  screen.
+  screen. **#52** came out of #50 on 2026-08-12: the four submission paths in
+  `student.service.ts` roll their `attachments` rows back on a failure but
+  leave the uploaded files in MinIO.
 
 ## Wayfinding operations
 

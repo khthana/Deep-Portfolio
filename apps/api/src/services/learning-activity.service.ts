@@ -7,7 +7,9 @@ import {
   GetLearningActivityDetailResp,
   UpdateLearningActivityReqBody,
 } from "../models/learning-activity.model";
-import AttachmentsService from "./attachments.service";
+import AttachmentsService, {
+  transactionWithUploads,
+} from "./attachments.service";
 import MinIOService from "./upload.service";
 
 export default class LearningActivityService {
@@ -20,7 +22,7 @@ export default class LearningActivityService {
   }
 
   async createLearningActivity(data: CreateLearningActivityReqBody) {
-    return prisma.$transaction(async (tx) => {
+    return transactionWithUploads(async (tx, uploads) => {
       const activity = await tx.learning_activities.create({
         data: {
           announcement_date: data.announcement_date,
@@ -39,6 +41,8 @@ export default class LearningActivityService {
           files: data.files,
         },
         "learning-activity",
+        tx,
+        uploads,
       );
 
       if (attachmentIds.length > 0) {
@@ -69,56 +73,61 @@ export default class LearningActivityService {
   }
 
   async updateLearningActivity(data: UpdateLearningActivityReqBody) {
-    const { activity, objects } = await prisma.$transaction(async (tx) => {
-      const activity = await tx.learning_activities.update({
-        where: { id: data.learning_activity_id },
-        data: {
-          announcement_date: data.announcement_date,
-          deadline_date: data.deadline_date,
-          course_syllabus_id: data.course_syllabus_id,
-          learning_activity_name: data.learning_activity_name,
-          learning_activity_type: data.learning_activity_type.toLowerCase(),
-          detail: data.detail,
-          section_id: data.section_id,
-        },
-      });
-
-      // Scoped by the activity being edited: the id of an attachment says
-      // nothing about who owns it, and matching on it alone unlinked the file
-      // from every other activity that had it too. See BEHAVIOR-CHANGES.md.
-      await tx.learning_activity_attachments.deleteMany({
-        where: {
-          learning_activity_id: activity.id,
-          attachment_id: { in: data.remove_attachment_ids },
-        },
-      });
-
-      // A join row is what makes an attachment reachable. Dropping the last
-      // one strands it, so it goes with the link (#34).
-      const objects = await this.attachmentsService.deleteUnreferenced(
-        data.remove_attachment_ids,
-        tx,
-      );
-
-      const attachmentIds = await this.attachmentsService.createAttachments(
-        {
-          urls: data.urls,
-          files: data.files,
-        },
-        "learning-activity",
-      );
-
-      if (attachmentIds.length > 0) {
-        await tx.learning_activity_attachments.createMany({
-          data: attachmentIds.map((attId) => ({
-            learning_activity_id: activity.id,
-            attachment_id: attId,
-          })),
+    const { activity, objects } = await transactionWithUploads(
+      async (tx, uploads) => {
+        const activity = await tx.learning_activities.update({
+          where: { id: data.learning_activity_id },
+          data: {
+            announcement_date: data.announcement_date,
+            deadline_date: data.deadline_date,
+            course_syllabus_id: data.course_syllabus_id,
+            learning_activity_name: data.learning_activity_name,
+            learning_activity_type: data.learning_activity_type.toLowerCase(),
+            detail: data.detail,
+            section_id: data.section_id,
+          },
         });
-      }
 
-      return { activity, objects };
-    });
+        // Scoped by the activity being edited: the id of an attachment says
+        // nothing about who owns it, and matching on it alone unlinked the
+        // file from every other activity that had it too. See
+        // BEHAVIOR-CHANGES.md.
+        await tx.learning_activity_attachments.deleteMany({
+          where: {
+            learning_activity_id: activity.id,
+            attachment_id: { in: data.remove_attachment_ids },
+          },
+        });
+
+        // A join row is what makes an attachment reachable. Dropping the last
+        // one strands it, so it goes with the link (#34).
+        const objects = await this.attachmentsService.deleteUnreferenced(
+          data.remove_attachment_ids,
+          tx,
+        );
+
+        const attachmentIds = await this.attachmentsService.createAttachments(
+          {
+            urls: data.urls,
+            files: data.files,
+          },
+          "learning-activity",
+          tx,
+          uploads,
+        );
+
+        if (attachmentIds.length > 0) {
+          await tx.learning_activity_attachments.createMany({
+            data: attachmentIds.map((attId) => ({
+              learning_activity_id: activity.id,
+              attachment_id: attId,
+            })),
+          });
+        }
+
+        return { activity, objects };
+      },
+    );
 
     await this.uploadService.removeFiles(objects);
 

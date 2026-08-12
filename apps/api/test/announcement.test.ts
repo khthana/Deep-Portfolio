@@ -317,6 +317,47 @@ describe("POST /announcement", () => {
     expect(await listStoredObjects(UPLOAD_FOLDER)).toContain(file!.file_path);
   });
 
+  it("keeps neither the attachment nor its file when the post fails", async () => {
+    // The attachments are made before the announcement rows they hang on, so
+    // a refusal on the row leaves them behind unless something takes them
+    // back — which is what #50 added, here through the same
+    // transactionWithUploads that POST /course-material goes through.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const storedBefore = await listStoredObjects(UPLOAD_FOLDER);
+
+    const response = await request(app)
+      .post("/announcement")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      // Longer than the 255 characters announcements.title holds, and nothing
+      // checks the length before Postgres does — so the row is refused only
+      // after the attachment has been written and its file uploaded.
+      .field("title", "ยาว".repeat(200))
+      .field("content", JSON.stringify({ text: "เนื้อหา" }))
+      .field("section_id", String(course.section_id))
+      .field("all_section", "false")
+      .field(
+        "urls",
+        JSON.stringify([
+          { title: "ลิงก์ค้างเติ่ง", url: "https://example.test/announce" },
+        ]),
+      )
+      .attach("files", PDF, "rolled-back.pdf");
+
+    expect(response.status).toBe(500);
+    expect(
+      await prisma.announcements.count({
+        where: { section_id: course.section_id },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.attachments.findFirst({
+        where: { url: "https://example.test/announce" },
+      }),
+    ).toBeNull();
+    expect(await listStoredObjects(UPLOAD_FOLDER)).toEqual(storedBefore);
+  });
+
   it("posts to every section of the course the teacher teaches when all_section is set", async () => {
     const teacher = await createTeacher();
     // Same subject, same term: createCourse upserts the semester_course, so
