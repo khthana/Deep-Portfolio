@@ -21,6 +21,18 @@ import {
 import { message } from "antd";
 import { messageToShow } from "../../../../utils/api-error";
 
+/**
+ * What the teacher is told when adding a mapping failed and the API said
+ * nothing — which now means the request never arrived.
+ *
+ * #43 gave this endpoint three sentences that each name what the teacher has to
+ * go and fix first: an activity that is not there, one with no score ratio
+ * chosen, one with no score to divide between CLOs. "กรุณาลองใหม่อีกครั้ง" is
+ * the wrong advice for all three — the same attempt fails the same way — so it
+ * is kept for the one failure where trying again is exactly the right advice.
+ */
+const ADD_ACTIVITY_FAILED = "ไม่สามารถเพิ่มกิจกรรมได้ กรุณาลองใหม่อีกครั้ง";
+
 type Props = {
   cloData: {
     cloNumber: string;
@@ -56,13 +68,7 @@ const MappingSection = (props: Props) => {
         fetchActivityData();
       }
     } catch (error) {
-      // #43 gave this endpoint three sentences that each name what the teacher
-      // has to go and fix first — a missing score ratio, an activity with no
-      // score to divide. "กรุณาลองใหม่อีกครั้ง" is the wrong advice for all
-      // three, so it is kept only for the failure that has nothing to say.
-      messageApi.error(
-        messageToShow(error, "ไม่สามารถเพิ่มกิจกรรมได้ กรุณาลองใหม่อีกครั้ง"),
-      );
+      messageApi.error(messageToShow(error, ADD_ACTIVITY_FAILED));
     }
   };
 
@@ -82,9 +88,7 @@ const MappingSection = (props: Props) => {
         fetchLearningActivityData();
       }
     } catch (error) {
-      messageApi.error(
-        messageToShow(error, "ไม่สามารถเพิ่มกิจกรรมได้ กรุณาลองใหม่อีกครั้ง"),
-      );
+      messageApi.error(messageToShow(error, ADD_ACTIVITY_FAILED));
     }
   };
 

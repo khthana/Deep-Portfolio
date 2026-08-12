@@ -397,7 +397,10 @@ export const usePublicPortfolio = (
         setData(mappedData);
       } catch (err) {
         console.error("Error fetching public portfolio data:", err);
-        setError(err instanceof Error ? err : new Error("Unknown error"));
+        // No message of its own for the thing that was not an error: the page
+        // owns the Thai sentence for a portfolio that would not load, and an
+        // English placeholder put here would be rendered in its place (#51).
+        setError(err instanceof Error ? err : new Error(""));
       } finally {
         setLoading(false);
       }

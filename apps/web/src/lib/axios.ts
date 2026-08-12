@@ -1,7 +1,7 @@
 import axios from "axios";
 import { env } from "../configs/env";
 import { singleFlight } from "../utils/single-flight";
-import { apiErrorMessage } from "../utils/api-error";
+import { messageToCarry } from "../utils/api-error";
 
 export const BACKEND_API_URL = env.BACKEND_URL;
 
@@ -47,15 +47,16 @@ axiosInstance.interceptors.response.use(
     // Before anything else, because this is the only point every failed
     // request passes through while it still has the response on it. A rejected
     // thunk keeps `name`, `message`, `stack` and `code` and drops the rest, so
-    // by the time a component catches one the body is gone — and axios's own
-    // message, `"Request failed with status code 400"`, is what the user was
-    // being shown in its place (#51). Overwritten rather than added to, so the
-    // sentence arrives wherever a message was already read.
-    const sentence = apiErrorMessage(error);
-
-    if (sentence) {
-      error.message = sentence;
-    }
+    // by the time a component catches one the body is gone, and whatever axios
+    // wrote is what the user gets shown in its place (#51).
+    //
+    // Assigned unconditionally, including to the empty string: a failure with
+    // no body to quote is one axios named in English for a developer, and
+    // leaving that behind is how "Network Error" reaches a teacher. Clearing it
+    // is what lets every reader downstream treat a message as the API's own
+    // words and fall back to Thai when there are none. The status, the `code`
+    // and the response itself are untouched, so nothing diagnostic is lost.
+    error.message = messageToCarry(error);
 
     const originalRequest = error.config;
 

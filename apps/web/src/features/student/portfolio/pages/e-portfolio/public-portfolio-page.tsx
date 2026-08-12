@@ -8,6 +8,7 @@ import { usePublicPortfolio } from "../../hooks/use-public-portfolio";
 import { Spin } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import { useParams } from "react-router-dom";
+import { messageToShow } from "../../../../../utils/api-error";
 
 const PublicPortfolioPage = () => {
   const { shareToken } = useParams();
@@ -64,8 +65,10 @@ const PublicPortfolioPage = () => {
           <p className="text-gray-500 text-base leading-relaxed mb-8">
             {isExpired
               ? "ลิงก์เข้าชม e-Portfolio นี้หมดอายุการใช้งานแล้ว กรุณาติดต่อเจ้าของเพื่อขอลิงก์ใหม่"
-              : error?.message ||
-                "ไม่พบหน้าที่คุณต้องการ หรือลิงก์นี้อาจจะถูกลบไปแล้ว"}
+              : messageToShow(
+                  error,
+                  "ไม่พบหน้าที่คุณต้องการ หรือลิงก์นี้อาจจะถูกลบไปแล้ว",
+                )}
           </p>
           <div className="pt-2">
             <div className="text-xs text-gray-400 font-medium uppercase tracking-widest">
