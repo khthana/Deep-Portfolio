@@ -81,9 +81,10 @@ Run `gh issue view <number> --comments`.
   issue before assuming the fix is obvious. **#51** was filed the same way on
   the same day, but out of #43 rather than out of the audit: the API's Thai
   error sentences are dropped by every `createAsyncThunk` on the way to the
-  screen. **#52** came out of #50 on 2026-08-12: the four submission paths in
-  `student.service.ts` roll their `attachments` rows back on a failure but
-  leave the uploaded files in MinIO. **#53** came out of #45 the same day: no
+  screen. **#52** came out of #50 on 2026-08-12 — the four submission paths in
+  `student.service.ts` left the uploaded files in MinIO when the transaction
+  rolled their `attachments` rows back — and is closed. **#53** came out of
+  #45 the same day: no
   teacher-facing endpoint reports a group member who never answered the
   invitation, which now matters because grading passes over them.
 

@@ -40,17 +40,19 @@ The whole breakdown of #1 is done, #20–#42 included. On top of that came
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md) on 2026-08-11 — every entry under
 "สิ่งที่ **ไม่ได้** เปลี่ยน" was checked against the code, the ones already
 closed were marked so, and what genuinely remained got an issue. **All eight
-are closed.** What is left came out of them along the way: **#51** from #43 —
-the API's Thai sentences do not survive the frontend's thunks — **#52** from
-#50 — the four submission paths in `student.service.ts` roll their
-`attachments` rows back but leave the uploaded files in MinIO — and **#53**
-from #45: no teacher-facing endpoint shows a group member who never answered
-the invitation, so nothing tells the teacher a name is missing from the list
-they are marking. Each still-open one has a test standing on the behaviour as
-it is, and a pinned entry saying why the fix was out of its ticket's reach —
-usually that it needs a decision, or that it spans the API and the frontend
-together. Read that list before starting anything; entries with neither
-"ปิดแล้ว" nor an issue number are deliberate, not outstanding.
+are closed**, and so is **#52**, the one they spun off that has been picked
+up — a failed submission no longer leaves its upload in MinIO. Two are left,
+both from the same batch: **#51** from #43 — the API's Thai sentences do not
+survive the frontend's thunks, which no test stands on because a thunk is at
+neither seam T2 names — and **#53** from #45: no teacher-facing endpoint shows
+a group member who never answered the invitation, so nothing tells the teacher
+a name is missing from the list they are marking, which
+`student-activity.test.ts` says in the comment on "bookmarks every member's
+submission for group work". Both have a pinned entry in `BEHAVIOR-CHANGES.md`
+saying why the fix was out of its ticket's reach — usually that it needs a
+decision, or that it spans the API and the frontend together. Read that list
+before starting anything; entries with neither "ปิดแล้ว" nor an issue number
+are deliberate, not outstanding.
 
 #1 itself is still open as the umbrella spec.
 
