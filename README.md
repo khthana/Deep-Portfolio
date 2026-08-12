@@ -4,7 +4,10 @@
 
 โปรเจกต์นี้รับมอบมาจากปริญญานิพนธ์ของนักศึกษา และกำลังอยู่ระหว่างการ re-deploy และ refactor
 แผนงานหลักอยู่ที่ [`docs/spec-refactor-redeploy.md`](docs/spec-refactor-redeploy.md)
-ติดตามความคืบหน้าได้ที่ [issue #1](https://github.com/khthana/Deep-Portfolio/issues/1)
+ซึ่งส่งมอบครบทุกข้อแล้วเมื่อ 12 สิงหาคม 2026 — [issue #1](https://github.com/khthana/Deep-Portfolio/issues/1)
+ที่ใช้ติดตามมันจึงปิดไปแล้ว แต่ตัวเอกสารยังเป็นแผนอ้างอิงว่าทำไมระบบถึงเป็นรูปนี้
+งานที่เหลืออยู่ตอนนี้คือ [#55–#63](https://github.com/khthana/Deep-Portfolio/issues)
+ทั้งของค้างที่ตั้งใจเลื่อนและสิ่งที่ spec ระบุว่าอยู่นอกขอบเขต
 
 ถ้ากำลังหาว่า API ตอบไม่เหมือนเดิมตรงไหนบ้างหลัง refactor ดูที่
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md)
@@ -19,6 +22,8 @@
 | [`requirements.md`](docs/requirements.md) | ความต้องการที่สกัดจากปริญญานิพนธ์ |
 | [`test-cases.md`](docs/test-cases.md) | กรณีทดสอบด้วยมือ TC-01–TC-75 จากเอกสาร ใช้เป็น checklist ความครอบคลุม |
 | [`tc-traceability.md`](docs/tc-traceability.md) | เทียบ TC-01–TC-75 กับ automated test ที่มีจริง ว่าข้อไหนครอบแล้ว ครอบบางส่วน หรือครอบไม่ได้ และเพราะอะไร |
+| [`adr/`](docs/adr/) | การตัดสินใจที่เกิดขึ้น**หลัง**การ refactor ไฟล์ละหนึ่งเรื่อง (ADR-0001 เป็นต้นไป) ส่วนการตัดสินใจของตัว refactor เองอยู่ใน D1–D13 / T1–T7 ของ spec |
+| [`agents/`](docs/agents/) | เอกสารสำหรับ agent — วิธีใช้ issue tracker, ป้าย triage, และวิธีอ่านเอกสารโดเมนของ repo นี้ |
 
 ## โครงสร้าง
 
@@ -182,6 +187,11 @@ compose เปิดออกมา) แต่**ค่าที่ต้อง�
 `build` / `typecheck` / `lint` / `test` ใช้ `--workspaces --if-present` ทั้งหมด
 workspace ที่ยังไม่มี script นั้นจะถูกข้ามไปเงียบ ๆ ไม่ทำให้คำสั่งล้ม
 
+> **`npm run lint` ยังล้มอยู่ตอนนี้** และ `apps/api` ก็ยังไม่มี script `lint` ของ
+> ตัวเอง (จึงถูกข้ามไปตามกฎ `--if-present` ข้างบน) คำสั่งที่ต้องผ่านก่อนบอกว่างานเขียว
+> คือ `npm test` กับ `npm run typecheck` ดู
+> [#60](https://github.com/khthana/Deep-Portfolio/issues/60)
+
 สั่งงานเฉพาะ workspace เดียวได้ด้วย `-w`
 
 ```bash
@@ -199,8 +209,8 @@ npm test
 ฐานข้อมูลไว้ก่อน คำสั่งเดียวนี้ยก PostgreSQL กับ MinIO ของ test ขึ้นมา รัน migration
 แล้วรัน test ทั้งสอง workspace
 
-ปัจจุบันมี **781 เคสฝั่ง API** (39 ไฟล์ ยิงผ่าน HTTP เข้าหา Express app ตัวจริง) และ
-**400 เคสฝั่งเว็บ** (24 ไฟล์ เฉพาะฟังก์ชันบริสุทธิ์) ทั้งหมดเขียนตามพฤติกรรมที่ระบบ
+ปัจจุบันมี **1,019 เคสฝั่ง API** (40 ไฟล์ ยิงผ่าน HTTP เข้าหา Express app ตัวจริง) และ
+**438 เคสฝั่งเว็บ** (30 ไฟล์ เฉพาะฟังก์ชันบริสุทธิ์) ทั้งหมดเขียนตามพฤติกรรมที่ระบบ
 ทำอยู่จริง ไม่ใช่ตามที่เอกสารบอกว่าควรทำ จุดที่ต่างกันถูกบันทึกไว้ใน
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md)
 

@@ -141,6 +141,15 @@ faculty_id,faculty_name_th,faculty_name_en
   ทำอะไรไม่ได้ ค่า `role_id` ต้องตรงกับ `roles.role_id`
 - **`departments.department_id` กว้าง 2 ตัวอักษร** ขณะที่ `subjects.department_id`
   กว้าง 20 — ความไม่สมมาตรนี้เป็นของ schema เดิม ให้ใส่รหัสภาควิชา 2 หลักทั้งคู่
+- **`subject_clo_measurable_behavior` นำเข้าไม่ได้เลยในตอนนี้** — สองคอลัมน์ของมันคือ
+  `learning_activity` กับ `cognitive_level` เป็น `NOT NULL` และใช้ type
+  `learning_activity_enum` / `cognitive_level_enum` ซึ่งเป็น **enum ว่าง** ตั้งแต่
+  migration แรก (ค่าจริงกู้ไม่ได้ เลือกให้ INSERT ล้มเสียงดังดีกว่าเดาค่า — ดู
+  [D2](spec-refactor-redeploy.md) ตรงสามจุดที่ต้องแก้มือใน migration) `schema.prisma`
+  ประกาศทั้งคู่เป็น `Unsupported(...)` ตัวนำเข้าจึงข้ามสองคอลัมน์นี้ไปโดยไม่ขอจากไฟล์
+  แล้ว Postgres ปฏิเสธการเขียนเพราะค่าว่าง แถวในตารางข้างบนบอกเฉพาะคอลัมน์ที่ตัวนำเข้า
+  บังคับ ไม่ได้แปลว่าตารางนี้เข้าได้ — ต้องเติมค่า enum ก่อน ดู
+  [#58](https://github.com/khthana/Deep-Portfolio/issues/58)
 - **`learning_outcomes.parent_outcome_id` ชี้ไปที่แถวในไฟล์เดียวกันไม่ได้** — คอลัมน์นี้
   ชี้ไปที่ `outcome_id` ซึ่งฐานข้อมูลแจกเลขให้ตอนเขียน ไฟล์จึงไม่มีทางรู้เลขของแถวแม่ที่
   กำลังจะถูกเขียนพร้อมกันในรอบเดียวกัน ตัวนำเข้าจะฟ้อง

@@ -586,3 +586,11 @@
 | `student_status_enum` | `active`, `inactive`, `graduated`, `suspended` |
 | `subject_type_enum` | `required`, `elective` |
 | `weekday` | `MON`, `TUE`, `WED`, `THU`, `FRI`, `SAT`, `SUN` |
+
+**ในฐานข้อมูลจริงมี enum type 17 ตัว ไม่ใช่ 15 ตัวข้างบน** — อีกสองตัวคือ
+`learning_activity_enum` กับ `cognitive_level_enum` ซึ่ง migration แรกสร้างไว้เป็น
+**enum ว่าง** เพราะค่าจริงกู้จากระบบเดิมไม่ได้ (ดู D2 ใน spec) `schema.prisma` อ้างถึง
+ทั้งคู่ผ่าน `Unsupported(...)` ทั้งสองจึงไม่ปรากฏเป็น enum ของ Prisma ผลคือคอลัมน์
+`learning_activity` และ `cognitive_level` ของ `subject_clo_measurable_behavior` เป็น
+`NOT NULL` ที่ไม่มีค่าใดใส่ได้ ตารางนั้นจึงยังเขียนอะไรลงไปไม่ได้เลย รวมทั้งผ่านตัวนำเข้า
+ดู [#58](https://github.com/khthana/Deep-Portfolio/issues/58)
