@@ -76,8 +76,7 @@ Run `gh issue view <number> --comments`.
   **#25–#42 are closed. #43–#50 were filed on 2026-08-11** after every entry in
   that file's pinned list was checked against the code — half the list had
   already been closed by a later ticket without anyone going back to say so.
-  **#43, #44, #45, #46, #47, #49 and #50 are now closed too; #48 is what
-  is left of that batch.**
+  **All eight are now closed too.**
   Each names what has to be decided before it can be picked up, so read the
   issue before assuming the fix is obvious. **#51** was filed the same way on
   the same day, but out of #43 rather than out of the audit: the API's Thai
