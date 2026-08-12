@@ -41,8 +41,7 @@ export default class LearningActivityService {
           files: data.files,
         },
         "learning-activity",
-        tx,
-        uploads,
+        { tx, uploads },
       );
 
       if (attachmentIds.length > 0) {
@@ -112,8 +111,7 @@ export default class LearningActivityService {
             files: data.files,
           },
           "learning-activity",
-          tx,
-          uploads,
+          { tx, uploads },
         );
 
         if (attachmentIds.length > 0) {

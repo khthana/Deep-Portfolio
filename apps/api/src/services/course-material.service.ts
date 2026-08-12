@@ -29,8 +29,7 @@ export default class CourseMaterialService {
         const attachmentIds = await this.attachmentsService.createAttachments(
           data.lecture,
           `${folder}/lecture`,
-          tx,
-          uploads,
+          { tx, uploads },
         );
 
         if (attachmentIds.length > 0) {
@@ -48,8 +47,7 @@ export default class CourseMaterialService {
         const attachmentIds = await this.attachmentsService.createAttachments(
           data.record,
           `${folder}/record`,
-          tx,
-          uploads,
+          { tx, uploads },
         );
 
         if (attachmentIds.length > 0) {

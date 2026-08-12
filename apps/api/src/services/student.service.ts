@@ -11,7 +11,9 @@ import {
   SubmitLearningActivityBody,
 } from "../models/student.model";
 import ActivityService from "./activity.service";
-import AttachmentsService from "./attachments.service";
+import AttachmentsService, {
+  transactionWithUploads,
+} from "./attachments.service";
 import CourseService from "./course.service";
 import LearningActivityService from "./learning-activity.service";
 import StudentActivityService from "./student-activity.service";
@@ -35,8 +37,7 @@ import { HttpError } from "../utils/http-error";
  * does. Written once each because both halves of the endpoint pair raise the
  * same ones.
  */
-const SUBMISSION_NOT_FOUND = () =>
-  new HttpError(404, "ไม่พบงานที่ต้องการส่ง");
+const SUBMISSION_NOT_FOUND = () => new HttpError(404, "ไม่พบงานที่ต้องการส่ง");
 
 const GROUP_HAS_NO_MEMBERS = () =>
   new HttpError(400, "ยังไม่มีสมาชิกที่ตอบรับคำเชิญในกลุ่มนี้");
@@ -216,79 +217,85 @@ export default class StudentService {
   async submitActivity(
     data: SubmitActivityBody,
   ): Promise<GetStudentActivityDetailResp> {
-    const { result, objects } = await prisma.$transaction(async (tx) => {
-      // 1. ดึง activity พร้อม attachments เดิม
-      const activity = await tx.student_activity.findUnique({
-        where: { id: data.student_activity_id },
-        include: {
-          student_activity_attachments: true,
-        },
-      });
-
-      if (!activity) {
-        throw SUBMISSION_NOT_FOUND();
-      }
-
-      if (activity.student_id !== data.student_id) {
-        throw NOT_YOUR_SUBMISSION();
-      }
-
-      // 2. ถ้าเคย submit แล้ว → ลบงานเดิม
-      // if (activity.status === "SUBMITTED") {
-      // ลบ relation ก่อน
-      await tx.student_activity_attachments.deleteMany({
-        where: {
-          student_activity_id: activity.id,
-        },
-      });
-      // }
-
-      // 3. update status (submit ใหม่)
-      const updatedActivity = await tx.student_activity.update({
-        where: { id: activity.id },
-        data: {
-          status: "SUBMITTED",
-          submitted_at: new Date(),
-        },
-      });
-
-      // 4. สร้าง attachment ใหม่
-      const attachmentIds = await this.attachmentsService.createAttachments(
-        {
-          urls: data.urls,
-          files: data.files,
-        },
-        `${data.section_id}/activity/${data.activity_id}/${data.student_id}`,
-        tx,
-      );
-
-      const allAttachmentsIds = [...data.existing_files_ids, ...attachmentIds];
-
-      if (allAttachmentsIds.length > 0) {
-        await tx.student_activity_attachments.createMany({
-          data: allAttachmentsIds.map((attId) => ({
-            student_activity_id: updatedActivity.id,
-            attachment_id: attId,
-          })),
+    const { result, objects } = await transactionWithUploads(
+      async (tx, uploads) => {
+        // 1. ดึง activity พร้อม attachments เดิม
+        const activity = await tx.student_activity.findUnique({
+          where: { id: data.student_activity_id },
+          include: {
+            student_activity_attachments: true,
+          },
         });
-      }
 
-      // Only now: what the resubmission named again has just been linked back,
-      // so what is left unreferenced is what it replaced (#34).
-      const objects = await this.attachmentsService.deleteUnreferenced(
-        activity.student_activity_attachments.map(
-          (link) => link.attachment_id,
-        ),
-        tx,
-      );
+        if (!activity) {
+          throw SUBMISSION_NOT_FOUND();
+        }
 
-      const result = await this.studentActivityService.getStudentActivityDetail(
-        updatedActivity.id,
-        tx,
-      );
+        if (activity.student_id !== data.student_id) {
+          throw NOT_YOUR_SUBMISSION();
+        }
 
-      return { result, objects };
-    });
+        // 2. ถ้าเคย submit แล้ว → ลบงานเดิม
+        // if (activity.status === "SUBMITTED") {
+        // ลบ relation ก่อน
+        await tx.student_activity_attachments.deleteMany({
+          where: {
+            student_activity_id: activity.id,
+          },
+        });
+        // }
+
+        // 3. update status (submit ใหม่)
+        const updatedActivity = await tx.student_activity.update({
+          where: { id: activity.id },
+          data: {
+            status: "SUBMITTED",
+            submitted_at: new Date(),
+          },
+        });
+
+        // 4. สร้าง attachment ใหม่
+        const attachmentIds = await this.attachmentsService.createAttachments(
+          {
+            urls: data.urls,
+            files: data.files,
+          },
+          `${data.section_id}/activity/${data.activity_id}/${data.student_id}`,
+          { tx, uploads },
+        );
+
+        const allAttachmentsIds = [
+          ...data.existing_files_ids,
+          ...attachmentIds,
+        ];
+
+        if (allAttachmentsIds.length > 0) {
+          await tx.student_activity_attachments.createMany({
+            data: allAttachmentsIds.map((attId) => ({
+              student_activity_id: updatedActivity.id,
+              attachment_id: attId,
+            })),
+          });
+        }
+
+        // Only now: what the resubmission named again has just been linked back,
+        // so what is left unreferenced is what it replaced (#34).
+        const objects = await this.attachmentsService.deleteUnreferenced(
+          activity.student_activity_attachments.map(
+            (link) => link.attachment_id,
+          ),
+          tx,
+        );
+
+        const result =
+          await this.studentActivityService.getStudentActivityDetail(
+            updatedActivity.id,
+            tx,
+          );
+
+        return { result, objects };
+      },
+    );
 
     await this.uploadService.removeFiles(objects);
 
@@ -298,128 +305,131 @@ export default class StudentService {
   async submitGroupActivity(
     data: SubmitActivityBody,
   ): Promise<GetStudentActivityDetailResp> {
-    const { result, objects } = await prisma.$transaction(async (tx) => {
-      // 1. ดึงสมาชิกในกลุ่ม
-      const members = await tx.student_activity_group_member.findMany({
-        where: {
-          group_id: data.group_id,
-          status: "ACCEPT",
-        },
-        select: { student_id: true, student_activity_id: true },
-      });
-
-      if (members.length === 0) {
-        throw GROUP_HAS_NO_MEMBERS();
-      }
-
-      // Submitting for a group writes to every accepted member at once, so a
-      // group the caller never joined is other people's work (#38).
-      if (!members.some((m) => m.student_id === data.student_id)) {
-        throw NOT_YOUR_GROUP();
-      }
-
-      const studentIds = members.map((m) => m.student_id);
-
-      // 2. ดึง student_activity ของทุกคน
-      const activities = await tx.student_activity.findMany({
-        where: {
-          activity_id: data.activity_id,
-          student_id: { in: studentIds },
-        },
-        include: {
-          student_activity_attachments: true,
-        },
-      });
-
-      if (activities.length === 0) {
-        throw GROUP_HAS_NO_SUBMISSIONS();
-      }
-
-      // Being in the group is not enough on its own: the reply carries the
-      // detail of whichever submission was named, so it has to be the caller's.
-      const own = activities.find((a) => a.id === data.student_activity_id);
-
-      if (!own || own.student_id !== data.student_id) {
-        throw NOT_YOUR_SUBMISSION();
-      }
-
-      // 3. ลบ attachment เดิม (ถ้าเคย submit)
-      await tx.student_activity_attachments.deleteMany({
-        where: {
-          student_activity_id: {
-            in: activities
-              .filter((a) => a.status === "SUBMITTED")
-              .map((a) => a.id),
+    const { result, objects } = await transactionWithUploads(
+      async (tx, uploads) => {
+        // 1. ดึงสมาชิกในกลุ่ม
+        const members = await tx.student_activity_group_member.findMany({
+          where: {
+            group_id: data.group_id,
+            status: "ACCEPT",
           },
-        },
-      });
-
-      // 4. upload ไฟล์ (ครั้งเดียว)
-      const attachmentIds = await this.attachmentsService.createAttachments(
-        {
-          urls: data.urls,
-          files: data.files,
-        },
-        `${data.section_id}/activity/${data.activity_id}/group-${data.group_id}`,
-        tx,
-      );
-
-      const allAttachmentIds = [
-        ...(data.existing_files_ids ?? []),
-        ...attachmentIds,
-      ];
-
-      // 5. update status + submitted_at ทุกคน
-      await tx.student_activity.updateMany({
-        where: {
-          id: { in: activities.map((a) => a.id) },
-        },
-        data: {
-          status: "SUBMITTED",
-          submitted_at: new Date(),
-        },
-      });
-
-      await tx.student_activity_group.updateMany({
-        where: {
-          id: data.group_id,
-        },
-        data: {
-          status: "SUBMITTED",
-        },
-      });
-
-      // 6. ผูก attachment ให้ทุกคน
-      if (allAttachmentIds.length > 0) {
-        await tx.student_activity_attachments.createMany({
-          data: activities.flatMap((activity) =>
-            allAttachmentIds.map((attId) => ({
-              student_activity_id: activity.id,
-              attachment_id: attId,
-            })),
-          ),
+          select: { student_id: true, student_activity_id: true },
         });
-      }
 
-      // Only now: what the resubmission named again has just been linked back
-      // for every member, so what is left unreferenced is what it replaced
-      // (#34).
-      const objects = await this.attachmentsService.deleteUnreferenced(
-        activities.flatMap((activity) =>
-          activity.student_activity_attachments.map(
-            (link) => link.attachment_id,
+        if (members.length === 0) {
+          throw GROUP_HAS_NO_MEMBERS();
+        }
+
+        // Submitting for a group writes to every accepted member at once, so a
+        // group the caller never joined is other people's work (#38).
+        if (!members.some((m) => m.student_id === data.student_id)) {
+          throw NOT_YOUR_GROUP();
+        }
+
+        const studentIds = members.map((m) => m.student_id);
+
+        // 2. ดึง student_activity ของทุกคน
+        const activities = await tx.student_activity.findMany({
+          where: {
+            activity_id: data.activity_id,
+            student_id: { in: studentIds },
+          },
+          include: {
+            student_activity_attachments: true,
+          },
+        });
+
+        if (activities.length === 0) {
+          throw GROUP_HAS_NO_SUBMISSIONS();
+        }
+
+        // Being in the group is not enough on its own: the reply carries the
+        // detail of whichever submission was named, so it has to be the caller's.
+        const own = activities.find((a) => a.id === data.student_activity_id);
+
+        if (!own || own.student_id !== data.student_id) {
+          throw NOT_YOUR_SUBMISSION();
+        }
+
+        // 3. ลบ attachment เดิม (ถ้าเคย submit)
+        await tx.student_activity_attachments.deleteMany({
+          where: {
+            student_activity_id: {
+              in: activities
+                .filter((a) => a.status === "SUBMITTED")
+                .map((a) => a.id),
+            },
+          },
+        });
+
+        // 4. upload ไฟล์ (ครั้งเดียว)
+        const attachmentIds = await this.attachmentsService.createAttachments(
+          {
+            urls: data.urls,
+            files: data.files,
+          },
+          `${data.section_id}/activity/${data.activity_id}/group-${data.group_id}`,
+          { tx, uploads },
+        );
+
+        const allAttachmentIds = [
+          ...(data.existing_files_ids ?? []),
+          ...attachmentIds,
+        ];
+
+        // 5. update status + submitted_at ทุกคน
+        await tx.student_activity.updateMany({
+          where: {
+            id: { in: activities.map((a) => a.id) },
+          },
+          data: {
+            status: "SUBMITTED",
+            submitted_at: new Date(),
+          },
+        });
+
+        await tx.student_activity_group.updateMany({
+          where: {
+            id: data.group_id,
+          },
+          data: {
+            status: "SUBMITTED",
+          },
+        });
+
+        // 6. ผูก attachment ให้ทุกคน
+        if (allAttachmentIds.length > 0) {
+          await tx.student_activity_attachments.createMany({
+            data: activities.flatMap((activity) =>
+              allAttachmentIds.map((attId) => ({
+                student_activity_id: activity.id,
+                attachment_id: attId,
+              })),
+            ),
+          });
+        }
+
+        // Only now: what the resubmission named again has just been linked back
+        // for every member, so what is left unreferenced is what it replaced
+        // (#34).
+        const objects = await this.attachmentsService.deleteUnreferenced(
+          activities.flatMap((activity) =>
+            activity.student_activity_attachments.map(
+              (link) => link.attachment_id,
+            ),
           ),
-        ),
-        tx,
-      );
+          tx,
+        );
 
-      const result = await this.studentActivityService.getStudentActivityDetail(
-        data.student_activity_id,
-        tx,
-      );
+        const result =
+          await this.studentActivityService.getStudentActivityDetail(
+            data.student_activity_id,
+            tx,
+          );
 
-      return { result, objects };
-    });
+        return { result, objects };
+      },
+    );
 
     await this.uploadService.removeFiles(objects);
 
@@ -429,74 +439,79 @@ export default class StudentService {
   async submitLearningActivity(
     data: SubmitLearningActivityBody,
   ): Promise<GetStudentLearningActivityDetailResp> {
-    const { result, objects } = await prisma.$transaction(async (tx) => {
-      const existingActivity = await tx.student_learning_activity.findUnique({
-        where: { id: data.student_learning_activity_id },
-        include: {
-          student_learning_activity_attachments: true,
-        },
-      });
-
-      if (!existingActivity) {
-        throw SUBMISSION_NOT_FOUND();
-      }
-
-      if (existingActivity.student_id !== data.student_id) {
-        throw NOT_YOUR_SUBMISSION();
-      }
-
-      // if (existingActivity.status === "SUBMITTED") {
-      await tx.student_learning_activity_attachments.deleteMany({
-        where: {
-          student_learning_activity_id: existingActivity.id,
-        },
-      });
-      // }
-
-      const activity = await tx.student_learning_activity.update({
-        where: { id: data.student_learning_activity_id },
-        data: {
-          status: "SUBMITTED",
-          submitted_at: new Date(),
-        },
-      });
-
-      const attachmentIds = await this.attachmentsService.createAttachments(
-        {
-          urls: data.urls,
-          files: data.files,
-        },
-        `${data.section_id}/learning-activity/${data.learning_activity_id}/${data.student_id}`,
-        tx,
-      );
-
-      const allAttachmentsIds = [...data.existing_files_ids, ...attachmentIds];
-      if (allAttachmentsIds.length > 0) {
-        await tx.student_learning_activity_attachments.createMany({
-          data: allAttachmentsIds.map((attId) => ({
-            student_learning_activity_id: activity.id,
-            attachment_id: attId,
-          })),
+    const { result, objects } = await transactionWithUploads(
+      async (tx, uploads) => {
+        const existingActivity = await tx.student_learning_activity.findUnique({
+          where: { id: data.student_learning_activity_id },
+          include: {
+            student_learning_activity_attachments: true,
+          },
         });
-      }
 
-      // Only now: what the resubmission named again has just been linked back,
-      // so what is left unreferenced is what it replaced (#34).
-      const objects = await this.attachmentsService.deleteUnreferenced(
-        existingActivity.student_learning_activity_attachments.map(
-          (link) => link.attachment_id,
-        ),
-        tx,
-      );
+        if (!existingActivity) {
+          throw SUBMISSION_NOT_FOUND();
+        }
 
-      const result =
-        await this.studentLearningActivityService.getStudentLearningActivityDetail(
-          data.student_learning_activity_id,
+        if (existingActivity.student_id !== data.student_id) {
+          throw NOT_YOUR_SUBMISSION();
+        }
+
+        // if (existingActivity.status === "SUBMITTED") {
+        await tx.student_learning_activity_attachments.deleteMany({
+          where: {
+            student_learning_activity_id: existingActivity.id,
+          },
+        });
+        // }
+
+        const activity = await tx.student_learning_activity.update({
+          where: { id: data.student_learning_activity_id },
+          data: {
+            status: "SUBMITTED",
+            submitted_at: new Date(),
+          },
+        });
+
+        const attachmentIds = await this.attachmentsService.createAttachments(
+          {
+            urls: data.urls,
+            files: data.files,
+          },
+          `${data.section_id}/learning-activity/${data.learning_activity_id}/${data.student_id}`,
+          { tx, uploads },
+        );
+
+        const allAttachmentsIds = [
+          ...data.existing_files_ids,
+          ...attachmentIds,
+        ];
+        if (allAttachmentsIds.length > 0) {
+          await tx.student_learning_activity_attachments.createMany({
+            data: allAttachmentsIds.map((attId) => ({
+              student_learning_activity_id: activity.id,
+              attachment_id: attId,
+            })),
+          });
+        }
+
+        // Only now: what the resubmission named again has just been linked back,
+        // so what is left unreferenced is what it replaced (#34).
+        const objects = await this.attachmentsService.deleteUnreferenced(
+          existingActivity.student_learning_activity_attachments.map(
+            (link) => link.attachment_id,
+          ),
           tx,
         );
 
-      return { result, objects };
-    });
+        const result =
+          await this.studentLearningActivityService.getStudentLearningActivityDetail(
+            data.student_learning_activity_id,
+            tx,
+          );
+
+        return { result, objects };
+      },
+    );
 
     await this.uploadService.removeFiles(objects);
 
@@ -504,131 +519,134 @@ export default class StudentService {
   }
 
   async submitGroupLearningActivity(data: SubmitLearningActivityBody) {
-    const { result, objects } = await prisma.$transaction(async (tx) => {
-      // 1. ดึงสมาชิกในกลุ่ม
-      const members = await tx.student_learning_activity_group_member.findMany({
-        where: {
-          group_id: data.group_id,
-          status: "ACCEPT",
-        },
-        select: { student_id: true, student_learning_activity_id: true },
-      });
+    const { result, objects } = await transactionWithUploads(
+      async (tx, uploads) => {
+        // 1. ดึงสมาชิกในกลุ่ม
+        const members =
+          await tx.student_learning_activity_group_member.findMany({
+            where: {
+              group_id: data.group_id,
+              status: "ACCEPT",
+            },
+            select: { student_id: true, student_learning_activity_id: true },
+          });
 
-      if (members.length === 0) {
-        throw GROUP_HAS_NO_MEMBERS();
-      }
+        if (members.length === 0) {
+          throw GROUP_HAS_NO_MEMBERS();
+        }
 
-      // Submitting for a group writes to every accepted member at once, so a
-      // group the caller never joined is other people's work (#38).
-      if (!members.some((m) => m.student_id === data.student_id)) {
-        throw NOT_YOUR_GROUP();
-      }
+        // Submitting for a group writes to every accepted member at once, so a
+        // group the caller never joined is other people's work (#38).
+        if (!members.some((m) => m.student_id === data.student_id)) {
+          throw NOT_YOUR_GROUP();
+        }
 
-      const studentIds = members.map((m) => m.student_id);
+        const studentIds = members.map((m) => m.student_id);
 
-      // 2. ดึง student_learning_activity ของทุกคน
-      const activities = await tx.student_learning_activity.findMany({
-        where: {
-          learning_activity_id: data.learning_activity_id,
-          student_id: { in: studentIds },
-        },
-        include: {
-          student_learning_activity_attachments: true,
-        },
-      });
-
-      if (activities.length === 0) {
-        throw GROUP_HAS_NO_SUBMISSIONS();
-      }
-
-      // Being in the group is not enough on its own: the reply carries the
-      // detail of whichever submission was named, so it has to be the caller's.
-      const own = activities.find(
-        (a) => a.id === data.student_learning_activity_id,
-      );
-
-      if (!own || own.student_id !== data.student_id) {
-        throw NOT_YOUR_SUBMISSION();
-      }
-
-      // 3. ลบ attachment เดิม (ถ้าเคย submit)
-      await tx.student_learning_activity_attachments.deleteMany({
-        where: {
-          student_learning_activity_id: {
-            in: activities
-              .filter((a) => a.status === "SUBMITTED")
-              .map((a) => a.id),
+        // 2. ดึง student_learning_activity ของทุกคน
+        const activities = await tx.student_learning_activity.findMany({
+          where: {
+            learning_activity_id: data.learning_activity_id,
+            student_id: { in: studentIds },
           },
-        },
-      });
-
-      // 4. upload ไฟล์ (ครั้งเดียว)
-      const attachmentIds = await this.attachmentsService.createAttachments(
-        {
-          urls: data.urls,
-          files: data.files,
-        },
-        `${data.section_id}/learning-activity/${data.learning_activity_id}/group-${data.group_id}`,
-        tx,
-      );
-
-      const allAttachmentIds = [
-        ...(data.existing_files_ids ?? []),
-        ...attachmentIds,
-      ];
-
-      // 5. update status + submitted_at ทุกคน
-      await tx.student_learning_activity.updateMany({
-        where: {
-          id: { in: activities.map((a) => a.id) },
-        },
-        data: {
-          status: "SUBMITTED",
-          submitted_at: new Date(),
-        },
-      });
-
-      await tx.student_learning_activity_group.updateMany({
-        where: {
-          id: data.group_id,
-        },
-        data: {
-          status: "SUBMITTED",
-        },
-      });
-
-      // 6. ผูก attachment ให้ทุกคน
-      if (allAttachmentIds.length > 0) {
-        await tx.student_learning_activity_attachments.createMany({
-          data: activities.flatMap((activity) =>
-            allAttachmentIds.map((attId) => ({
-              student_learning_activity_id: activity.id,
-              attachment_id: attId,
-            })),
-          ),
+          include: {
+            student_learning_activity_attachments: true,
+          },
         });
-      }
 
-      // Only now: what the resubmission named again has just been linked back
-      // for every member, so what is left unreferenced is what it replaced
-      // (#34).
-      const objects = await this.attachmentsService.deleteUnreferenced(
-        activities.flatMap((activity) =>
-          activity.student_learning_activity_attachments.map(
-            (link) => link.attachment_id,
+        if (activities.length === 0) {
+          throw GROUP_HAS_NO_SUBMISSIONS();
+        }
+
+        // Being in the group is not enough on its own: the reply carries the
+        // detail of whichever submission was named, so it has to be the caller's.
+        const own = activities.find(
+          (a) => a.id === data.student_learning_activity_id,
+        );
+
+        if (!own || own.student_id !== data.student_id) {
+          throw NOT_YOUR_SUBMISSION();
+        }
+
+        // 3. ลบ attachment เดิม (ถ้าเคย submit)
+        await tx.student_learning_activity_attachments.deleteMany({
+          where: {
+            student_learning_activity_id: {
+              in: activities
+                .filter((a) => a.status === "SUBMITTED")
+                .map((a) => a.id),
+            },
+          },
+        });
+
+        // 4. upload ไฟล์ (ครั้งเดียว)
+        const attachmentIds = await this.attachmentsService.createAttachments(
+          {
+            urls: data.urls,
+            files: data.files,
+          },
+          `${data.section_id}/learning-activity/${data.learning_activity_id}/group-${data.group_id}`,
+          { tx, uploads },
+        );
+
+        const allAttachmentIds = [
+          ...(data.existing_files_ids ?? []),
+          ...attachmentIds,
+        ];
+
+        // 5. update status + submitted_at ทุกคน
+        await tx.student_learning_activity.updateMany({
+          where: {
+            id: { in: activities.map((a) => a.id) },
+          },
+          data: {
+            status: "SUBMITTED",
+            submitted_at: new Date(),
+          },
+        });
+
+        await tx.student_learning_activity_group.updateMany({
+          where: {
+            id: data.group_id,
+          },
+          data: {
+            status: "SUBMITTED",
+          },
+        });
+
+        // 6. ผูก attachment ให้ทุกคน
+        if (allAttachmentIds.length > 0) {
+          await tx.student_learning_activity_attachments.createMany({
+            data: activities.flatMap((activity) =>
+              allAttachmentIds.map((attId) => ({
+                student_learning_activity_id: activity.id,
+                attachment_id: attId,
+              })),
+            ),
+          });
+        }
+
+        // Only now: what the resubmission named again has just been linked back
+        // for every member, so what is left unreferenced is what it replaced
+        // (#34).
+        const objects = await this.attachmentsService.deleteUnreferenced(
+          activities.flatMap((activity) =>
+            activity.student_learning_activity_attachments.map(
+              (link) => link.attachment_id,
+            ),
           ),
-        ),
-        tx,
-      );
-
-      const result =
-        await this.studentLearningActivityService.getStudentLearningActivityDetail(
-          data.student_learning_activity_id,
           tx,
         );
 
-      return { result, objects };
-    });
+        const result =
+          await this.studentLearningActivityService.getStudentLearningActivityDetail(
+            data.student_learning_activity_id,
+            tx,
+          );
+
+        return { result, objects };
+      },
+    );
 
     await this.uploadService.removeFiles(objects);
 

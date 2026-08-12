@@ -185,6 +185,100 @@ describe("POST /student/submit/activity", () => {
     ).not.toBeNull();
   });
 
+  it("keeps the file a resubmission names again, object and all", async () => {
+    // The sweep runs after the resubmission has linked its files back, so the
+    // one named again is never unreferenced and never swept (#34, ADR-0008).
+    // Read here through the bucket rather than the rows, because #52 added a
+    // second thing that removes objects — the one that runs when the
+    // transaction fails — and it must not reach a request that succeeded.
+    const student = await createStudent();
+    const course = await createCourse();
+    const activity = await createActivity({ section_id: course.section_id });
+    const submission = await createSubmission({
+      student_id: student.student_id,
+      activity_id: activity.id,
+      status: "NOT_SUBMITTED",
+    });
+    const prefix = `${course.section_id}/activity/${activity.id}/${student.student_id}`;
+
+    const submit = (filename: string, keep: number[]) =>
+      request(app)
+        .post("/student/submit/activity")
+        .set("Cookie", sessionCookie({ userId: student.student_id }))
+        .field("student_activity_id", String(submission.id))
+        .field("section_id", String(course.section_id))
+        .field("activity_id", String(activity.id))
+        .field("type", "INDIVIDUAL")
+        .field("existing_files_ids", JSON.stringify(keep))
+        .attach("files", PNG, filename);
+
+    expect((await submit("งานฉบับแรก.png", [])).status).toBe(200);
+    const first = await prisma.attachments.findFirstOrThrow({
+      where: { title: "งานฉบับแรก.png" },
+    });
+
+    expect((await submit("งานฉบับสอง.png", [first.attachment_id])).status).toBe(
+      200,
+    );
+
+    expect(
+      await prisma.attachments.findUnique({
+        where: { attachment_id: first.attachment_id },
+      }),
+    ).not.toBeNull();
+    expect(
+      await prisma.student_activity_attachments.count({
+        where: { student_activity_id: submission.id },
+      }),
+    ).toBe(2);
+    expect(await listStoredObjects(prefix)).toHaveLength(2);
+  });
+
+  it("takes the uploaded file back out of the bucket when it fails", async () => {
+    // The rows roll back by themselves here — this path has always passed `tx`
+    // — but the object left the process before any row named it, so a failure
+    // used to leave it in the bucket with the only record of its key gone
+    // (#52). The failure is a file the student names again that is not there
+    // any more: it reaches the join table as a foreign key nothing satisfies,
+    // which is after the upload.
+    const student = await createStudent();
+    const course = await createCourse();
+    const activity = await createActivity({ section_id: course.section_id });
+    const submission = await createSubmission({
+      student_id: student.student_id,
+      activity_id: activity.id,
+      status: "NOT_SUBMITTED",
+    });
+
+    const response = await request(app)
+      .post("/student/submit/activity")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .field("student_activity_id", String(submission.id))
+      .field("section_id", String(course.section_id))
+      .field("activity_id", String(activity.id))
+      .field("type", "INDIVIDUAL")
+      .field("existing_files_ids", JSON.stringify([999999]))
+      .attach("files", PNG, "งานที่ไม่เคยถึงปลายทาง.png");
+
+    expect(response.status).toBe(500);
+
+    const prefix = `${course.section_id}/activity/${activity.id}/${student.student_id}`;
+    expect(await listStoredObjects(prefix)).toEqual([]);
+    expect(
+      await prisma.attachments.count({
+        where: { file_path: { startsWith: prefix } },
+      }),
+    ).toBe(0);
+    // And the submission is where it was: nothing about the request landed.
+    expect(
+      (
+        await prisma.student_activity.findUniqueOrThrow({
+          where: { id: submission.id },
+        })
+      ).status,
+    ).toBe("NOT_SUBMITTED");
+  });
+
   it("submits for every accepted member of a group at once", async () => {
     const leader = await createStudent();
     const member = await createStudent();
@@ -241,9 +335,11 @@ describe("POST /student/submit/activity", () => {
     expect(untouched.student_activity_attachments).toEqual([]);
 
     expect(
-      (await prisma.student_activity_group.findUniqueOrThrow({
-        where: { id: group.id },
-      })).status,
+      (
+        await prisma.student_activity_group.findUniqueOrThrow({
+          where: { id: group.id },
+        })
+      ).status,
     ).toBe("SUBMITTED");
 
     // Uploaded once, under the group's path rather than any one student's.
@@ -306,9 +402,59 @@ describe("POST /student/submit/activity", () => {
     });
     for (const submission of submissions) {
       expect(submission.student_activity_attachments).toHaveLength(1);
-      expect(
-        submission.student_activity_attachments[0].attachment_id,
-      ).not.toBe(first.attachment_id);
+      expect(submission.student_activity_attachments[0].attachment_id).not.toBe(
+        first.attachment_id,
+      );
+    }
+  });
+
+  it("takes the group's upload back out of the bucket when it fails", async () => {
+    // Same failure as the individual path, one upload standing for the whole
+    // group: nobody's rows change, and the file that was uploaded once for all
+    // of them goes back out of the bucket (#52).
+    const leader = await createStudent();
+    const member = await createStudent();
+    const course = await createCourse();
+    const activity = await createActivity({ section_id: course.section_id });
+    const group = await createActivityGroup({
+      activity_id: activity.id,
+      members: [
+        { student_id: leader.student_id },
+        { student_id: member.student_id, status: "ACCEPT" },
+      ],
+    });
+    const leaderSubmission = group.student_activity_group_member.find(
+      (m) => m.student_id === leader.student_id,
+    )!;
+
+    const response = await request(app)
+      .post("/student/submit/activity")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .field(
+        "student_activity_id",
+        String(leaderSubmission.student_activity_id),
+      )
+      .field("section_id", String(course.section_id))
+      .field("activity_id", String(activity.id))
+      .field("type", "GROUP")
+      .field("group_id", String(group.id))
+      .field("existing_files_ids", JSON.stringify([999999]))
+      .attach("files", PNG, "งานกลุ่มที่ไม่เคยถึงปลายทาง.png");
+
+    expect(response.status).toBe(500);
+
+    const groupPrefix = `${course.section_id}/activity/${activity.id}/group-${group.id}`;
+    expect(await listStoredObjects(groupPrefix)).toEqual([]);
+    expect(
+      await prisma.attachments.count({
+        where: { file_path: { startsWith: groupPrefix } },
+      }),
+    ).toBe(0);
+    const submissions = await prisma.student_activity.findMany({
+      where: { activity_id: activity.id },
+    });
+    for (const submission of submissions) {
+      expect(submission.status).toBe("NOT_SUBMITTED");
     }
   });
 
@@ -339,9 +485,11 @@ describe("POST /student/submit/activity", () => {
       "ยังไม่มีสมาชิกที่ตอบรับคำเชิญในกลุ่มนี้",
     );
     expect(
-      (await prisma.student_activity.findUniqueOrThrow({
-        where: { id: membership.student_activity_id! },
-      })).status,
+      (
+        await prisma.student_activity.findUniqueOrThrow({
+          where: { id: membership.student_activity_id! },
+        })
+      ).status,
     ).toBe("NOT_SUBMITTED");
   });
 
@@ -378,7 +526,10 @@ describe("POST /student/submit/activity", () => {
     });
     const kept = await createFileAttachment({ title: "งานของเพื่อน" });
     await prisma.student_activity_attachments.create({
-      data: { student_activity_id: theirs.id, attachment_id: kept.attachment_id },
+      data: {
+        student_activity_id: theirs.id,
+        attachment_id: kept.attachment_id,
+      },
     });
 
     const response = await request(app)
@@ -404,9 +555,7 @@ describe("POST /student/submit/activity", () => {
       untouched.student_activity_attachments.map((a) => a.attachment_id),
     ).toEqual([kept.attachment_id]);
     expect(
-      await listStoredObjects(
-        `${course.section_id}/activity/${activity.id}/`,
-      ),
+      await listStoredObjects(`${course.section_id}/activity/${activity.id}/`),
     ).toEqual([]);
   });
 
@@ -451,9 +600,11 @@ describe("POST /student/submit/activity", () => {
       submissions.map(() => "NOT_SUBMITTED"),
     );
     expect(
-      (await prisma.student_activity_group.findUniqueOrThrow({
-        where: { id: group.id },
-      })).status,
+      (
+        await prisma.student_activity_group.findUniqueOrThrow({
+          where: { id: group.id },
+        })
+      ).status,
     ).not.toBe("SUBMITTED");
   });
 
@@ -490,9 +641,11 @@ describe("POST /student/submit/activity", () => {
     expect(response.status).toBe(403);
     expect(response.body.message).toBe("ส่งงานได้เฉพาะงานของตัวเองเท่านั้น");
     expect(
-      (await prisma.student_activity.findUniqueOrThrow({
-        where: { id: leaderSubmission.student_activity_id! },
-      })).status,
+      (
+        await prisma.student_activity.findUniqueOrThrow({
+          where: { id: leaderSubmission.student_activity_id! },
+        })
+      ).status,
     ).toBe("NOT_SUBMITTED");
   });
 
@@ -527,9 +680,11 @@ describe("POST /student/submit/activity", () => {
       },
     ]);
     expect(
-      (await prisma.student_activity.findUniqueOrThrow({
-        where: { id: membership.student_activity_id! },
-      })).status,
+      (
+        await prisma.student_activity.findUniqueOrThrow({
+          where: { id: membership.student_activity_id! },
+        })
+      ).status,
     ).toBe("NOT_SUBMITTED");
   });
 
@@ -560,9 +715,11 @@ describe("POST /student/submit/activity", () => {
       { field: "urls", location: "body", message: "ต้องเป็นรายการ" },
     ]);
     expect(
-      (await prisma.student_activity.findUniqueOrThrow({
-        where: { id: submission.id },
-      })).status,
+      (
+        await prisma.student_activity.findUniqueOrThrow({
+          where: { id: submission.id },
+        })
+      ).status,
     ).toBe("NOT_SUBMITTED");
   });
 
@@ -580,9 +737,11 @@ describe("POST /student/submit/activity", () => {
       message: "ไม่พบ Token หรือ Token หมดอายุ",
     });
     expect(
-      (await prisma.student_activity.findUniqueOrThrow({
-        where: { id: submission.id },
-      })).status,
+      (
+        await prisma.student_activity.findUniqueOrThrow({
+          where: { id: submission.id },
+        })
+      ).status,
     ).toBe("NOT_SUBMITTED");
   });
 
@@ -703,10 +862,9 @@ describe("POST /student/submit/learning-activity", () => {
         { student_id: member.student_id, status: "ACCEPT" },
       ],
     });
-    const leaderMembership =
-      group.student_learning_activity_group_member.find(
-        (m) => m.student_id === leader.student_id,
-      )!;
+    const leaderMembership = group.student_learning_activity_group_member.find(
+      (m) => m.student_id === leader.student_id,
+    )!;
 
     const response = await request(app)
       .post("/student/submit/learning-activity")
@@ -736,6 +894,97 @@ describe("POST /student/submit/learning-activity", () => {
       `${course.section_id}/learning-activity/${learningActivity.id}/group-${group.id}`,
     );
     expect(objects).toHaveLength(1);
+  });
+
+  it("takes the uploaded file back out of the bucket when it fails", async () => {
+    // The learning-activity twin of the same rollback (#52).
+    const student = await createStudent();
+    const course = await createCourse();
+    const learningActivity = await createLearningActivity({
+      section_id: course.section_id,
+    });
+    const submission = await createLearningSubmission({
+      student_id: student.student_id,
+      learning_activity_id: learningActivity.id,
+      status: "NOT_SUBMITTED",
+    });
+
+    const response = await request(app)
+      .post("/student/submit/learning-activity")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .field("student_learning_activity_id", String(submission.id))
+      .field("section_id", String(course.section_id))
+      .field("learning_activity_id", String(learningActivity.id))
+      .field("type", "INDIVIDUAL")
+      .field("existing_files_ids", JSON.stringify([999999]))
+      .attach("files", PNG, "กิจกรรมที่ไม่เคยถึงปลายทาง.png");
+
+    expect(response.status).toBe(500);
+
+    const prefix = `${course.section_id}/learning-activity/${learningActivity.id}/${student.student_id}`;
+    expect(await listStoredObjects(prefix)).toEqual([]);
+    expect(
+      await prisma.attachments.count({
+        where: { file_path: { startsWith: prefix } },
+      }),
+    ).toBe(0);
+    expect(
+      (
+        await prisma.student_learning_activity.findUniqueOrThrow({
+          where: { id: submission.id },
+        })
+      ).status,
+    ).toBe("NOT_SUBMITTED");
+  });
+
+  it("takes the group's upload back out of the bucket when it fails", async () => {
+    // And its group twin, where the one upload belongs to everybody (#52).
+    const leader = await createStudent();
+    const member = await createStudent();
+    const course = await createCourse();
+    const learningActivity = await createLearningActivity({
+      section_id: course.section_id,
+    });
+    const group = await createLearningActivityGroup({
+      learning_activity_id: learningActivity.id,
+      members: [
+        { student_id: leader.student_id },
+        { student_id: member.student_id, status: "ACCEPT" },
+      ],
+    });
+    const leaderMembership = group.student_learning_activity_group_member.find(
+      (m) => m.student_id === leader.student_id,
+    )!;
+
+    const response = await request(app)
+      .post("/student/submit/learning-activity")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .field(
+        "student_learning_activity_id",
+        String(leaderMembership.student_learning_activity_id),
+      )
+      .field("section_id", String(course.section_id))
+      .field("learning_activity_id", String(learningActivity.id))
+      .field("type", "GROUP")
+      .field("group_id", String(group.id))
+      .field("existing_files_ids", JSON.stringify([999999]))
+      .attach("files", PNG, "กิจกรรมกลุ่มที่ไม่เคยถึงปลายทาง.png");
+
+    expect(response.status).toBe(500);
+
+    const groupPrefix = `${course.section_id}/learning-activity/${learningActivity.id}/group-${group.id}`;
+    expect(await listStoredObjects(groupPrefix)).toEqual([]);
+    expect(
+      await prisma.attachments.count({
+        where: { file_path: { startsWith: groupPrefix } },
+      }),
+    ).toBe(0);
+    const submissions = await prisma.student_learning_activity.findMany({
+      where: { learning_activity_id: learningActivity.id },
+    });
+    for (const submission of submissions) {
+      expect(submission.status).toBe("NOT_SUBMITTED");
+    }
   });
 
   it("answers 404 for an id that belongs to no submission", async () => {
@@ -780,11 +1029,10 @@ describe("POST /student/submit/learning-activity", () => {
     expect(response.status).toBe(403);
     expect(response.body.message).toBe("ส่งงานได้เฉพาะงานของตัวเองเท่านั้น");
 
-    const untouched =
-      await prisma.student_learning_activity.findUniqueOrThrow({
-        where: { id: theirs.id },
-        include: { student_learning_activity_attachments: true },
-      });
+    const untouched = await prisma.student_learning_activity.findUniqueOrThrow({
+      where: { id: theirs.id },
+      include: { student_learning_activity_attachments: true },
+    });
     expect(untouched.status).toBe("NOT_SUBMITTED");
     expect(untouched.student_learning_activity_attachments).toEqual([]);
     expect(
@@ -865,9 +1113,11 @@ describe("POST /student/submit/learning-activity", () => {
       },
     ]);
     expect(
-      (await prisma.student_learning_activity.findUniqueOrThrow({
-        where: { id: submission.id },
-      })).status,
+      (
+        await prisma.student_learning_activity.findUniqueOrThrow({
+          where: { id: submission.id },
+        })
+      ).status,
     ).toBe("NOT_SUBMITTED");
   });
 
@@ -883,9 +1133,11 @@ describe("POST /student/submit/learning-activity", () => {
 
     expect(response.status).toBe(401);
     expect(
-      (await prisma.student_learning_activity.findUniqueOrThrow({
-        where: { id: submission.id },
-      })).status,
+      (
+        await prisma.student_learning_activity.findUniqueOrThrow({
+          where: { id: submission.id },
+        })
+      ).status,
     ).toBe("NOT_SUBMITTED");
   });
 

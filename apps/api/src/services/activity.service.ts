@@ -158,8 +158,7 @@ export default class ActivityService {
           files: data.files,
         },
         "activity",
-        tx,
-        uploads,
+        { tx, uploads },
       );
 
       if (attachmentIds.length > 0) {
@@ -247,8 +246,7 @@ export default class ActivityService {
             files: data.files,
           },
           "activity",
-          tx,
-          uploads,
+          { tx, uploads },
         );
 
         if (attachmentIds.length > 0) {

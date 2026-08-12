@@ -17,15 +17,10 @@ import MinIOService from "./upload.service";
  * went away (#50).
  *
  * `work` is handed the array `createAttachments` records its uploads in. Pass
- * it on as the fourth argument, with `tx` as the third; a call given neither
- * writes outside the transaction and is not swept up after. The array belongs
- * to this call rather than to a service, so two requests uploading at once
- * cannot take away each other's files.
- *
- * Passing `tx` and forgetting `uploads` rolls the rows back and leaves the
- * files — half a fix, and nothing in the types says so. The two would be one
- * parameter if the four submission paths in `student.service.ts` did not still
- * pass `tx` alone; they close in #52, and the signature can tighten with them.
+ * the two on together as `{ tx, uploads }`, the third argument; a call given
+ * nothing writes outside the transaction and is not swept up after. The array
+ * belongs to this call rather than to a service, so two requests uploading at
+ * once cannot take away each other's files.
  *
  * This is the mirror of the delete side (ADR-0008): there the rows go first
  * and the objects follow once the transaction has committed, because an object
@@ -48,6 +43,21 @@ export async function transactionWithUploads<T>(
   }
 }
 
+/**
+ * The transaction an upload is being made inside, and the array its object
+ * keys go into.
+ *
+ * One parameter rather than two, because either half alone is a mistake the
+ * types would otherwise let through: `tx` without `uploads` rolls the rows
+ * back and leaves the files in the bucket — the exact failure #50 and #52 were
+ * about — and `uploads` without `tx` records keys for rows that were never
+ * going to roll back anyway. `transactionWithUploads` hands out both.
+ */
+export type UploadScope = {
+  tx: Prisma.TransactionClient;
+  uploads: string[];
+};
+
 export default class AttachmentsService {
   private readonly uploadService: MinIOService;
 
@@ -58,10 +68,9 @@ export default class AttachmentsService {
   async createAttachments(
     data: UploadAttachments,
     folder: string,
-    tx?: Prisma.TransactionClient,
-    uploads?: string[],
+    scope?: UploadScope,
   ) {
-    const prismaClient = tx ?? prisma;
+    const prismaClient = scope?.tx ?? prisma;
 
     const attachmentIds: number[] = [];
 
@@ -99,7 +108,7 @@ export default class AttachmentsService {
           // Recorded before the row, and whether or not the row is ever made:
           // the object is in the bucket from here on, and only this array
           // remembers where. See transactionWithUploads.
-          if (fileUrl) uploads?.push(fileUrl);
+          if (fileUrl) scope?.uploads.push(fileUrl);
 
           const attachment = await prismaClient.attachments.create({
             data: {

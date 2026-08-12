@@ -64,8 +64,7 @@ export default class AnnouncementService {
           files: data.files,
         },
         "announcements",
-        tx,
-        uploads
+        { tx, uploads },
       );
 
       let firstAnnouncementId: number | null = null;
