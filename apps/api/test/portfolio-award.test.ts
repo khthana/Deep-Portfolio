@@ -15,16 +15,18 @@ import { signedFileKey, signedFileUrl } from "./helpers/file-url";
 /**
  * Prizes the student has won — /portfolio-award.
  *
- * The list, attachment and upload machinery is the group's usual, so what this
- * file is really about is the two places where award parts company with it,
- * both in how the service writes a row:
+ * The list, attachment and upload machinery is the group's usual, and since #46
+ * so is the way the service writes a row. Award used to part company with the
+ * group over `is_show`: create forced it through `is_show === true`, so a
+ * request that said nothing about the flag stored false and the column's
+ * default of true never ran. It is now passed through untouched (ADR-0018), and
+ * the two cases under POST hold that line — one for the absent flag, one for
+ * `is_show=false`, which still hides the prize.
  *
- * - `is_show` is forced through a boolean on create, so a request that says
- *   nothing about it stores false — where every other section in the group
- *   leaves the column alone and takes the schema's default of true.
- * - `date` on update is `date ? new Date(date) : undefined`, so an empty date
- *   is not a clearing instruction, it is no instruction at all. Certificate has
- *   the same quirk; see the closing notes in BEHAVIOR-CHANGES.md.
+ * `date` is `clearableDate` on both verbs since #20: an empty string clears it,
+ * an absent one leaves the row as it was. The two cases under PUT say so, and
+ * they are the other half of what "absent" means here — on create it means
+ * "take the column's answer", on update it means "do not touch this field".
  *
  * Authorisation is the same everywhere in the group since #31 — a session, and
  * your own rows. T5 asks every endpoint behind the middleware for its own
@@ -271,17 +273,39 @@ describe("POST /portfolio-award", () => {
     expect(stored[0].award).toBe("รางวัลชนะเลิศ");
   });
 
-  it("hides a prize the request says nothing about", async () => {
-    // Recorded, not endorsed. is_show is forced through a boolean here, so an
-    // absent field reads as false — the column's default of true never gets a
-    // chance to apply, and the prize is created hidden. The frontend always
-    // sends the field, which is why nobody has noticed.
+  it("shows a prize the request says nothing about", async () => {
+    // An absent flag is not an instruction to hide. The column's default is
+    // true and every other section in the group lets it apply; award used to
+    // force the value through a boolean, so a prize created without the field
+    // was stored hidden and nothing said why (#46, ADR-0018).
     const student = await createStudent();
 
     const response = await request(app)
       .post("/portfolio-award")
       .set("Cookie", sessionCookie({ userId: student.student_id }))
       .field("name", "การแข่งขันตัวอย่าง");
+
+    expect(response.status).toBe(201);
+    expect(response.body.data.is_show).toBe(true);
+    expect(
+      (
+        await prisma.portfolio_award.findFirstOrThrow({
+          where: { user_id: student.student_id },
+        })
+      ).is_show,
+    ).toBe(true);
+  });
+
+  it("hides a prize the request asks to hide", async () => {
+    // The other half of the same rule: absent and false have to end up in
+    // different places, or the column's default has nothing left to default.
+    const student = await createStudent();
+
+    const response = await request(app)
+      .post("/portfolio-award")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .field("name", "การแข่งขันตัวอย่าง")
+      .field("is_show", "false");
 
     expect(response.status).toBe(201);
     expect(response.body.data.is_show).toBe(false);
@@ -408,8 +432,9 @@ describe("PUT /portfolio-award/:id", () => {
   });
 
   it("leaves is_show alone when the request says nothing about it", async () => {
-    // Unlike create, where an absent is_show means false. Update asks whether
-    // the field was sent at all before it converts.
+    // Unlike create, where an absent is_show now takes the column's default.
+    // A PUT is asked which fields the caller meant to touch, so a flag that
+    // did not come with the request is left as it was (ADR-0018).
     const entry = await createPortfolioAward({ is_show: true });
 
     const response = await request(app)

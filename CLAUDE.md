@@ -31,7 +31,7 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 998 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 999 API cases over
   40 files, 415 web cases over 27 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
@@ -40,7 +40,8 @@ The whole breakdown of #1 is done, #20–#42 included. On top of that came
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md) on 2026-08-11 — every entry under
 "สิ่งที่ **ไม่ได้** เปลี่ยน" was checked against the code, the ones already
 closed were marked so, and what genuinely remained got an issue. **#43, #45,
-#49 and #50 are closed; #44 and #46–#48 are what is left**, plus three spun
+#49 and #50 are closed; #46 is fixed here but stays open until the commit
+carrying it is pushed; #44, #47 and #48 are what is left**, plus three spun
 off along the way: **#51** from #43 — the API's Thai sentences do not survive the frontend's
 thunks — **#52** from #50 — the four submission paths in `student.service.ts`
 roll their `attachments` rows back but leave the uploaded files in MinIO — and

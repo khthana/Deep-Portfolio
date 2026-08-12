@@ -158,19 +158,18 @@ export default class PortfolioAwardService {
     data: CreatePortfolioAwardReqBody,
     files: Express.Multer.File[] = [],
   ): Promise<PortfolioAwardResp> {
-    const { date, is_show, ...awardData } = data;
+    const { date, ...awardData } = data;
 
+    // `is_show` rides along in `awardData` and is deliberately not touched.
+    // Absent, it stays undefined and the column's default of true applies —
+    // the same answer the rest of the group gives. It used to be forced
+    // through `is_show === true`, which made a missing flag mean hidden
+    // (#46, ADR-0018).
     const award = await prisma.portfolio_award.create({
       data: {
         user_id: userId,
         date: date ?? null,
         ...awardData,
-
-        // An award created without `is_show` is hidden, which is not what the
-        // column's default says and not what the other sections do. Pinned in
-        // BEHAVIOR-CHANGES.md since #17 and kept deliberately: what a missing
-        // flag ought to mean is a decision, not a defect to fix in passing.
-        is_show: is_show === true,
       },
     });
 
