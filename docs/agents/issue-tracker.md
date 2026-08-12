@@ -91,9 +91,19 @@ Run `gh issue view <number> --comments`.
   closed on 2026-08-12 — #53 stopped at the API on purpose, so the two teacher
   marking tables were still not showing anyone the API had started sending.
 
-  **Only #1 is open.** A new defect gets a new issue on the same terms: say
-  what has to be decided, and record the caller's view of it in
-  `BEHAVIOR-CHANGES.md`.
+- **#55–#63 were filed on 2026-08-12**, all nine at once, so that #1 could be
+  closed against a spec that was delivered rather than one with a list still
+  hanging off it. They are not defects found while testing — they are what the
+  spec deferred on purpose (`#58` empty enums, `#59` phase 5 / CI, `#61` shared
+  types, `#62` component and E2E tests, `#63` the `any` sweep) plus four things
+  that only had a note in `BEHAVIOR-CHANGES.md` behind them (`#55`
+  `/auth/refresh`, `#56` invisible `NOT_SUBMITTED` groups, `#57` no way to
+  re-send an invitation, `#60` lint failing with nothing to catch it).
+  Most carry `needs-info`: the decision named in the body has to be answered
+  before the ticket can be picked up. **#55 and #60 are `ready-for-agent`.**
+
+  A new defect gets a new issue on the same terms: say what has to be decided,
+  and record the caller's view of it in `BEHAVIOR-CHANGES.md`.
 
 ## Wayfinding operations
 

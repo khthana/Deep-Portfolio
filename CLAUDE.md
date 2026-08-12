@@ -60,11 +60,22 @@ from `format-marked-students.ts`, which both pages share.
 
 Nothing from that line of work is open. Read the pinned list in
 `BEHAVIOR-CHANGES.md` before starting anything: entries with neither "ปิดแล้ว"
-nor an issue number are deliberate, not outstanding. Two that a teacher-facing
-change might reach are that groups still holding `NOT_SUBMITTED` never appear
-to the teacher at all — so their unanswered invitations do not either — and
-that there is still no way to send an invitation again after its seven days
-run out.
+nor an issue number are deliberate, not outstanding.
+
+Everything the spec still owed now has a ticket of its own, **#55–#63**, filed
+on 2026-08-12 so that #1 could close on a delivered spec rather than an open
+list. Four are defects or gaps in what runs today: **#55** `/auth/refresh`
+mints a token for a user who no longer exists (a caller sees `200` and then
+`401` on the next call — every guarded route re-reads `users`, so nothing opens
+that shouldn't); **#56** groups still holding `NOT_SUBMITTED` never appear to
+the teacher at all, so their unanswered invitations do not either; **#57** an
+invitation cannot be sent again once its seven days run out, and editing the
+group carries the old token over rather than issuing a new one; **#60**
+`npm run lint` fails today, `apps/api` has no `lint` script, and no formatter
+is configured anywhere. The other five are the work the spec put out of scope
+on purpose: **#58** the two empty enums, **#59** phase 5 — a real server and
+CI/CD, **#61** the shared types package `packages/` is reserved for, **#62**
+component and E2E tests, **#63** the `any` sweep and the long files.
 
 #1 itself is still open as the umbrella spec.
 
