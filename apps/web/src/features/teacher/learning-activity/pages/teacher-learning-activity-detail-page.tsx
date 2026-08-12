@@ -10,6 +10,7 @@ import type { SubmissionStatus } from "../../activity/types/activity-type.type";
 import type { Submission } from "../types/learning-activity-type.type";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import { formatUnacceptedMembers } from "../../../../utils/format-unaccepted-member";
+import { formatMarkedStudents } from "../../../../utils/format-marked-students";
 import StudentWorkTable from "../components/student-work-table";
 
 export type DataType = {
@@ -33,35 +34,19 @@ export type DataType = {
  * alike.
  */
 const toRow = (classwork: Submission, dataIndex: number): DataType => {
-  const studentCode =
-    classwork.submission_type === "GROUP"
-      ? classwork.group
-        ? classwork.group.members.map((member) => member.student_id)
-        : []
-      : classwork.student
-        ? [classwork.student.student_id]
-        : [];
-
-  const studentName =
-    classwork.submission_type === "GROUP"
-      ? classwork.group
-        ? classwork.group.members.map(
-            (member) => `${member.first_name_th} ${member.last_name_th}`,
-          )
-        : []
-      : classwork.student
-        ? [`${classwork.student.first_name_th} ${classwork.student.last_name_th}`]
-        : [];
+  const { codes, names } = formatMarkedStudents(classwork);
 
   return {
     key: classwork.id.toString(),
     no: dataIndex + 1,
     submitted_date: convertDateToThaiFormat(classwork.submitted_at) ?? "-",
-    code: studentCode,
-    name: studentName,
+    code: codes,
+    name: names,
     unaccepted: formatUnacceptedMembers(classwork.group?.unaccepted_members),
     status:
-      classwork.status === "GRADED" ? "GRADED" : ("PENDING" as SubmissionStatus),
+      classwork.status === "GRADED"
+        ? "GRADED"
+        : ("PENDING" as SubmissionStatus),
     remark: classwork.remark ?? "",
     feedback: classwork.feedback ?? "",
     id: classwork.id,

@@ -2332,7 +2332,8 @@ error ของ axios เป็น `SerializedError` ซึ่งเก็บแ
 
 - `apps/web/src/features/teacher/activity/types/activity-type.type.ts` และ
   `.../learning-activity/types/learning-activity-type.type.ts` — `group` ของ type
-  `Submission` มี `unaccepted_members` แล้วทั้งคู่
+  `Submission` มี `unaccepted_members` แล้วทั้งคู่ ตัว type `UnacceptedMember`
+  อยู่ที่ `apps/web/src/types/activity-type.type.ts` ที่เดียว เพราะทั้งสองหน้าใช้ร่วมกัน
 - `apps/web/src/features/teacher/activity/pages/teacher-activity-detail-page.tsx`
   และ `.../learning-activity/pages/teacher-learning-activity-detail-page.tsx` —
   การ map แถวของตารางรวมกับตารางงานที่ติดดาวเป็นฟังก์ชัน `toRow` ตัวเดียวต่อหน้า
@@ -2340,8 +2341,10 @@ error ของ axios เป็น `SerializedError` ซึ่งเก็บแ
   ยังมาจาก `members` เท่าเดิม
 - ตารางของอาจารย์ทั้งสองมีคอลัมน์ **"ยังไม่ตอบรับ"** แยกต่างหาก แสดง
   `รหัส ชื่อ สกุล (รอตอบรับ)` หรือ `(ปฏิเสธ)` และแสดง `-` เมื่อไม่มีใครค้าง
-  ข้อความมาจาก `apps/web/src/utils/format-unaccepted-member.ts` ซึ่งเป็นฟังก์ชัน
-  บริสุทธิ์และมี test ตาม T2
+- ข้อความในตารางมาจากฟังก์ชันบริสุทธิ์สองตัวที่มี test ตาม T2 —
+  `apps/web/src/utils/format-unaccepted-member.ts` เขียนบรรทัดของคนที่ยังไม่ตอบรับ และ
+  `apps/web/src/utils/format-marked-students.ts` ตอบว่าแถวนี้กำลังให้คะแนนใคร
+  (`members` ทั้งกลุ่มหรือนักศึกษาคนเดียว) ตัวหลังคือตรรกะที่เดิมเขียนซ้ำอยู่ในทั้งสองหน้า
 
 ### สิ่งที่ **ไม่ได้** ทำใน ticket นี้
 

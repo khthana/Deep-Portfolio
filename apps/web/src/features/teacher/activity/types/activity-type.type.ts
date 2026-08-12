@@ -3,9 +3,9 @@ import type { AttachmentDetailItem } from "../../announcement/types/announement-
 import type {
   ScoreWeightDetail,
   StudentActivityStatusDB,
+  UnacceptedMember,
 } from "../../../../types/activity-type.type";
 import type { ClassworkType } from "../../../student/course/types/course-type";
-import type { UnacceptedMember } from "../../../../utils/format-unaccepted-member";
 
 export const activityType = {
   GROUP: "GROUP",

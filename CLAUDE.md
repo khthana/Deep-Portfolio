@@ -32,7 +32,7 @@ mostly correctness work on top of it.
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
 - **Tests**: `npm test` at the root runs both workspaces. 1019 API cases over
-  40 files, 432 web cases over 29 files. Both were written against the
+  40 files, 438 web cases over 30 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
 The whole breakdown of #1 is done, #20–#42 included. On top of that came
@@ -50,10 +50,15 @@ and **#53**, where no teacher-facing endpoint showed a group member who never
 answered the invitation. Both `submitted/list` endpoints now carry
 `group.unaccepted_members` beside `group.members`, each row saying `PENDING`
 or `REJECTED`; `members` still means who the score lands on. ADR-0023 has that
-reasoning, and `apps/web` has deliberately not followed yet —
-[`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md) names the four files that must.
+reasoning.
 
-Nothing from that line of work is open. Read the pinned list in
+**#54 is the frontend following it, and is the only issue besides #1 that is
+open.** Both teacher marking tables now carry a "ยังไม่ตอบรับ" column of their
+own, worded by `apps/web/src/utils/format-unaccepted-member.ts`, so that the
+two columns naming who is being marked read the same as they always did. The
+work is on `main` and the issue closes when it is pushed.
+
+Read the pinned list in
 `BEHAVIOR-CHANGES.md` before starting anything: entries with neither "ปิดแล้ว"
 nor an issue number are deliberate, not outstanding. Two that a teacher-facing
 change might reach are that groups still holding `NOT_SUBMITTED` never appear
