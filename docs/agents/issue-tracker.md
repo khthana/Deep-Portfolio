@@ -78,15 +78,15 @@ Run `gh issue view <number> --comments`.
   already been closed by a later ticket without anyone going back to say so.
   **All eight are now closed too.**
   Each names what has to be decided before it can be picked up, so read the
-  issue before assuming the fix is obvious. **#51** was filed the same way on
-  the same day, but out of #43 rather than out of the audit: the API's Thai
-  error sentences are dropped by every `createAsyncThunk` on the way to the
-  screen. **#52** came out of #50 on 2026-08-12 — the four submission paths in
-  `student.service.ts` left the uploaded files in MinIO when the transaction
-  rolled their `attachments` rows back — and is closed. **#53** came out of
-  #45 the same day: no
-  teacher-facing endpoint reports a group member who never answered the
-  invitation, which now matters because grading passes over them.
+  issue before assuming the fix is obvious. Three were filed out of those eight
+  rather than out of the audit, and two of them are closed. **#51** came out of
+  #43 on the same day — the API's Thai error sentences were dropped by every
+  `createAsyncThunk` on the way to the screen — and is closed. **#52** came out
+  of #50 on 2026-08-12 — the four submission paths in `student.service.ts` left
+  the uploaded files in MinIO when the transaction rolled their `attachments`
+  rows back — and is closed. **#53** came out of #45 the same day and is the
+  one still open: no teacher-facing endpoint reports a group member who never
+  answered the invitation, which now matters because grading passes over them.
 
 ## Wayfinding operations
 
