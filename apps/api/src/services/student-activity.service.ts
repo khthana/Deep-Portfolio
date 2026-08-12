@@ -433,8 +433,12 @@ export default class StudentActivityService {
         throw new Error("Group not found");
       }
 
+      // Only the members who accepted. A group is handed in on behalf of the
+      // people who joined it, and submitGroupActivity says so by filtering the
+      // same way — marking used to reach the whole invitation list and score
+      // rows that had never been submitted (#45, ADR-0017).
       const members = await tx.student_activity_group_member.findMany({
-        where: { group_id: groupMember.group_id },
+        where: { group_id: groupMember.group_id, status: "ACCEPT" },
         select: { student_activity_id: true, student_id: true },
       });
 

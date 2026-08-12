@@ -50,7 +50,9 @@ describe("POST /student-learning-activity/grade", () => {
 
   it("marks every member of a group graded at once", async () => {
     const teacher = await createTeacher();
-    const group = await createLearningActivityGroup();
+    const group = await createLearningActivityGroup({
+      members: [{}, { status: "ACCEPT" }],
+    });
     const [leader, member] = group.student_learning_activity_group_member;
 
     const response = await request(app)
@@ -93,10 +95,10 @@ describe("POST /student-learning-activity/grade", () => {
     ).toMatchObject({ status: "GRADED" });
   });
 
-  it("marks a PENDING member graded along with the rest", async () => {
-    // Recorded, not endorsed. The group path collects members by group_id and
-    // nothing else, so someone who never accepted the invitation is graded for
-    // work they were never in the group for.
+  it("passes over a member who never answered the invitation", async () => {
+    // The same rule as the activity side, and for the same reason: handing the
+    // work in only ever covered the members who accepted, so marking has no
+    // business reaching further than that (#45, ADR-0017).
     const teacher = await createTeacher();
     const group = await createLearningActivityGroup();
     const [leader, invited] = group.student_learning_activity_group_member;
@@ -115,9 +117,14 @@ describe("POST /student-learning-activity/grade", () => {
     expect(response.status).toBe(200);
     expect(
       await prisma.student_learning_activity.findUniqueOrThrow({
-        where: { id: invited.student_learning_activity_id },
+        where: { id: leader.student_learning_activity_id },
       }),
     ).toMatchObject({ status: "GRADED" });
+    expect(
+      await prisma.student_learning_activity.findUniqueOrThrow({
+        where: { id: invited.student_learning_activity_id },
+      }),
+    ).toMatchObject({ status: "NOT_SUBMITTED", graded_at: null });
   });
 
   it("refuses to grade a group submission that is not in a group", async () => {

@@ -28,7 +28,7 @@ check), `0013-student-read-access.md` (the last three reads in `/student`,
 each of which took the rule of its neighbours rather than one rule for all
 three) and `0014-shared-rubric-access.md` (the programme's shared rubrics
 belong to any teacher, and why the rule is not narrowed to the caller's own
-programme). Read all ten before adding an authorisation check anywhere. Six
+programme). Read all ten before adding an authorisation check anywhere. Seven
 more are about when or what rather than who: `0005-announcement-date.md` — a
 piece of work with no announcement date counts as announced, on every
 student-facing read — `0008-attachment-lifecycle.md`, which says an attachment
@@ -40,11 +40,14 @@ before writing an endpoint that creates one, `0010-rubric-level-identity.md`,
 which says a rubric level is identified by its `id`, never by its position in
 the row, `0012-missing-row-status.md`, which says a row the caller addressed but
 which is not there answers 404 rather than 500, and draws the line between
-that and a value in the body that names nothing, and
+that and a value in the body that names nothing,
 `0015-unmappable-activity.md`, which applies that line to
 `POST /mapping/activity` and separates the three reasons an activity cannot
 yet be tied to a CLO — read it before making a service reject a row for being
-incomplete rather than absent.
+incomplete rather than absent — and
+`0017-group-membership-means-accepted.md`, which says a member who has not
+accepted the invitation is not in the group anywhere that decides who gets
+what, so read it before asking a group who its members are.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

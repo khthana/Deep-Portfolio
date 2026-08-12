@@ -231,12 +231,11 @@ describe("POST /student-activity/grade", () => {
   it("gives every member of a group the same score", async () => {
     const teacher = await createTeacher();
     const { activity, rubric, levels } = await gradableActivity();
-    const group = await createActivityGroup({ activity_id: activity.id });
+    const group = await createActivityGroup({
+      activity_id: activity.id,
+      members: [{}, { status: "ACCEPT" }],
+    });
     const [leader, member] = group.student_activity_group_member;
-    // Recorded, not endorsed, and the same on the learning-activity side:
-    // members are collected by group_id with no status filter, so the one who
-    // never answered the invitation is marked along with everyone else.
-    expect(member.status).toBe("PENDING");
 
     const response = await request(app)
       .post("/student-activity/grade")
@@ -274,6 +273,67 @@ describe("POST /student-activity/grade", () => {
         where: { id: group.id },
       }),
     ).toMatchObject({ status: "GRADED" });
+  });
+
+  it("passes over a member who never answered the invitation", async () => {
+    // Being named in a group is not being in it. Handing the work in already
+    // means the members who accepted — submitGroupActivity filters on ACCEPT —
+    // so marking used to write a score onto a row that still said
+    // NOT_SUBMITTED, for someone who was never part of what was marked (#45,
+    // ADR-0017).
+    const teacher = await createTeacher();
+    const course = await createCourse();
+    const { activity, rubric, levels } = await gradableActivity(
+      course.section_id,
+    );
+    const clo = await createCLO({ section_id: course.section_id });
+    await mapActivityToCLO({
+      activity_id: activity.id,
+      clo_id: clo.clo_id,
+      weight: 100,
+    });
+    const group = await createActivityGroup({ activity_id: activity.id });
+    const [leader, invited] = group.student_activity_group_member;
+    expect(invited.status).toBe("PENDING");
+
+    const response = await request(app)
+      .post("/student-activity/grade")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send(
+        gradeBody({
+          activity_id: activity.id,
+          student_id: leader.student_id,
+          student_activity_id: leader.student_activity_id,
+          rubric_id: rubric.id,
+          rubric_level_id: levels[1].id,
+          rubric_level_no: 2,
+          activity_type: "GROUP",
+        }),
+      );
+
+    expect(response.status).toBe(200);
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: leader.student_activity_id },
+      }),
+    ).toMatchObject({ status: "GRADED" });
+
+    // Left exactly as the group was assembled: no score, and still not handed
+    // in as far as the row is concerned.
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: invited.student_activity_id },
+      }),
+    ).toMatchObject({ score: null, status: "NOT_SUBMITTED" });
+
+    // The CLO half went through the same unfiltered list, so it gets its own
+    // assertion: the invitation is not a mark towards the outcome either.
+    expect(
+      await prisma.activity_scores.findMany({
+        where: { activity_id: activity.id },
+        select: { student_id: true },
+      }),
+    ).toEqual([{ student_id: leader.student_id }]);
   });
 
   it("refuses to grade a group submission that is not in a group", async () => {
@@ -570,9 +630,17 @@ describe("PATCH /student-activity/bookmark", () => {
   });
 
   it("bookmarks every member's submission for group work", async () => {
+    // Every member row, including the one still PENDING — this path asks "who
+    // is in this group" the wide way, which is what #45 narrowed on the two
+    // paths that award marks. Left alone here on purpose: a bookmark is the
+    // teacher's own flag for finding the work again, and setting it on a row
+    // that was never handed in gives nobody a score they did not earn. If #53
+    // puts unanswered invitations in front of the teacher, this is the next
+    // place to look. See ADR-0017.
     const teacher = await createTeacher();
     const group = await createActivityGroup();
     const [leader, member] = group.student_activity_group_member;
+    expect(member.status).toBe("PENDING");
 
     const response = await request(app)
       .patch("/student-activity/bookmark")

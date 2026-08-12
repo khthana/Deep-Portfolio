@@ -406,8 +406,10 @@ export default class StudentLearningActivityService {
         throw new Error("Group not found");
       }
 
+      // Only the members who accepted, for the reason the activity side gives
+      // at gradeStudentGroupActivity (#45, ADR-0017).
       const members = await tx.student_learning_activity_group_member.findMany({
-        where: { group_id: groupMember.group_id },
+        where: { group_id: groupMember.group_id, status: "ACCEPT" },
         select: { student_learning_activity_id: true },
       });
 
