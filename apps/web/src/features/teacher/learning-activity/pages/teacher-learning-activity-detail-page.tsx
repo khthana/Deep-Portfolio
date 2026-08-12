@@ -7,7 +7,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { fetchAllSubmittedLearningActivityList } from "../stores/teacher-learning-activity-action";
 import type { SubmissionStatus } from "../../activity/types/activity-type.type";
+import type { Submission } from "../types/learning-activity-type.type";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
+import { formatUnacceptedMembers } from "../../../../utils/format-unaccepted-member";
 import StudentWorkTable from "../components/student-work-table";
 
 export type DataType = {
@@ -16,11 +18,54 @@ export type DataType = {
   submitted_date: string;
   code: string[];
   name: string[];
+  // Kept out of `code` and `name` on purpose — see the graded half in
+  // ../../activity/pages/teacher-activity-detail-page.tsx.
+  unaccepted: string[];
   status: SubmissionStatus;
   remark: string;
   feedback: string;
   id?: number;
   isNew?: boolean;
+};
+
+/**
+ * One row of the marking table, for the full list and the bookmarked list
+ * alike.
+ */
+const toRow = (classwork: Submission, dataIndex: number): DataType => {
+  const studentCode =
+    classwork.submission_type === "GROUP"
+      ? classwork.group
+        ? classwork.group.members.map((member) => member.student_id)
+        : []
+      : classwork.student
+        ? [classwork.student.student_id]
+        : [];
+
+  const studentName =
+    classwork.submission_type === "GROUP"
+      ? classwork.group
+        ? classwork.group.members.map(
+            (member) => `${member.first_name_th} ${member.last_name_th}`,
+          )
+        : []
+      : classwork.student
+        ? [`${classwork.student.first_name_th} ${classwork.student.last_name_th}`]
+        : [];
+
+  return {
+    key: classwork.id.toString(),
+    no: dataIndex + 1,
+    submitted_date: convertDateToThaiFormat(classwork.submitted_at) ?? "-",
+    code: studentCode,
+    name: studentName,
+    unaccepted: formatUnacceptedMembers(classwork.group?.unaccepted_members),
+    status:
+      classwork.status === "GRADED" ? "GRADED" : ("PENDING" as SubmissionStatus),
+    remark: classwork.remark ?? "",
+    feedback: classwork.feedback ?? "",
+    id: classwork.id,
+  };
 };
 
 const TeacherLearningActivityDetailPage = () => {
@@ -47,86 +92,8 @@ const TeacherLearningActivityDetailPage = () => {
 
     const bookmark = data.submissions.filter((item) => item.is_bookmark);
 
-    const mappedData = data.submissions.map((classwork, dataIndex) => {
-      const studentCode =
-        classwork.submission_type === "GROUP"
-          ? classwork.group
-            ? classwork.group.members.map((member) => member.student_id)
-            : []
-          : classwork.student
-            ? [classwork.student.student_id]
-            : [];
-
-      const studentName =
-        classwork.submission_type === "GROUP"
-          ? classwork.group
-            ? classwork.group.members.map(
-                (member) => `${member.first_name_th} ${member.last_name_th}`,
-              )
-            : []
-          : classwork.student
-            ? [
-                `${classwork.student.first_name_th} ${classwork.student.last_name_th}`,
-              ]
-            : [];
-
-      return {
-        key: classwork.id.toString(),
-        no: dataIndex + 1,
-        submitted_date: convertDateToThaiFormat(classwork.submitted_at) ?? "-",
-        code: studentCode,
-        name: studentName,
-        status:
-          classwork.status === "GRADED"
-            ? "GRADED"
-            : ("PENDING" as SubmissionStatus),
-        remark: classwork.remark ?? "",
-        feedback: classwork.feedback ?? "",
-        id: classwork.id,
-      };
-    });
-
-    const mappedBookmarkData = bookmark.map((classwork, dataIndex) => {
-      const studentCode =
-        classwork.submission_type === "GROUP"
-          ? classwork.group
-            ? classwork.group.members.map((member) => member.student_id)
-            : []
-          : classwork.student
-            ? [classwork.student.student_id]
-            : [];
-
-      const studentName =
-        classwork.submission_type === "GROUP"
-          ? classwork.group
-            ? classwork.group.members.map(
-                (member) => `${member.first_name_th} ${member.last_name_th}`,
-              )
-            : []
-          : classwork.student
-            ? [
-                `${classwork.student.first_name_th} ${classwork.student.last_name_th}`,
-              ]
-            : [];
-
-      return {
-        key: classwork.id.toString(),
-        no: dataIndex + 1,
-        submitted_date: convertDateToThaiFormat(classwork.submitted_at) ?? "-",
-        code: studentCode,
-        name: studentName,
-        status:
-          classwork.status === "GRADED"
-            ? "GRADED"
-            : ("PENDING" as SubmissionStatus),
-        remark: classwork.remark ?? "",
-        feedback: classwork.feedback ?? "",
-        id: classwork.id,
-      };
-    });
-
-    setData(mappedData);
-    setBookmarkData(mappedBookmarkData);
+    setData(data.submissions.map(toRow));
+    setBookmarkData(bookmark.map(toRow));
   };
 
   useEffect(() => {

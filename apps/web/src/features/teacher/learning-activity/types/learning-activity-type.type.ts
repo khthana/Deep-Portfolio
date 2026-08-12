@@ -2,6 +2,7 @@ import type { JSONContent } from "@tiptap/react";
 import type { AttachmentDetailItem } from "../../announcement/types/announement-type";
 import type { StudentActivityStatusDB } from "../../../../types/activity-type.type";
 import type { ClassworkType } from "../../../student/course/types/course-type";
+import type { UnacceptedMember } from "../../../../utils/format-unaccepted-member";
 
 export type CreateLearningActivityFormType = {
   announcement_date: Date;
@@ -63,11 +64,14 @@ export type Submission = {
 
   group?: {
     group_id: number;
+    // Same two lists as the graded half, and for the same reason — see
+    // Submission in ../../activity/types/activity-type.type.ts.
     members: {
       student_id: string;
       first_name_th: string;
       last_name_th: string;
     }[];
+    unaccepted_members: UnacceptedMember[];
   };
 };
 

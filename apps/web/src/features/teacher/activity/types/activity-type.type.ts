@@ -5,6 +5,7 @@ import type {
   StudentActivityStatusDB,
 } from "../../../../types/activity-type.type";
 import type { ClassworkType } from "../../../student/course/types/course-type";
+import type { UnacceptedMember } from "../../../../utils/format-unaccepted-member";
 
 export const activityType = {
   GROUP: "GROUP",
@@ -131,11 +132,15 @@ export type Submission = {
 
   group?: {
     group_id: number;
+    // Who this score lands on — ACCEPT only, see ADR-0017.
     members: {
       student_id: string;
       first_name_th: string;
       last_name_th: string;
     }[];
+    // Everyone else who was invited, so the teacher can see a name is missing
+    // from the list they are marking (ADR-0023).
+    unaccepted_members: UnacceptedMember[];
   };
 };
 

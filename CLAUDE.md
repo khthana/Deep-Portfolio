@@ -32,7 +32,7 @@ mostly correctness work on top of it.
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
 - **Tests**: `npm test` at the root runs both workspaces. 1019 API cases over
-  40 files, 427 web cases over 28 files. Both were written against the
+  40 files, 432 web cases over 29 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
 The whole breakdown of #1 is done, #20–#42 included. On top of that came

@@ -65,6 +65,22 @@ const StudentWorkColumn = (props: Props) => {
       // editable: true,
     },
     {
+      // A column of its own rather than more lines under "ชื่อ - สกุล" — same
+      // reason as the graded half, see ADR-0023.
+      title: "ยังไม่ตอบรับ",
+      dataIndex: "unaccepted",
+      key: "unaccepted",
+      render: (members: string[]) => (
+        <div className="text-left text-gray-500">
+          {members.length > 0
+            ? members.map((member) => <div key={member}>{member}</div>)
+            : "-"}
+        </div>
+      ),
+      align: "center",
+      width: 260,
+    },
+    {
       title: "สถานะ",
       dataIndex: "status",
       key: "status",

@@ -2327,25 +2327,27 @@ error ของ axios เป็น `SerializedError` ซึ่งเก็บแ
 
 ### frontend
 
-**ยังไม่พัง แต่ยังไม่ได้ประโยชน์** ทั้งสองหน้าอ่านแต่ `group.members` ซึ่งไม่เปลี่ยน
-เลย หน้าจอวันนี้จึงถูกเหมือนเดิมทุกอย่าง สี่ไฟล์ที่ต้องแก้เมื่อจะแสดงคนที่ค้าง:
+**ตอนที่ #53 ลง main หน้าจอยังไม่พัง แต่ยังไม่ได้ประโยชน์** ทั้งสองหน้าอ่านแต่
+`group.members` ซึ่งไม่เปลี่ยนเลย สี่ไฟล์ที่ระบุไว้ว่าต้องตามแก้ ตามแก้แล้วใน **#54**:
 
-- `apps/web/src/features/teacher/activity/types/activity-type.type.ts` — เพิ่ม
-  `unaccepted_members` เข้าไปใน `group` ของ type `Submission`
-- `apps/web/src/features/teacher/learning-activity/types/learning-activity-type.type.ts`
-  — ช่องเดียวกัน
+- `apps/web/src/features/teacher/activity/types/activity-type.type.ts` และ
+  `.../learning-activity/types/learning-activity-type.type.ts` — `group` ของ type
+  `Submission` มี `unaccepted_members` แล้วทั้งคู่
 - `apps/web/src/features/teacher/activity/pages/teacher-activity-detail-page.tsx`
-  — `classwork.group.members.map(...)` สี่จุด คือรหัสนักศึกษากับชื่อ ของสองรายการ
-  (รายการทั้งหมด และรายการที่ติดดาว) คนที่ค้างต้องแสดงแยกจากชุดนี้ ไม่ใช่ต่อท้าย
-  เข้าไป เพราะตารางนี้คือคนที่กำลังถูกให้คะแนน
-- `apps/web/src/features/teacher/learning-activity/pages/teacher-learning-activity-detail-page.tsx`
-  — `map` ชุดเดียวกันสี่จุดด้วยเหตุผลเดียวกัน
+  และ `.../learning-activity/pages/teacher-learning-activity-detail-page.tsx` —
+  การ map แถวของตารางรวมกับตารางงานที่ติดดาวเป็นฟังก์ชัน `toRow` ตัวเดียวต่อหน้า
+  (เดิมเขียนซ้ำสองก้อน) และเติมช่อง `unaccepted` ให้แต่ละแถว ส่วน `code` กับ `name`
+  ยังมาจาก `members` เท่าเดิม
+- ตารางของอาจารย์ทั้งสองมีคอลัมน์ **"ยังไม่ตอบรับ"** แยกต่างหาก แสดง
+  `รหัส ชื่อ สกุล (รอตอบรับ)` หรือ `(ปฏิเสธ)` และแสดง `-` เมื่อไม่มีใครค้าง
+  ข้อความมาจาก `apps/web/src/utils/format-unaccepted-member.ts` ซึ่งเป็นฟังก์ชัน
+  บริสุทธิ์และมี test ตาม T2
 
 ### สิ่งที่ **ไม่ได้** ทำใน ticket นี้
 
 - **หน้าจอของอาจารย์ไม่ถูกแตะ** ตั้งใจตามที่ตกลงไว้ — การเลือกว่าจะวางคนที่ค้างไว้
   ตรงไหนของตารางและเรียกมันว่าอะไร เป็นการตัดสินใจเรื่องหน้าตา ไม่ใช่ผลพลอยได้ของ
-  การแก้ API (ADR-0023 ข้อ 3)
+  การแก้ API (ADR-0023 ข้อ 3) · **#54** ทำส่วนนี้ต่อ ดูหัวข้อ frontend ข้างบน
 - **กลุ่มที่ยังไม่ส่งงานยังไม่ปรากฏ** เส้นนี้ดึงเฉพาะกลุ่มที่ `status` ไม่ใช่
   `NOT_SUBMITTED` มาตั้งแต่เดิม อาจารย์จึงเห็นคนที่ค้างเฉพาะในกลุ่มที่ส่งงานแล้ว
   เป็นขอบเขตเดิมของเส้นทาง ไม่ใช่สิ่งที่ #53 เปลี่ยน
