@@ -76,7 +76,7 @@ Run `gh issue view <number> --comments`.
   **#25–#42 are closed. #43–#50 were filed on 2026-08-11** after every entry in
   that file's pinned list was checked against the code — half the list had
   already been closed by a later ticket without anyone going back to say so.
-  **#43, #45, #46, #49 and #50 are now closed too; #44, #47 and #48 are what
+  **#43, #44, #45, #46, #49 and #50 are now closed too; #47 and #48 are what
   is left of that batch.**
   Each names what has to be decided before it can be picked up, so read the
   issue before assuming the fix is obvious. **#51** was filed the same way on
