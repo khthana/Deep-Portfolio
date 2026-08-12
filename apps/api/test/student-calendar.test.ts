@@ -190,11 +190,11 @@ describe("GET /student/calendar", () => {
     );
   });
 
-  it("leaves out a section nobody teaches, and its work with it", async () => {
-    // Not a rule about the calendar — the whole course list is built through
-    // getCourseDetail, which has nothing to say about a section with no
-    // teacher and returns null. The work in that section disappears as a
-    // consequence, which is the part a student would notice.
+  it("keeps a section nobody teaches, and its work with it", async () => {
+    // See BEHAVIOR-CHANGES.md. Never a rule about the calendar: the course
+    // list it is built from went through getCourseDetail, which answered null
+    // for a section with no teacher, and the work in that section vanished as
+    // a consequence — the part a student would notice (#48).
     const student = await createStudent();
     const course = await createCourse({ schedule: {} });
     await enrolStudent(course.section_id, student.student_id);
@@ -203,7 +203,7 @@ describe("GET /student/calendar", () => {
       section_id: course.section_id,
       announcement_date: new Date("2020-01-01T00:00:00Z"),
     });
-    await createSubmission({
+    const submission = await createSubmission({
       student_id: student.student_id,
       activity_id: activity.id,
     });
@@ -214,11 +214,13 @@ describe("GET /student/calendar", () => {
       .query(TERM);
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toEqual({
-      activities: [],
-      learning_activities: [],
-      courses: [],
-    });
+    expect(
+      response.body.data.activities.map((a: { id: number }) => a.id),
+    ).toEqual([submission.id]);
+    expect(
+      response.body.data.courses.map((c: { id: number }) => c.id),
+    ).toEqual([course.section_id]);
+    expect(response.body.data.learning_activities).toEqual([]);
   });
 
   it("leaves out another student's work in the same section", async () => {

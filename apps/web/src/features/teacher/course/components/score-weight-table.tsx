@@ -137,7 +137,9 @@ const ScoreWeightTable = () => {
 
   const handleAddScoreWeight = async (row: DataType) => {
     try {
-      if (!homeSlice.selectedCourse) return;
+      // Needs the section's teacher as the author, and a section without one
+      // now reaches the frontend (#48). See clo-table.tsx.
+      if (!homeSlice.selectedCourse?.teacher_id) return;
 
       const body: AddScoreWeightBody = {
         // year: homeSlice.selectedCourse.academic_year,

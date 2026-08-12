@@ -1,9 +1,12 @@
 export type CourseDetail = {
-  teacher_name_th: string;
-  teacher_name_en: string;
-  teacher_email: string;
-  teacher_phone: string;
-  teacher_id: string;
+  // Null together, and only when the section has nobody teaching it yet — an
+  // ordinary state for a section that has just been imported, not a broken
+  // row. See docs/adr/0021-section-without-teacher.md.
+  teacher_name_th: string | null;
+  teacher_name_en: string | null;
+  teacher_email: string | null;
+  teacher_phone: string | null;
+  teacher_id: string | null;
   section_id: number;
   section_number: string;
   course_name_th: string;

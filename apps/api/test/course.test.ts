@@ -232,18 +232,35 @@ describe("GET /course", () => {
     ]);
   });
 
-  it("reports no course for a section with nobody teaching it", async () => {
-    // Current behaviour, recorded rather than endorsed: a section exists here,
-    // and the endpoint still answers null purely because the teacher lookup
-    // came back empty.
-    const orphan = await createCourse();
+  it("returns a section with nobody teaching it, with the teacher unnamed", async () => {
+    // See BEHAVIOR-CHANGES.md. The whole section used to come back as null
+    // because the teacher lookup came back empty (#48) — a section waiting to
+    // be staffed is ordinary, and the course exists either way.
+    const orphan = await createCourse({
+      section_number: "3",
+      subject_name_th: "ระบบฐานข้อมูล",
+      schedule: { day_of_week: "MON", start_time: "08:00", end_time: "10:00" },
+    });
 
     const response = await request(app)
       .get("/course")
       .query({ section_id: orphan.section_id });
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toBeNull();
+    expect(response.body.data).toMatchObject({
+      section_id: orphan.section_id,
+      section_number: "3",
+      course_name_th: "ระบบฐานข้อมูล",
+      day_of_week: "MON",
+      start_time: "08:00",
+      end_time: "10:00",
+
+      teacher_id: null,
+      teacher_name_th: null,
+      teacher_name_en: null,
+      teacher_email: null,
+      teacher_phone: null,
+    });
   });
 });
 

@@ -5,11 +5,14 @@ import type {
 } from "./attachment-type.type";
 
 export type CourseDetail = {
-  teacher_name_th: string;
-  teacher_name_en: string;
-  teacher_email: string;
-  teacher_phone: string;
-  teacher_id: string;
+  // All five are null together when the section has nobody teaching it yet.
+  // The API used to withhold such a section entirely; since #48 it answers the
+  // course and leaves these empty.
+  teacher_name_th: string | null;
+  teacher_name_en: string | null;
+  teacher_email: string | null;
+  teacher_phone: string | null;
+  teacher_id: string | null;
   section_id: number;
   section_number: string;
   course_name_th: string;

@@ -37,11 +37,12 @@ export const FAR_FUTURE = new Date("2999-01-01T00:00:00Z");
 /**
  * A course in the current term that the student is enrolled in.
  *
- * The teacher is not scenery. Both endpoints that list a student's courses go
- * through `getCourseDetail`, which returns null for a section nobody teaches,
- * and the null is filtered out — so a teacherless section drops out of the list
- * and takes its activities with it. There are cases pinning that; everywhere
- * else a teacher is arranged so the case can be about something else.
+ * A teacher comes with it. Since #48 the section would be listed without one —
+ * `getCourseDetail` leaves the five `teacher_*` fields null rather than
+ * withholding the whole course — so this is no longer what keeps the section
+ * visible; it is here so that a case about something else can still read a
+ * teacher's name out of the response. The cases that are about the empty
+ * fields build their course without one.
  */
 export async function enrolledCourse(
   student_id: string,

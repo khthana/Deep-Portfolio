@@ -156,9 +156,11 @@ export default class CourseService {
       where: { section_id: sec_id },
     });
 
-    const teacherDetail = await this.userService.getUserDetail(
-      teacher?.user_id ?? "",
-    );
+    // Only when there is somebody to look up. The lookup used to run either
+    // way, with "" standing in for the missing id, and threw the answer away.
+    const teacherDetail = teacher
+      ? await this.userService.getUserDetail(teacher.user_id)
+      : null;
 
     const course = section.semester_courses;
     const subject = course.subjects;
@@ -185,14 +187,24 @@ export default class CourseService {
     //   );
     // });
 
-    if (!teacher || !subject || !teacherDetail) return null;
-
+    // A section with nobody teaching it is still a section, and the students
+    // enrolled in it still have work due. Only the teacher's own five fields
+    // go empty; everything the section itself knows is answered as always
+    // (#48). See docs/adr/0021-section-without-teacher.md. The subject cannot
+    // be missing — both relations walked to reach it are required — so the
+    // check that used to stand here has gone with the rest.
     return {
-      teacher_name_th: `${teacherDetail.title_th} ${teacherDetail.first_name_th} ${teacherDetail.last_name_th}`,
-      teacher_name_en: `${teacherDetail.title_en} ${teacherDetail.first_name_en} ${teacherDetail.last_name_en}`,
-      teacher_email: teacherDetail.email,
-      teacher_phone: teacherDetail.phone ?? "",
-      teacher_id: teacherDetail.user_id,
+      teacher_name_th: teacherDetail
+        ? `${teacherDetail.title_th} ${teacherDetail.first_name_th} ${teacherDetail.last_name_th}`
+        : null,
+      teacher_name_en: teacherDetail
+        ? `${teacherDetail.title_en} ${teacherDetail.first_name_en} ${teacherDetail.last_name_en}`
+        : null,
+      teacher_email: teacherDetail?.email ?? null,
+      // Still "" for a teacher who has not given a phone number, so that null
+      // keeps meaning one thing only: there is nobody to ask.
+      teacher_phone: teacherDetail ? (teacherDetail.phone ?? "") : null,
+      teacher_id: teacherDetail?.user_id ?? null,
 
       section_id: section.section_id,
       section_number: section.section_number,

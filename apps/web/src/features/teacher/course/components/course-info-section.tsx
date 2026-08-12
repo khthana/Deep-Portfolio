@@ -147,7 +147,9 @@ const CourseInfoSection = () => {
           <div className="mb-2 text-secondary-blue font-bold">
             อาจารย์ประจำวิชา
           </div>
-          <div>{teacherHomeSlice.selectedCourse?.teacher_name_th}</div>
+          <div>
+            {teacherHomeSlice.selectedCourse?.teacher_name_th ?? "ยังไม่กำหนด"}
+          </div>
         </div>
 
         <div>
@@ -158,7 +160,7 @@ const CourseInfoSection = () => {
 
       <div className="caption-regular">
         <div className="mb-2 text-secondary-blue font-bold">email</div>
-        <div>{teacherHomeSlice.selectedCourse?.teacher_email}</div>
+        <div>{teacherHomeSlice.selectedCourse?.teacher_email ?? "-"}</div>
       </div>
 
       {isEditing && (

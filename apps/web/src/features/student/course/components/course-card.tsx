@@ -58,7 +58,7 @@ const CourseCard = (props: Props) => {
           <div>กลุ่ม {props.course.section_number}</div>
         </div>
 
-        <div>{props.course.teacher_name_th}</div>
+        <div>{props.course.teacher_name_th ?? "ยังไม่กำหนดอาจารย์ผู้สอน"}</div>
       </div>
     </div>
   );

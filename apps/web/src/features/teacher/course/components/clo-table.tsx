@@ -154,7 +154,12 @@ const CLOTable = () => {
 
   const handleCreateNewCLO = async (row: DataType) => {
     try {
-      if (!homeSlice.selectedCourse) return;
+      // The author of a CLO is the section's teacher, and a section can now
+      // come back without one (#48). Not reachable from a teacher's own course
+      // list — they only ever open a section they teach — but the type stopped
+      // promising it, and writing "" as the author would be worse than not
+      // writing at all.
+      if (!homeSlice.selectedCourse?.teacher_id) return;
       const body: AddCLOBody = {
         year: homeSlice.selectedCourse?.academic_year,
         semester: homeSlice.selectedCourse?.semester,

@@ -70,7 +70,9 @@ const CourseInfoSection = () => {
           <div className="mb-2 text-primary-orange font-bold">
             อาจารย์ประจำวิชา
           </div>
-          <div>{courseSlice.selectedCourse?.teacher_name_th}</div>
+          <div>
+            {courseSlice.selectedCourse?.teacher_name_th ?? "ยังไม่กำหนด"}
+          </div>
         </div>
 
         <div>
@@ -81,7 +83,7 @@ const CourseInfoSection = () => {
 
       <div>
         <div className="mb-2 text-primary-orange font-bold">email</div>
-        <div>{courseSlice.selectedCourse?.teacher_email}</div>
+        <div>{courseSlice.selectedCourse?.teacher_email ?? "-"}</div>
       </div>
     </WhiteContainer>
   );

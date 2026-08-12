@@ -235,9 +235,11 @@ describe("GET /student/course/list", () => {
     ).toEqual([thisTerm.section_id]);
   });
 
-  it("leaves out a section nobody teaches", async () => {
-    // getCourseDetail returns null without a teacher and the null is filtered
-    // out, so an untaught section is invisible to the student enrolled in it.
+  it("keeps a section nobody teaches, with the teacher unnamed", async () => {
+    // See BEHAVIOR-CHANGES.md. The course used to vanish from the list of the
+    // student enrolled in it, because getCourseDetail answered null without a
+    // teacher and the null was filtered out (#48). Who teaches the section is
+    // not the student's business to sort out.
     const student = await createStudent();
     const untaught = await createCourse();
     await enrolStudent(untaught.section_id, student.student_id);
@@ -248,7 +250,12 @@ describe("GET /student/course/list", () => {
       .query(TERM);
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toEqual([]);
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.data[0]).toMatchObject({
+      section_id: untaught.section_id,
+      teacher_id: null,
+      teacher_name_th: null,
+    });
   });
 
   it("returns an empty list for a student enrolled in nothing", async () => {
