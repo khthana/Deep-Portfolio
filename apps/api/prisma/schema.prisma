@@ -483,18 +483,18 @@ model portfolio_skill {
 }
 
 model portfolio_skill_activity_mapping {
-  id                  Int             @id @default(autoincrement())
+  id                  Int              @id @default(autoincrement())
   skill_id            Int
   student_activity_id Int
   repository          String?
   role_and_resp       String?
   init_expect         String?
   reflection          String?
-  isShowRepo          Boolean?        @default(false)
-  isShowRole          Boolean?        @default(false)
-  isShowInit          Boolean?        @default(false)
-  isShowReflec        Boolean?        @default(false)
-  portfolio_skill     portfolio_skill @relation(fields: [skill_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_skill_activity")
+  isShowRepo          Boolean?         @default(false)
+  isShowRole          Boolean?         @default(false)
+  isShowInit          Boolean?         @default(false)
+  isShowReflec        Boolean?         @default(false)
+  portfolio_skill     portfolio_skill  @relation(fields: [skill_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_skill_activity")
   student_activity    student_activity @relation(fields: [student_activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_skill_activity_submission")
 }
 
@@ -696,25 +696,25 @@ model student {
 }
 
 model student_activity {
-  id                            Int                             @id @default(autoincrement())
-  student_id                    String                          @db.VarChar(8)
-  activity_id                   Int
-  status                        student_activity_status         @default(NOT_SUBMITTED)
-  score                         Decimal?                        @db.Decimal(5, 2)
-  feedback                      String?
-  submitted_at                  DateTime?                       @db.Timestamptz(6)
-  graded_at                     DateTime?                       @db.Timestamptz(6)
-  graded_by                     String?                         @db.VarChar(20)
-  is_bookmark                   Boolean                         @default(false)
-  remark                        String?
-  created_at                    DateTime                        @default(now()) @db.Timestamptz(6)
-  updated_at                    DateTime                        @default(now()) @db.Timestamptz(6)
-  activities                    activities                      @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_activity_activity")
-  student                       student                         @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_activity_student")
+  id                               Int                                @id @default(autoincrement())
+  student_id                       String                             @db.VarChar(8)
+  activity_id                      Int
+  status                           student_activity_status            @default(NOT_SUBMITTED)
+  score                            Decimal?                           @db.Decimal(5, 2)
+  feedback                         String?
+  submitted_at                     DateTime?                          @db.Timestamptz(6)
+  graded_at                        DateTime?                          @db.Timestamptz(6)
+  graded_by                        String?                            @db.VarChar(20)
+  is_bookmark                      Boolean                            @default(false)
+  remark                           String?
+  created_at                       DateTime                           @default(now()) @db.Timestamptz(6)
+  updated_at                       DateTime                           @default(now()) @db.Timestamptz(6)
+  activities                       activities                         @relation(fields: [activity_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_activity_activity")
+  student                          student                            @relation(fields: [student_id], references: [student_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_student_activity_student")
   portfolio_skill_activity_mapping portfolio_skill_activity_mapping[]
-  student_activity_attachments  student_activity_attachments[]
-  student_activity_group_member student_activity_group_member?
-  student_activity_rubric_score student_activity_rubric_score[]
+  student_activity_attachments     student_activity_attachments[]
+  student_activity_group_member    student_activity_group_member?
+  student_activity_rubric_score    student_activity_rubric_score[]
 }
 
 model student_activity_attachments {

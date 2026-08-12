@@ -197,6 +197,15 @@ export default class PortfolioSkillService {
     const { name, mappings = [] } = data;
 
     const result = await prisma.$transaction(async (tx) => {
+      // Before the skill row, not between it and the mappings: the transaction
+      // would take it back either way, but ADR-0012 §2 asks first, and a rule
+      // followed only where it happens not to matter is not being followed.
+      await assertOwnSubmissions(
+        tx,
+        userId,
+        mappings.map((m) => m.student_activity_id),
+      );
+
       const skill = await tx.portfolio_skill.create({
         data: {
           user_id: userId,
@@ -205,12 +214,6 @@ export default class PortfolioSkillService {
       });
 
       if (mappings.length > 0) {
-        await assertOwnSubmissions(
-          tx,
-          userId,
-          mappings.map((m) => m.student_activity_id),
-        );
-
         await tx.portfolio_skill_activity_mapping.createMany({
           data: mappings.map((m) => mapToMappingData(skill.id, m)),
         });

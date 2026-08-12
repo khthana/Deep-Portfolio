@@ -457,8 +457,9 @@ describe("POST /portfolio-skill", () => {
       success: false,
       message: "ไม่พบชิ้นงานที่เลือก",
     });
-    // The skill is written before the mappings are, so the refusal has to take
-    // the whole transaction back with it.
+    // The skill is a row of its own, written in the same request: a refusal
+    // that left it behind would give the student a skill they never finished
+    // asking for.
     expect(
       await prisma.portfolio_skill.count({
         where: { user_id: student.student_id },
