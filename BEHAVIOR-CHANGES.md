@@ -2235,7 +2235,7 @@ section ที่ไหนเลย") ถูกเขียนใหม่ให
   `feedback` ไม่เจอแล้วคืน `null` การเพิ่ม constraint ย้อนหลังต้องตรวจข้อมูลเดิม
   ที่มีอยู่ก่อน และเป็นการแก้ schema ซึ่งอยู่นอกขอบเขตของ ticket ที่เขียน test
   test บันทึกไว้ตามที่เป็น — แยกไปเป็น
-  [#47](https://github.com/khthana/Deep-Portfolio/issues/47) — **แก้แล้ว** ดูหัวข้อ
+  [#47](https://github.com/khthana/Deep-Portfolio/issues/47) — **ปิดแล้ว** ดูหัวข้อ
   #47 ข้างบน คอลัมน์มี foreign key แบบ `ON DELETE CASCADE` แล้ว และทั้งสามเส้นที่
   เขียน mapping (`PUT /portfolio-skill/:id` เป็นเส้นที่สาม ซึ่ง #17 ไม่ได้นับ) ตอบ
   `400` ให้ id ที่ไม่มีตัวตน และ `403` ให้ชิ้นงานของคนอื่น

@@ -40,7 +40,7 @@ The whole breakdown of #1 is done, #20–#42 included. On top of that came
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md) on 2026-08-11 — every entry under
 "สิ่งที่ **ไม่ได้** เปลี่ยน" was checked against the code, the ones already
 closed were marked so, and what genuinely remained got an issue. **#43, #44,
-#45, #46, #49 and #50 are closed; #47 and #48 are what is left**, plus three spun
+#45, #46, #47, #49 and #50 are closed; #48 is what is left**, plus three spun
 off along the way: **#51** from #43 — the API's Thai sentences do not survive the frontend's
 thunks — **#52** from #50 — the four submission paths in `student.service.ts`
 roll their `attachments` rows back but leave the uploaded files in MinIO — and
