@@ -839,10 +839,6 @@ describe("GET /learning-activity/submitted/list", () => {
         { student_id: declined.student_id, status: "REJECTED" },
       ],
     });
-    await prisma.student_learning_activity.updateMany({
-      where: { learning_activity_id: activity.id },
-      data: { status: "SUBMITTED" },
-    });
 
     const response = await request(app)
       .get("/learning-activity/submitted/list")
@@ -890,10 +886,6 @@ describe("GET /learning-activity/submitted/list", () => {
         { student_id: leader.student_id },
         { student_id: member.student_id, status: "ACCEPT" },
       ],
-    });
-    await prisma.student_learning_activity.updateMany({
-      where: { learning_activity_id: activity.id },
-      data: { status: "SUBMITTED" },
     });
 
     const response = await request(app)

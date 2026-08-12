@@ -1714,12 +1714,6 @@ describe("GET /activity/submitted/list", () => {
         { student_id: declined.student_id, status: "REJECTED" },
       ],
     });
-    // The group has handed the work in; the rows the factory opens per member
-    // start as placeholders, and the response reads the group's state off them.
-    await prisma.student_activity.updateMany({
-      where: { activity_id: activity.id },
-      data: { status: "SUBMITTED" },
-    });
 
     const response = await request(app)
       .get("/activity/submitted/list")
@@ -1768,10 +1762,6 @@ describe("GET /activity/submitted/list", () => {
         { student_id: leader.student_id },
         { student_id: member.student_id, status: "ACCEPT" },
       ],
-    });
-    await prisma.student_activity.updateMany({
-      where: { activity_id: activity.id },
-      data: { status: "SUBMITTED" },
     });
 
     const response = await request(app)

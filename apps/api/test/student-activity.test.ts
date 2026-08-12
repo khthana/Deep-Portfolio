@@ -634,9 +634,11 @@ describe("PATCH /student-activity/bookmark", () => {
     // is in this group" the wide way, which is what #45 narrowed on the two
     // paths that award marks. Left alone here on purpose: a bookmark is the
     // teacher's own flag for finding the work again, and setting it on a row
-    // that was never handed in gives nobody a score they did not earn. If #53
-    // puts unanswered invitations in front of the teacher, this is the next
-    // place to look. See ADR-0017.
+    // that was never handed in gives nobody a score they did not earn.
+    // #53 has since put unanswered invitations in front of the teacher, and
+    // ADR-0017 named this the place to look again when it did; ADR-0023 §4
+    // looked, and left it as it is — the field it added carries names and a
+    // status, never anyone's is_bookmark. See ADR-0017 §3 and ADR-0023 §4.
     const teacher = await createTeacher();
     const group = await createActivityGroup();
     const [leader, member] = group.student_activity_group_member;

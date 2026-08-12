@@ -125,9 +125,6 @@ export default class StudentLearningActivityService {
             },
 
             student_learning_activity: {
-              // where: { status: { not: "NOT_SUBMITTED" } },
-              // take: 1,
-              // orderBy: { submitted_at: "desc" },
               select: {
                 status: true,
                 feedback: true,
@@ -145,6 +142,9 @@ export default class StudentLearningActivityService {
     if (groups.length <= 0) return [];
     return groups
       .map((g) => splitByAcceptance(g.student_learning_activity_group_member))
+      // A group with nobody accepted has no submission to show and no row to
+      // attach the group to; the leader is ACCEPT from creation, so this stands
+      // as a guard rather than a case that happens.
       .filter((g) => g.accepted.length > 0)
       .map(({ accepted, unaccepted }) => {
         const activity = accepted[0].student_learning_activity!;
