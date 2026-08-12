@@ -19,6 +19,7 @@ import {
   postLearningActivityCLOMapping,
 } from "../stores/teacher-mapping-action";
 import { message } from "antd";
+import { messageToShow } from "../../../../utils/api-error";
 
 type Props = {
   cloData: {
@@ -54,8 +55,14 @@ const MappingSection = (props: Props) => {
         messageApi.success("เพิ่มกิจกรรมสำเร็จ");
         fetchActivityData();
       }
-    } catch {
-      messageApi.error("ไม่สามารถเพิ่มกิจกรรมได้ กรุณาลองใหม่อีกครั้ง");
+    } catch (error) {
+      // #43 gave this endpoint three sentences that each name what the teacher
+      // has to go and fix first — a missing score ratio, an activity with no
+      // score to divide. "กรุณาลองใหม่อีกครั้ง" is the wrong advice for all
+      // three, so it is kept only for the failure that has nothing to say.
+      messageApi.error(
+        messageToShow(error, "ไม่สามารถเพิ่มกิจกรรมได้ กรุณาลองใหม่อีกครั้ง"),
+      );
     }
   };
 
@@ -74,8 +81,10 @@ const MappingSection = (props: Props) => {
         messageApi.success("เพิ่มกิจกรรมสำเร็จ");
         fetchLearningActivityData();
       }
-    } catch {
-      messageApi.error("ไม่สามารถเพิ่มกิจกรรมได้ กรุณาลองใหม่อีกครั้ง");
+    } catch (error) {
+      messageApi.error(
+        messageToShow(error, "ไม่สามารถเพิ่มกิจกรรมได้ กรุณาลองใหม่อีกครั้ง"),
+      );
     }
   };
 

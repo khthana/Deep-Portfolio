@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import {
   editCLO,
   editScoreWeight,
@@ -69,7 +70,7 @@ export const teacherCourseSlice = createSlice({
       })
       .addCase(postScoreWeight.rejected, (state, action) => {
         state.postScoreWeightLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -81,7 +82,7 @@ export const teacherCourseSlice = createSlice({
       })
       .addCase(fetchScoreWeight.rejected, (state, action) => {
         state.fetchScoreWeightLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -93,7 +94,7 @@ export const teacherCourseSlice = createSlice({
       })
       .addCase(editScoreWeight.rejected, (state, action) => {
         state.editScoreWeightLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -105,7 +106,7 @@ export const teacherCourseSlice = createSlice({
       })
       .addCase(removeScoreWeight.rejected, (state, action) => {
         state.removeScoreWeightLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -117,7 +118,7 @@ export const teacherCourseSlice = createSlice({
       })
       .addCase(fetchScoreWeightOptions.rejected, (state, action) => {
         state.fetchScoreWeightOptionsLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     //------------------------------------------------------------------
@@ -131,7 +132,7 @@ export const teacherCourseSlice = createSlice({
       })
       .addCase(postCLO.rejected, (state, action) => {
         state.postCLOLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -144,7 +145,7 @@ export const teacherCourseSlice = createSlice({
       })
       .addCase(fetchCLO.rejected, (state, action) => {
         state.fetchCLOLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -156,7 +157,7 @@ export const teacherCourseSlice = createSlice({
       })
       .addCase(editCLO.rejected, (state, action) => {
         state.editCLOLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -168,7 +169,7 @@ export const teacherCourseSlice = createSlice({
       })
       .addCase(removeCLO.rejected, (state, action) => {
         state.removeCLOLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     //------------------------------------------------------------------
@@ -182,7 +183,7 @@ export const teacherCourseSlice = createSlice({
       })
       .addCase(fetchPLO.rejected, (state, action) => {
         state.fetchPLOLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     //------------------------------------------------------------------
@@ -196,7 +197,7 @@ export const teacherCourseSlice = createSlice({
       })
       .addCase(postCreateCourseSectionSchedule.rejected, (state, action) => {
         state.postCreateCourseSectionScheduleLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });

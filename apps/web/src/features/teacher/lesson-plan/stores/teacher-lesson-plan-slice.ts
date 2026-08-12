@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import {
   postLessonPlan,
   fetchLessonPlan,
@@ -42,7 +43,7 @@ export const teacherLessonPlanSlice = createSlice({
       })
       .addCase(postLessonPlan.rejected, (state, action) => {
         state.postLessonPlanLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -54,7 +55,7 @@ export const teacherLessonPlanSlice = createSlice({
       })
       .addCase(fetchLessonPlan.rejected, (state, action) => {
         state.fetchLessonPlanLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -66,7 +67,7 @@ export const teacherLessonPlanSlice = createSlice({
       })
       .addCase(editLessonPlan.rejected, (state, action) => {
         state.editLessonPlanLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -78,7 +79,7 @@ export const teacherLessonPlanSlice = createSlice({
       })
       .addCase(removeLessonPlan.rejected, (state, action) => {
         state.removeLessonPlanLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -90,7 +91,7 @@ export const teacherLessonPlanSlice = createSlice({
       })
       .addCase(fetchLessonPlanOptions.rejected, (state, action) => {
         state.fetchLessonPlanOptionsLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });

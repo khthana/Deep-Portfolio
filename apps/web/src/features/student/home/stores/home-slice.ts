@@ -1,5 +1,6 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import { fetchAllClasswork, fetchPortfolioPersonal, fetchStudentDetail } from "./home-action";
 import type { AllClassworkDetailResp, StudentDetail } from "../types/home-type";
 import type { PortfolioPersonalResp } from "../../../../types/portfolio-personal-type.type";
@@ -83,7 +84,7 @@ export const homeSlice = createSlice({
       })
       .addCase(fetchAllClasswork.rejected, (state, action) => {
         state.fetchAllClassworkLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -97,7 +98,7 @@ export const homeSlice = createSlice({
       })
       .addCase(fetchStudentDetail.rejected, (state, action) => {
         state.fetchStudentDetailLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -110,7 +111,7 @@ export const homeSlice = createSlice({
       })
       .addCase(fetchPortfolioPersonal.rejected, (state, action) => {
         state.fetchPortfolioPersonalLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });

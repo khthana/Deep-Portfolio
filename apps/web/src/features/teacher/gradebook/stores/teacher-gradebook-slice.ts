@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import {
   fetchGradebookPerActivity,
   fetchGradebookPerStudent,
@@ -35,7 +36,7 @@ export const teacherGradebookSlice = createSlice({
       })
       .addCase(fetchGradebookPerStudent.rejected, (state, action) => {
         state.fetchGradebookPerStudentLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -47,7 +48,7 @@ export const teacherGradebookSlice = createSlice({
       })
       .addCase(fetchGradebookPerActivity.rejected, (state, action) => {
         state.fetchGradebookPerActivityLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });

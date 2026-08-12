@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import {
   fetchCourseMaterial,
   postCourseMaterial,
@@ -45,7 +46,7 @@ export const teacherCourseMaterialSlice = createSlice({
       })
       .addCase(postCourseMaterial.rejected, (state, action) => {
         state.postCourseMaterialLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -58,7 +59,7 @@ export const teacherCourseMaterialSlice = createSlice({
       })
       .addCase(fetchCourseMaterial.rejected, (state, action) => {
         state.fetchCourseMaterialLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -70,7 +71,7 @@ export const teacherCourseMaterialSlice = createSlice({
       })
       .addCase(removeCourseMaterial.rejected, (state, action) => {
         state.removeCourseMaterialLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });

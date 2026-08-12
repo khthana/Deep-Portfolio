@@ -1,5 +1,6 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import {
   EventType,
   type CalendarEventResp,
@@ -54,7 +55,7 @@ export const calendarSlice = createSlice({
       })
       .addCase(fetchStudentCalendar.rejected, (state, action) => {
         state.fetchStudentCalendarLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });

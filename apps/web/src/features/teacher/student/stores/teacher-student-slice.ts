@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import { fetchAllStudentInSection } from "./teacher-student-action";
 
 type TeacherStudentSlice = {
@@ -28,7 +29,7 @@ export const teacherStudentSlice = createSlice({
       })
       .addCase(fetchAllStudentInSection.rejected, (state, action) => {
         state.fetchAllStudentInSectionLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });

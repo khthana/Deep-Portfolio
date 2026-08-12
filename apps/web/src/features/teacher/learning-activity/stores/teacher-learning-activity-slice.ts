@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import {
   fetchAllLearningActivity,
   fetchAllSubmittedLearningActivityList,
@@ -51,7 +52,7 @@ export const teacherLearningActivitySlice = createSlice({
       })
       .addCase(fetchLearningActivity.rejected, (state, action) => {
         state.fetchLearningActivityLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -63,7 +64,7 @@ export const teacherLearningActivitySlice = createSlice({
       })
       .addCase(putLearningActivity.rejected, (state, action) => {
         state.putLearningActivityLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -75,7 +76,7 @@ export const teacherLearningActivitySlice = createSlice({
       })
       .addCase(postLearningActivity.rejected, (state, action) => {
         state.postLearningActivityLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -87,7 +88,7 @@ export const teacherLearningActivitySlice = createSlice({
       })
       .addCase(fetchAllLearningActivity.rejected, (state, action) => {
         state.fetchAllLearningActivity = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -99,7 +100,7 @@ export const teacherLearningActivitySlice = createSlice({
       })
       .addCase(fetchLearningActivityOptions.rejected, (state, action) => {
         state.fetchLearningActivityOptions = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -116,7 +117,7 @@ export const teacherLearningActivitySlice = createSlice({
         fetchAllSubmittedLearningActivityList.rejected,
         (state, action) => {
           state.fetchAllSubmittedLearningActivityList = false;
-          state.error = action.error.message ?? "Something went wrong";
+          state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
         },
       );
 
@@ -132,7 +133,7 @@ export const teacherLearningActivitySlice = createSlice({
       )
       .addCase(fetchStudentLearningActivityDetail.rejected, (state, action) => {
         state.fetchStudentLearningActivityDetail = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -144,7 +145,7 @@ export const teacherLearningActivitySlice = createSlice({
       })
       .addCase(postGradeStudentLearningActivity.rejected, (state, action) => {
         state.postGradeStudentLearningActivity = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });

@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import {
   fetchActivity,
   fetchLearningActivity,
@@ -41,7 +42,7 @@ export const teacherActivityCLOMappingSlice = createSlice({
       })
       .addCase(postActivityCLOMapping.rejected, (state, action) => {
         state.postActivityCLOMappingLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -53,7 +54,7 @@ export const teacherActivityCLOMappingSlice = createSlice({
       })
       .addCase(fetchActivity.rejected, (state, action) => {
         state.fetchActivityLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -65,7 +66,7 @@ export const teacherActivityCLOMappingSlice = createSlice({
       })
       .addCase(postLearningActivityCLOMapping.rejected, (state, action) => {
         state.postLearningActivityCLOMappingLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -77,7 +78,7 @@ export const teacherActivityCLOMappingSlice = createSlice({
       })
       .addCase(fetchLearningActivity.rejected, (state, action) => {
         state.fetchLearningActivityLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });

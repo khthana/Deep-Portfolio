@@ -1,5 +1,6 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import {
   fetchAllAnnouncement,
   fetchCourseClasswork,
@@ -156,7 +157,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchStudentCourseList.rejected, (state, action) => {
         state.fetchStudentCourseListLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -169,7 +170,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchCourseDetail.rejected, (state, action) => {
         state.fetchCourseDetailLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -182,7 +183,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchScoreWeight.rejected, (state, action) => {
         state.fetchScoreWeightLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -194,7 +195,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchCLO.rejected, (state, action) => {
         state.fetchCLOLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -209,7 +210,7 @@ export const studentCourseSlice = createSlice({
       )
       .addCase(fetchStudentLessonPlanWithMaterial.rejected, (state, action) => {
         state.fetchLessonPlanLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -222,7 +223,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchAllAnnouncement.rejected, (state, action) => {
         state.fetchAllAnnouncementLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -239,7 +240,7 @@ export const studentCourseSlice = createSlice({
         state.fetchActivityDetailLoading = false;
         state.classworkDetail = null;
 
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -255,7 +256,7 @@ export const studentCourseSlice = createSlice({
         state.fetchLearningActivityDetailLoading = false;
         state.classworkDetail = null;
 
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -268,7 +269,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchCourseClasswork.rejected, (state, action) => {
         state.fetchAllClassworkLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -284,7 +285,7 @@ export const studentCourseSlice = createSlice({
         state.postSubmitActivityLoading = false;
         // state.classworkDetail = null;
 
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -300,7 +301,7 @@ export const studentCourseSlice = createSlice({
         state.postSubmitLearningActivityLoading = false;
         // state.classworkDetail = null;
 
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     //----------activity group-----------------------------------------------
@@ -314,7 +315,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(postStudentActivityGroup.rejected, (state, action) => {
         state.postStudentActivityGroupLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -326,7 +327,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(patchStudentActivityGroup.rejected, (state, action) => {
         state.patchStudentActivityGroupLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -339,7 +340,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchStudentActivityGroup.rejected, (state, action) => {
         state.fetchStudentActivityGroupLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -352,7 +353,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchStudentActivityGroupInSec.rejected, (state, action) => {
         state.fetchStudentActivityGroupInSecLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -365,7 +366,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchStudentWithoutGroup.rejected, (state, action) => {
         state.fetchStudentWithoutGroupLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     //----------learning activity group-----------------------------------------------
@@ -379,7 +380,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(postStudentLearningActivityGroup.rejected, (state, action) => {
         state.postStudentLearningActivityGroupLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -391,7 +392,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(patchStudentLearningActivityGroup.rejected, (state, action) => {
         state.patchStudentLearningActivityGroupLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -404,7 +405,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchStudentLearningActivityGroup.rejected, (state, action) => {
         state.fetchStudentLearningActivityGroupLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -422,7 +423,7 @@ export const studentCourseSlice = createSlice({
         fetchStudentLearningActivityGroupInSec.rejected,
         (state, action) => {
           state.fetchStudentLearningActivityGroupInSecLoading = false;
-          state.error = action.error.message ?? "Something went wrong";
+          state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
         },
       );
 
@@ -441,7 +442,7 @@ export const studentCourseSlice = createSlice({
         fetchStudentLearningActivityWithoutGroup.rejected,
         (state, action) => {
           state.fetchStudentLearningActivityWithoutGroupLoading = false;
-          state.error = action.error.message ?? "Something went wrong";
+          state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
         },
       );
 
@@ -454,7 +455,7 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchStudentEvaluationList.rejected, (state, action) => {
         state.fetchStudentEvaluationListLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });

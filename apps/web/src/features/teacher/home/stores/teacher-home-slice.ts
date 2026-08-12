@@ -1,5 +1,6 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import { fetchAllCourse, fetchCourseById } from "./teacher-home-action";
 import type { CourseDetailBrief } from "../types/home-type";
 import type { CourseDetail } from "../../../../types/course-type.type";
@@ -71,7 +72,7 @@ export const teacherHomeSlice = createSlice({
       })
       .addCase(fetchAllCourse.rejected, (state, action) => {
         state.fetchAllCourseLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -84,7 +85,7 @@ export const teacherHomeSlice = createSlice({
       })
       .addCase(fetchCourseById.rejected, (state, action) => {
         state.fetchCourseByIdLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });

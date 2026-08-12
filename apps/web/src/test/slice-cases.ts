@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import type { Reducer, UnknownAction } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../utils/api-error";
 
 /**
  * Shared arrangement for the slice reducer tests.
@@ -114,7 +115,7 @@ export const itOnlyTracksLoading = <S extends { error: string | null }>(
         error: {},
       });
 
-      expect(rejected.error).toBe("Something went wrong");
+      expect(rejected.error).toBe(GENERIC_ERROR_MESSAGE);
     });
   }
 };

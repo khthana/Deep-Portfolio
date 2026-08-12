@@ -1,5 +1,6 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import type { AnnouncmentFormType } from "../types/announement-type";
 import { fetchAllAnnouncements, postAnnouncement } from "./announcement-action";
 import type { AnnouncementDetailResp } from "../../../../types/course-type.type";
@@ -48,7 +49,7 @@ export const teacherAnnouncementSlice = createSlice({
       })
       .addCase(fetchAllAnnouncements.rejected, (state, action) => {
         state.fetchAllAnnouncementsLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -60,7 +61,7 @@ export const teacherAnnouncementSlice = createSlice({
       })
       .addCase(postAnnouncement.rejected, (state, action) => {
         state.postAnnouncementLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });

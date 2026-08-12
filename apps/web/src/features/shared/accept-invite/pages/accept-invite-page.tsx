@@ -11,6 +11,7 @@ import {
   postAcceptInvite,
   postValidateInvite,
 } from "../stores/teacher-home-action";
+import { messageToShow } from "../../../../utils/api-error";
 
 const AcceptInvitePage = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -76,9 +77,13 @@ const AcceptInvitePage = () => {
       }
 
       setStatus(action === "ACCEPT" ? "ACCEPT" : "REJECTED");
-    } catch (error: any) {
+    } catch (error) {
       setStatus("ERROR");
-      setErrorMessage(error.message);
+      // Shown to the student on its own line, so it had better be a sentence:
+      // this used to render axios's `"Request failed with status code 400"`
+      // for every refused invitation, and `undefined` for a rejection that
+      // carried no message at all.
+      setErrorMessage(messageToShow(error));
     }
   };
 

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { env } from "../configs/env";
 import { singleFlight } from "../utils/single-flight";
+import { apiErrorMessage } from "../utils/api-error";
 
 export const BACKEND_API_URL = env.BACKEND_URL;
 
@@ -43,6 +44,19 @@ const refreshSession = singleFlight(async () => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Before anything else, because this is the only point every failed
+    // request passes through while it still has the response on it. A rejected
+    // thunk keeps `name`, `message`, `stack` and `code` and drops the rest, so
+    // by the time a component catches one the body is gone — and axios's own
+    // message, `"Request failed with status code 400"`, is what the user was
+    // being shown in its place (#51). Overwritten rather than added to, so the
+    // sentence arrives wherever a message was already read.
+    const sentence = apiErrorMessage(error);
+
+    if (sentence) {
+      error.message = sentence;
+    }
+
     const originalRequest = error.config;
 
     // The two requests that must never trigger a refresh: refreshing is what

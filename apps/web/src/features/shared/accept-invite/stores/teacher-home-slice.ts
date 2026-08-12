@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import { postAcceptInvite, postValidateInvite } from "./teacher-home-action";
 
 type GroupSlice = {
@@ -30,7 +31,7 @@ export const groupSlice = createSlice({
       })
       .addCase(postAcceptInvite.rejected, (state, action) => {
         state.postAcceptInviteLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
     builder
@@ -42,7 +43,7 @@ export const groupSlice = createSlice({
       })
       .addCase(postValidateInvite.rejected, (state, action) => {
         state.postValidateInviteLoading = false;
-        state.error = action.error.message ?? "Something went wrong";
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
   },
 });
