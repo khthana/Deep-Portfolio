@@ -54,9 +54,12 @@ Run `gh issue view <number> --comments`.
 
 ## Existing issues worth knowing about
 
-- **#1 — the refactor / re-deploy spec.** Labelled `spec`, `ready-for-agent`, `documentation`.
-  Its canonical source is `docs/spec-refactor-redeploy.md`; the issue is a copy kept
-  for tracking. Edit the file first, then sync the issue — never only the issue.
+- **#1 — the refactor / re-deploy spec. Closed on 2026-08-12.** Labelled `spec`,
+  `ready-for-agent`, `documentation`. Its canonical source is
+  `docs/spec-refactor-redeploy.md`; the issue is a copy kept for tracking, and
+  the file is still the plan of record even though the issue is closed. If the
+  spec is ever amended, edit the file first, then sync the issue — never only
+  the issue.
 - **#2–#24 — the 23 tickets that break #1 down.** Every one names `#1` as its parent
   and carries `ready-for-agent`. Blocking edges use GitHub's native issue
   dependencies, so the frontier query below is the authoritative "what can I
@@ -64,7 +67,8 @@ Run `gh issue view <number> --comments`.
   **#2–#24 are all closed** — #24 (README) went on 2026-08-10, which is the whole
   breakdown done. #23 (importer) was `needs-info` until the project owner handed
   over the real data on 2026-08-09; that label is gone and the ticket is done.
-  #1 itself stays open as the umbrella.
+  #1 itself stayed open as the umbrella until 2026-08-12, when what it still
+  owed was refiled as #55–#63.
 - Issues #12–#18 (the endpoint test batches) were deliberately chained one after
   another even though they are technically independent. They all edit the same test
   factory files, so running them in parallel would have conflicted. All are closed

@@ -5,10 +5,11 @@ e-Portfolio) handed over as a student capstone project and currently being
 re-deployed and refactored.
 
 The plan of record is [`docs/spec-refactor-redeploy.md`](docs/spec-refactor-redeploy.md),
-tracked as [issue #1](https://github.com/khthana/Deep-Portfolio/issues/1).
-Read the spec before proposing structural changes — most of the obvious
-questions are already answered there, including what is deliberately out of
-scope.
+tracked as [issue #1](https://github.com/khthana/Deep-Portfolio/issues/1),
+**which is closed** — the spec was delivered in full on 2026-08-12. It stays
+the plan of record for why the system is shaped the way it is. Read it before
+proposing structural changes — most of the obvious questions are already
+answered there, including what is deliberately out of scope.
 
 ## Current state
 
@@ -20,7 +21,8 @@ mostly correctness work on top of it.
   One lockfile at the root; never run `npm install` in a subfolder.
 - **Runs locally in one command**: `docker compose up --build` brings up web,
   API, PostgreSQL and MinIO, and applies migrations on the way. Nothing is
-  deployed to a server yet, and there is no CI.
+  deployed to a server yet, and there is no CI — that is #59, and it was out
+  of the spec's scope on purpose, not skipped.
 - **Auth is Google sign-in**, not the DEEP Core SSO cookie the hand-over
   assumed. There is no connection back to DEEP Core at all.
 - **The database is standalone** — 72 tables from one baseline migration.
@@ -77,7 +79,8 @@ on purpose: **#58** the two empty enums, **#59** phase 5 — a real server and
 CI/CD, **#61** the shared types package `packages/` is reserved for, **#62**
 component and E2E tests, **#63** the `any` sweep and the long files.
 
-#1 itself is still open as the umbrella spec.
+#1 closed with them filed, so the open list is exactly #55–#63 — nothing else
+is outstanding anywhere.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on
