@@ -978,8 +978,8 @@ describe("GET /student-learning-activity-group/all", () => {
     const { course, students } = await classWithStudents(3);
     const [student, ...partners] = students;
     const groups = [];
-    // Different partners in each: two groups with the same member list are
-    // collapsed into one, which the next case is about.
+    // A different partner in each, so each group is its own member list; the
+    // next case is what happens when two of them are not. Oldest first.
     for (const partner of partners) {
       const learningActivity = await createLearningActivity({
         section_id: course.section_id,
@@ -1007,24 +1007,28 @@ describe("GET /student-learning-activity-group/all", () => {
     ).toEqual(groups.map((group) => group.id));
   });
 
-  it("collapses two groups with the same members into one", async () => {
-    // Recorded, not endorsed, exactly as on the activity side: two learning
-    // activities set for the same pair are two real groups, and the caller is
-    // shown one of them with nothing in the response to tell them apart by.
+  it("offers a member list once, however many activities used it", async () => {
+    // Deliberate on both sides, and for the same reason: the picker that asks
+    // is one component reading one slice field, so a member list it already
+    // shows is a line the student cannot tell from the one above it (#44,
+    // ADR-0019). The earliest group answers for the list.
     const { course, students } = await classWithStudents(2);
     const [leader, member] = students;
+    const groups = [];
     for (let index = 0; index < 2; index++) {
       const learningActivity = await createLearningActivity({
         section_id: course.section_id,
         learning_activity_type: "group",
       });
-      await createLearningActivityGroup({
-        learning_activity_id: learningActivity.id,
-        members: [
-          { student_id: leader.student_id },
-          { student_id: member.student_id },
-        ],
-      });
+      groups.push(
+        await createLearningActivityGroup({
+          learning_activity_id: learningActivity.id,
+          members: [
+            { student_id: leader.student_id },
+            { student_id: member.student_id },
+          ],
+        }),
+      );
     }
 
     const response = await request(app)
@@ -1034,6 +1038,43 @@ describe("GET /student-learning-activity-group/all", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(1);
+    expect(response.body.data[0].group_id).toBe(groups[0].id);
+    expect(
+      response.body.data[0].members.map(
+        (row: { student_id: string }) => row.student_id,
+      ),
+    ).toEqual([leader.student_id, member.student_id]);
+  });
+
+  it("hands each list back leader first, then by student id", async () => {
+    // Same promise on this side: the line the picker shows reads leader first,
+    // whatever order the members were added in.
+    const { course, students } = await classWithStudents(3);
+    const [early, late, leader] = students;
+    const learningActivity = await createLearningActivity({
+      section_id: course.section_id,
+      learning_activity_type: "group",
+    });
+    await createLearningActivityGroup({
+      learning_activity_id: learningActivity.id,
+      members: [
+        { student_id: leader.student_id },
+        { student_id: late.student_id },
+        { student_id: early.student_id },
+      ],
+    });
+
+    const response = await request(app)
+      .get("/student-learning-activity-group/all")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(
+      response.body.data[0].members.map(
+        (row: { student_id: string }) => row.student_id,
+      ),
+    ).toEqual([leader.student_id, early.student_id, late.student_id]);
   });
 
   it("returns an empty list for a section the student has no group in", async () => {

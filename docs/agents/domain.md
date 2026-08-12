@@ -28,7 +28,7 @@ check), `0013-student-read-access.md` (the last three reads in `/student`,
 each of which took the rule of its neighbours rather than one rule for all
 three) and `0014-shared-rubric-access.md` (the programme's shared rubrics
 belong to any teacher, and why the rule is not narrowed to the caller's own
-programme). Read all ten before adding an authorisation check anywhere. Eight
+programme). Read all ten before adding an authorisation check anywhere. Nine
 more are about when or what rather than who: `0005-announcement-date.md` — a
 piece of work with no announcement date counts as announced, on every
 student-facing read — `0008-attachment-lifecycle.md`, which says an attachment
@@ -50,7 +50,11 @@ accepted the invitation is not in the group anywhere that decides who gets
 what, so read it before asking a group who its members are, and
 `0018-absent-flag-means-column-default.md`, which says an optional flag a
 `POST` leaves out is not written at all, so the column's `@default` answers —
-read it before writing `?? true` into a service.
+read it before writing `?? true` into a service — and
+`0019-group-list-is-member-lists.md`, which says
+`GET /student-activity-group/all` lists the member lists a student has worked
+in rather than the groups themselves, so read it before treating its
+de-duplication as a bug.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

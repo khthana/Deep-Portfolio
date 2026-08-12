@@ -1057,8 +1057,8 @@ describe("GET /student-activity-group/all", () => {
     const { course, students } = await classWithStudents(3);
     const [student, ...partners] = students;
     const groups = [];
-    // Different partners in each: two groups with the same member list are
-    // collapsed into one, which the next case is about.
+    // A different partner in each, so each group is its own member list; the
+    // next case is what happens when two of them are not. Oldest first.
     for (const partner of partners) {
       const activity = await createActivity({
         section_id: course.section_id,
@@ -1086,31 +1086,30 @@ describe("GET /student-activity-group/all", () => {
     ).toEqual(groups.map((group) => group.id));
   });
 
-  it("collapses two groups with the same members into one", async () => {
-    // Recorded, not endorsed. Two activities set for the same pair of students
-    // are two real groups, and the caller is shown one of them — the endpoint
-    // de-duplicates on the member list and drops the rest, and the response
-    // carries no activity_id to tell them apart by.
+  it("offers a member list once, however many activities used it", async () => {
+    // Deliberate, not a defect (#44, ADR-0019). The one caller is the
+    // "กลุ่มที่เคยสร้าง" picker in create-groupwork-modal.tsx, which shows a
+    // member list for the student to reuse and reads nothing off it but
+    // `members`. The same pair working two activities is one line there, not
+    // two the student has no way to tell apart. Which group answers for the
+    // list is the earliest of them, not whichever Postgres handed back first.
     const { course, students } = await classWithStudents(2);
     const [leader, member] = students;
-    const activities = [
-      await createActivity({
+    const groups = [];
+    for (let index = 0; index < 2; index++) {
+      const activity = await createActivity({
         section_id: course.section_id,
         activity_type: "group",
-      }),
-      await createActivity({
-        section_id: course.section_id,
-        activity_type: "group",
-      }),
-    ];
-    for (const activity of activities) {
-      await createActivityGroup({
-        activity_id: activity.id,
-        members: [
-          { student_id: leader.student_id },
-          { student_id: member.student_id },
-        ],
       });
+      groups.push(
+        await createActivityGroup({
+          activity_id: activity.id,
+          members: [
+            { student_id: leader.student_id },
+            { student_id: member.student_id },
+          ],
+        }),
+      );
     }
 
     const response = await request(app)
@@ -1120,6 +1119,44 @@ describe("GET /student-activity-group/all", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(1);
+    expect(response.body.data[0].group_id).toBe(groups[0].id);
+    expect(
+      response.body.data[0].members.map(
+        (row: { student_id: string }) => row.student_id,
+      ),
+    ).toEqual([leader.student_id, member.student_id]);
+  });
+
+  it("hands each list back leader first, then by student id", async () => {
+    // The picker joins these ids into the line it shows, so their order is
+    // part of the answer. It used to be the order the rows went in — which is
+    // the order the leader happened to pick their partners in.
+    const { course, students } = await classWithStudents(3);
+    const [early, late, leader] = students;
+    const activity = await createActivity({
+      section_id: course.section_id,
+      activity_type: "group",
+    });
+    await createActivityGroup({
+      activity_id: activity.id,
+      members: [
+        { student_id: leader.student_id },
+        { student_id: late.student_id },
+        { student_id: early.student_id },
+      ],
+    });
+
+    const response = await request(app)
+      .get("/student-activity-group/all")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(
+      response.body.data[0].members.map(
+        (row: { student_id: string }) => row.student_id,
+      ),
+    ).toEqual([leader.student_id, early.student_id, late.student_id]);
   });
 
   it("returns an empty list for a section the student has no group in", async () => {

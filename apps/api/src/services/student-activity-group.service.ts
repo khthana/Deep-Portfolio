@@ -356,6 +356,13 @@ export default class StudentActivityGroupService {
     };
   }
 
+  // Despite the name, this answers "which member lists have I worked in, in
+  // this section" rather than "which groups am I in". The one caller is the
+  // "กลุ่มที่เคยสร้าง" picker in create-groupwork-modal.tsx, which offers each
+  // list for the student to reuse in a new group and reads nothing but
+  // `members` off the answer — so a list that appears twice is two lines it
+  // cannot tell apart. ADR-0019 says why that stays, and what a caller who
+  // does need the groups themselves would have to change.
   async getStudentActivityGroupInSec(
     section_id: number,
     student_id: string,
@@ -371,9 +378,17 @@ export default class StudentActivityGroupService {
           },
         },
       },
+      // De-duplication keeps the first of the groups that share a list, so the
+      // order it walks them in decides the answer: oldest wins, rather than
+      // whichever row Postgres happened to hand back.
+      orderBy: { id: "asc" },
       select: {
         id: true,
         student_activity_group_member: {
+          // The picker joins these ids into the line it shows, so their order
+          // is part of the answer too. Leader first, then by id — the order
+          // handleOnSelectedGroup sorts them into once the line is clicked.
+          orderBy: [{ role: "asc" }, { student_id: "asc" }],
           select: {
             student_id: true,
             role: true,

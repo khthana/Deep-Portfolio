@@ -375,6 +375,9 @@ export default class StudentLearningActivityGroupService {
     };
   }
 
+  // The member-list read, the same as its activity twin down to the picker it
+  // feeds: create-groupwork-modal.tsx writes both answers into one slice field
+  // and shows one list per line (ADR-0019).
   async getStudentLearningActivityGroupInSec(
     section_id: number,
     student_id: string,
@@ -390,9 +393,13 @@ export default class StudentLearningActivityGroupService {
           },
         },
       },
+      // Oldest first, so which group answers for a shared list is decided here
+      // rather than by Postgres, and each list reads leader first.
+      orderBy: { id: "asc" },
       select: {
         id: true,
         student_learning_activity_group_member: {
+          orderBy: [{ role: "asc" }, { student_id: "asc" }],
           select: {
             student_id: true,
             role: true,
