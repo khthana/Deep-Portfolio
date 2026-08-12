@@ -39,10 +39,9 @@ The whole breakdown of #1 is done, #20–#42 included. On top of that came
 **#43–#50**, the eight defects that survived an audit of the pinned list in
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md) on 2026-08-11 — every entry under
 "สิ่งที่ **ไม่ได้** เปลี่ยน" was checked against the code, the ones already
-closed were marked so, and what genuinely remained got an issue. **#43, #49 and
-#50 are closed; #45 is fixed here but stays open until the commit carrying it
-is pushed; #44 and #46–#48 are what is left**, plus three spun off along the
-way: **#51** from #43 — the API's Thai sentences do not survive the frontend's
+closed were marked so, and what genuinely remained got an issue. **#43, #45,
+#49 and #50 are closed; #44 and #46–#48 are what is left**, plus three spun
+off along the way: **#51** from #43 — the API's Thai sentences do not survive the frontend's
 thunks — **#52** from #50 — the four submission paths in `student.service.ts`
 roll their `attachments` rows back but leave the uploaded files in MinIO — and
 **#53** from #45: no teacher-facing endpoint shows a group member who never
