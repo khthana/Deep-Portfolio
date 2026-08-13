@@ -175,7 +175,7 @@ export default class StudentLearningActivityService {
   private async getUngroupedSubmissions(
     learning_activity_id: number,
   ): Promise<Submission[]> {
-    const loners = await prisma.student_learning_activity.findMany({
+    const ungrouped = await prisma.student_learning_activity.findMany({
       where: {
         learning_activity_id,
         student_learning_activity_group_member: null,
@@ -199,7 +199,7 @@ export default class StudentLearningActivityService {
       orderBy: { id: "asc" },
     });
 
-    return loners.map((a) => ({
+    return ungrouped.map((a) => ({
       id: a.id,
       submission_type: "INDIVIDUAL" as const,
       status: a.status,

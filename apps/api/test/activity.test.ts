@@ -1806,19 +1806,8 @@ describe("GET /activity/submitted/list", () => {
     });
     const busy = await createActivityGroup({
       activity_id: activity.id,
+      status: "SUBMITTED",
       members: [{}],
-    });
-    // The group row and its members' rows are written together whenever work is
-    // handed in, so the status the table shows is the member's (#56 comment).
-    await prisma.student_activity.updateMany({
-      where: {
-        id: {
-          in: busy.student_activity_group_member.map(
-            (member) => member.student_activity_id,
-          ),
-        },
-      },
-      data: { status: "SUBMITTED", submitted_at: new Date() },
     });
 
     const response = await request(app)

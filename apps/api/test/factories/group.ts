@@ -1,5 +1,9 @@
 import prisma from "../../src/config/prisma";
-import { createActivity, createLearningActivity } from "./activity";
+import {
+  createActivity,
+  createLearningActivity,
+  submittedAtFor,
+} from "./activity";
 import { createStudent } from "./user";
 
 /**
@@ -15,6 +19,10 @@ import { createStudent } from "./user";
  * Invite tokens are the only reason a member row differs from a leader row
  * beyond the label, and they are what POST /group/accept-invite is given. A
  * case about invites should say what it wants the token and its expiry to be.
+ *
+ * `status` belongs to the group and to every member's submission row at once:
+ * handing in writes both in one transaction, and so does grading. A case that
+ * wants a group that has handed something in says so once, here.
  */
 
 export interface GroupMemberOptions {
@@ -40,15 +48,17 @@ export interface ActivityGroupOptions {
   /** One entry per member, leader first. Two students — a leader and one
    *  invited member — if the case does not say. */
   members?: GroupMemberOptions[];
+  /** The group's own status, which its members' submission rows take too. */
   status?: "NOT_SUBMITTED" | "SUBMITTED" | "GRADING" | "GRADED";
 }
 
 export async function createActivityGroup(options: ActivityGroupOptions = {}) {
   const activity_id = options.activity_id ?? (await createActivity()).id;
   const members = options.members ?? [{}, {}];
+  const status = options.status ?? "NOT_SUBMITTED";
 
   const group = await prisma.student_activity_group.create({
-    data: { activity_id, status: options.status ?? "NOT_SUBMITTED" },
+    data: { activity_id, status },
   });
 
   for (const [index, member] of members.entries()) {
@@ -57,7 +67,12 @@ export async function createActivityGroup(options: ActivityGroupOptions = {}) {
     const role = member.role ?? (index === 0 ? "LEADER" : "MEMBER");
 
     const submission = await prisma.student_activity.create({
-      data: { activity_id, student_id, status: "NOT_SUBMITTED" },
+      data: {
+        activity_id,
+        student_id,
+        status,
+        submitted_at: submittedAtFor(status),
+      },
     });
 
     await prisma.student_activity_group_member.create({
@@ -82,6 +97,7 @@ export interface LearningActivityGroupOptions {
   /** learning_activities.id. One is created if this is left out. */
   learning_activity_id?: number;
   members?: GroupMemberOptions[];
+  /** The group's own status, which its members' submission rows take too. */
   status?: "NOT_SUBMITTED" | "SUBMITTED" | "GRADING" | "GRADED";
 }
 
@@ -91,12 +107,10 @@ export async function createLearningActivityGroup(
   const learning_activity_id =
     options.learning_activity_id ?? (await createLearningActivity()).id;
   const members = options.members ?? [{}, {}];
+  const status = options.status ?? "NOT_SUBMITTED";
 
   const group = await prisma.student_learning_activity_group.create({
-    data: {
-      learning_activity_id,
-      status: options.status ?? "NOT_SUBMITTED",
-    },
+    data: { learning_activity_id, status },
   });
 
   for (const [index, member] of members.entries()) {
@@ -108,7 +122,8 @@ export async function createLearningActivityGroup(
       data: {
         learning_activity_id,
         student_id,
-        status: "NOT_SUBMITTED",
+        status,
+        submitted_at: submittedAtFor(status),
       },
     });
 

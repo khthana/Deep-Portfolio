@@ -152,7 +152,9 @@ export async function createLearningActivity(
  * work nobody handed in produced a row the API cannot, and a case reading it
  * would believe the wrong thing.
  */
-function submittedAtFor(status: SubmissionOptions["status"]): Date | null {
+export function submittedAtFor(
+  status: SubmissionOptions["status"],
+): Date | null {
   return status === "NOT_SUBMITTED" ? null : new Date();
 }
 

@@ -910,6 +910,37 @@ describe("GET /learning-activity/submitted/list", () => {
     expect(alones[0]).not.toHaveProperty("group");
   });
 
+  it("puts a group that handed something in ahead of one that did not", async () => {
+    const teacher = await createTeacher();
+    const activity = await createLearningActivity({
+      learning_activity_type: "group",
+    });
+    const idle = await createLearningActivityGroup({
+      learning_activity_id: activity.id,
+      members: [{}],
+    });
+    const busy = await createLearningActivityGroup({
+      learning_activity_id: activity.id,
+      status: "SUBMITTED",
+      members: [{}],
+    });
+
+    const response = await request(app)
+      .get("/learning-activity/submitted/list")
+      .query({ learning_activity_id: activity.id })
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(200);
+    // Created idle-first, so this is the sort talking and not the insertion
+    // order coming back unchanged.
+    expect(
+      response.body.data.submissions.map(
+        (submission: { group: { group_id: number } }) =>
+          submission.group.group_id,
+      ),
+    ).toEqual([busy.id, idle.id]);
+  });
+
   it("names the group members who never answered the invitation", async () => {
     const teacher = await createTeacher();
     const activity = await createLearningActivity({

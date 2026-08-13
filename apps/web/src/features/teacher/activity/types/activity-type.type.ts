@@ -40,8 +40,9 @@ export const submissionStatusLabel: Record<SubmissionStatus, string> = {
 export const submissionStatusBGColor: Record<SubmissionStatus, string> = {
   GRADED: "rgb(59,139,92,0.2)", // เขียว
   PENDING: "rgb(241,188,65,0.2)", // เหลือง
-  // เทา — งานที่ไม่มีอยู่ ไม่ใช่งานที่รออาจารย์ สีจึงไม่เรียกร้องความสนใจแบบเหลือง
-  NOT_SUBMITTED: "rgb(107,114,128,0.15)",
+  // Grey rather than another warm colour: work that does not exist is not work
+  // waiting on the teacher, so it should not compete with PENDING for attention.
+  NOT_SUBMITTED: "rgb(107,114,128,0.15)", // เทา
 };
 
 export const submissionStatusTextColor: Record<SubmissionStatus, string> = {
