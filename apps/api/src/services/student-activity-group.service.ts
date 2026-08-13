@@ -7,8 +7,7 @@ import {
   MemberDetailResp,
   UpdateStudentActivityGroupBody,
 } from "../models/student-activity-group.model";
-import GroupService, { assertMembersEnrolled } from "./group.service";
-import crypto from "crypto";
+import GroupService, { assertMembersEnrolled, mintInvite } from "./group.service";
 
 export default class StudentActivityGroupService {
   private readonly groupService: GroupService;
@@ -75,9 +74,7 @@ export default class StudentActivityGroupService {
 
         if (!userDetail || !userDetail.email) continue;
 
-        const inviteToken = crypto.randomBytes(32).toString("hex");
-        const tokenExpiry = new Date();
-        tokenExpiry.setDate(tokenExpiry.getDate() + 7);
+        const invite = mintInvite();
 
         await tx.student_activity_group_member.create({
           data: {
@@ -85,8 +82,10 @@ export default class StudentActivityGroupService {
             student_id: member.student_id,
             role: member.role,
             student_activity_id: studentActivity.id,
-            invite_token: member.role === "LEADER" ? null : inviteToken,
-            token_expiry: member.role === "LEADER" ? null : tokenExpiry,
+            invite_token:
+              member.role === "LEADER" ? null : invite.invite_token,
+            token_expiry:
+              member.role === "LEADER" ? null : invite.token_expiry,
             status: member.role === "LEADER" ? "ACCEPT" : "PENDING",
           },
         });
@@ -94,7 +93,7 @@ export default class StudentActivityGroupService {
         if (member.role !== "LEADER") {
           emailsToSend.push({
             email: userDetail.email,
-            token: inviteToken,
+            token: invite.invite_token,
             name: `${userDetail.first_name_th} ${userDetail.last_name_th}`,
           });
         } else {
@@ -215,9 +214,7 @@ export default class StudentActivityGroupService {
             },
           });
         } else {
-          const inviteToken = crypto.randomBytes(32).toString("hex");
-          const tokenExpiry = new Date();
-          tokenExpiry.setDate(tokenExpiry.getDate() + 7);
+          const invite = mintInvite();
 
           await tx.student_activity_group_member.create({
             data: {
@@ -225,15 +222,14 @@ export default class StudentActivityGroupService {
               student_id: member.student_id,
               role: member.role,
               student_activity_id: studentActivity.id,
-              invite_token: inviteToken,
-              token_expiry: tokenExpiry,
+              ...invite,
               status: "PENDING",
             },
           });
 
           emailsToSend.push({
             email: userDetail.email,
-            token: inviteToken,
+            token: invite.invite_token,
             name: `${userDetail.first_name_th} ${userDetail.last_name_th}`,
           });
         }

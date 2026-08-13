@@ -18,8 +18,10 @@ import {
   fetchStudentActivityGroupInSec,
   fetchStudentWithoutGroup,
   patchStudentActivityGroup,
+  postResendActivityGroupInvite,
   postStudentLearningActivityGroup,
   patchStudentLearningActivityGroup,
+  postResendLearningActivityGroupInvite,
   fetchStudentLearningActivityGroup,
   fetchStudentLearningActivityGroupInSec,
   fetchStudentLearningActivityWithoutGroup,
@@ -77,9 +79,11 @@ type StudentCourseSlice = {
   fetchStudentActivityGroupInSecLoading: boolean;
   fetchStudentWithoutGroupLoading: boolean;
   patchStudentActivityGroupLoading: boolean;
+  postResendActivityGroupInviteLoading: boolean;
 
   postStudentLearningActivityGroupLoading: boolean;
   patchStudentLearningActivityGroupLoading: boolean;
+  postResendLearningActivityGroupInviteLoading: boolean;
   fetchStudentLearningActivityGroupLoading: boolean;
   fetchStudentLearningActivityWithoutGroupLoading: boolean;
   fetchStudentLearningActivityGroupInSecLoading: boolean;
@@ -122,9 +126,11 @@ const initialState: StudentCourseSlice = {
   fetchStudentActivityGroupInSecLoading: false,
   fetchStudentWithoutGroupLoading: false,
   patchStudentActivityGroupLoading: false,
+  postResendActivityGroupInviteLoading: false,
 
   postStudentLearningActivityGroupLoading: false,
   patchStudentLearningActivityGroupLoading: false,
+  postResendLearningActivityGroupInviteLoading: false,
   fetchStudentLearningActivityGroupLoading: false,
   fetchStudentLearningActivityWithoutGroupLoading: false,
   fetchStudentLearningActivityGroupInSecLoading: false,
@@ -330,6 +336,20 @@ export const studentCourseSlice = createSlice({
         state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 
+    // Nothing to keep on success: the new link goes to the member by email, so
+    // the leader who asked gets back only the flag going down again (#57).
+    builder
+      .addCase(postResendActivityGroupInvite.pending, (state) => {
+        state.postResendActivityGroupInviteLoading = true;
+      })
+      .addCase(postResendActivityGroupInvite.fulfilled, (state) => {
+        state.postResendActivityGroupInviteLoading = false;
+      })
+      .addCase(postResendActivityGroupInvite.rejected, (state, action) => {
+        state.postResendActivityGroupInviteLoading = false;
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
+      });
+
     builder
       .addCase(fetchStudentActivityGroup.pending, (state) => {
         state.fetchStudentActivityGroupLoading = true;
@@ -392,6 +412,18 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(patchStudentLearningActivityGroup.rejected, (state, action) => {
         state.patchStudentLearningActivityGroupLoading = false;
+        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
+      });
+
+    builder
+      .addCase(postResendLearningActivityGroupInvite.pending, (state) => {
+        state.postResendLearningActivityGroupInviteLoading = true;
+      })
+      .addCase(postResendLearningActivityGroupInvite.fulfilled, (state) => {
+        state.postResendLearningActivityGroupInviteLoading = false;
+      })
+      .addCase(postResendLearningActivityGroupInvite.rejected, (state, action) => {
+        state.postResendLearningActivityGroupInviteLoading = false;
         state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
       });
 

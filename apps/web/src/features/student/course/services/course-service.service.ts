@@ -22,6 +22,7 @@ import type {
   GetStudentEvaluationListParams,
   GetStudentEvaluationListResp,
   GetStudentLessonPlanWithMaterialResp,
+  ResendInviteBody,
 } from "../types/course-type";
 
 export const getStudentCourseList = async (
@@ -92,6 +93,19 @@ export const updateStudentActivityGroup = async (
   return resp.data;
 };
 
+/** Answers with nothing but the wrapper: the new token is mailed to the member,
+ *  never handed back to the leader who asked for it (#57). */
+export const resendStudentActivityGroupInvite = async (
+  body: ResendInviteBody,
+) => {
+  const resp = await axiosInstance.post<ResponseWrapper<null>>(
+    endpoints.student_activity_group.resend_invite,
+    body,
+  );
+
+  return resp.data;
+};
+
 export const getStudentActivityGroup = async (
   params: GetStudentActivityGroupParams,
 ) => {
@@ -146,6 +160,17 @@ export const updateStudentLearningActivityGroup = async (
 ) => {
   const resp = await axiosInstance.patch<ResponseWrapper<{ group_id: number }>>(
     endpoints.student_learning_activity_group.root,
+    body,
+  );
+
+  return resp.data;
+};
+
+export const resendStudentLearningActivityGroupInvite = async (
+  body: ResendInviteBody,
+) => {
+  const resp = await axiosInstance.post<ResponseWrapper<null>>(
+    endpoints.student_learning_activity_group.resend_invite,
     body,
   );
 

@@ -8,7 +8,10 @@ import {
   requireSelfLeader,
 } from "../middlewares/owner.middleware";
 import { validate } from "../validation/validate";
-import { groupParams } from "../validation/student-activity-group.schema";
+import {
+  groupParams,
+  resendInviteBody,
+} from "../validation/student-activity-group.schema";
 import {
   createStudentLearningActivityGroupBody,
   studentLearningActivityGroupInSecQuery,
@@ -40,6 +43,19 @@ studentLearningActivityGroupRouter.delete(
   validate({ params: groupParams }),
   requireGroupLeader(groupLeader.learningActivity, "params"),
   studentLearningActivityGroupController.deleteStudentLearningActivityGroup.bind(
+    studentLearningActivityGroupController,
+  ),
+);
+
+// Inviting a member again is the leader's too (#57), as on the twin: it
+// replaces the token on their row, which is a change to the group in the same
+// sense disbanding it is.
+studentLearningActivityGroupRouter.post(
+  "/resend-invite",
+  requireRole("STUDENT"),
+  validate({ body: resendInviteBody }),
+  requireGroupLeader(groupLeader.learningActivity, "body"),
+  studentLearningActivityGroupController.resendInvite.bind(
     studentLearningActivityGroupController,
   ),
 );

@@ -12,6 +12,7 @@ import type {
   GroupRole,
   MemberDetail,
   MemberStatus,
+  ResendInviteBody,
   UpdateStudentActivityGroupBody,
 } from "../../types/course-type";
 import Button from "../../../../../components/button/button";
@@ -20,8 +21,11 @@ import {
   fetchStudentWithoutGroup,
   patchStudentActivityGroup,
   patchStudentLearningActivityGroup,
+  postResendActivityGroupInvite,
+  postResendLearningActivityGroupInvite,
 } from "../../stores/course-action";
 import { isGroupLeader } from "../../utils/is-group-leader";
+import { messageToShow } from "../../../../../utils/api-error";
 
 type SelectedMembersType = {
   studentName: string;
@@ -143,6 +147,36 @@ const ShowGroupworkModal = (props: Props) => {
     }
   };
 
+  /**
+   * A fresh invitation for one member who has not answered yet (#57).
+   *
+   * Nothing on the screen changes on success — the member's row still says
+   * "รออนุมัติ", because it does — so the toast is the whole of the answer. The
+   * API's own sentence is shown when it sent one: it is the only thing that
+   * distinguishes a member who accepted between the page load and the click
+   * from one who is simply not in the group.
+   */
+  const handleOnResend = async (studentId: string) => {
+    try {
+      const body: ResendInviteBody = {
+        group_id: props.studentGroupWork.group_id,
+        student_id: studentId,
+      };
+
+      const resp =
+        props.classworkDetail.category === "activity"
+          ? await dispatch(postResendActivityGroupInvite(body)).unwrap()
+          : await dispatch(postResendLearningActivityGroupInvite(body)).unwrap();
+
+      if (resp.success) {
+        messageApi.success("ส่งคำเชิญอีกครั้งแล้ว");
+        props.handleFetchStudentGroup();
+      }
+    } catch (err) {
+      messageApi.error(messageToShow(err, "เกิดข้อผิดพลาดในการส่งคำเชิญ"));
+    }
+  };
+
   const handleFetchStudentWithoutGroup = async () => {
     if (!courseSlice.selectedClasswork) return;
 
@@ -245,6 +279,20 @@ const ShowGroupworkModal = (props: Props) => {
                   member.role === "MEMBER" &&
                   member.status !== "ACCEPT"
                 }
+                // Only the leader may resend, and only to a member still holding
+                // an unanswered invitation — the same two rules the API enforces
+                // (#57). One who said no is left to be asked in person.
+                resend={
+                  !isEditing &&
+                  isLeader &&
+                  member.status === "PENDING" &&
+                  props.classworkDetail.status !== "GRADED"
+                }
+                resendLoading={
+                  courseSlice.postResendActivityGroupInviteLoading ||
+                  courseSlice.postResendLearningActivityGroupInviteLoading
+                }
+                handleOnResend={handleOnResend}
               />
             ))}
         </div>

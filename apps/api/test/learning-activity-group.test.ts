@@ -854,6 +854,212 @@ describe("DELETE /student-learning-activity-group/:group_id", () => {
   });
 });
 
+describe("POST /student-learning-activity-group/resend-invite", () => {
+  /**
+   * Sending an invitation again — #57. The twin's block says what the endpoint
+   * is for; what matters here is that this side does the same thing to its own
+   * tables, which are a separate token space.
+   */
+
+  it("issues a link that works to a member whose seven days ran out", async () => {
+    const group = await createLearningActivityGroup({
+      members: [
+        {},
+        {
+          invite_token: "learning-ran-out",
+          token_expiry: new Date("2020-01-01"),
+        },
+      ],
+    });
+    const [leader, invited] = group.student_learning_activity_group_member;
+
+    const response = await request(app)
+      .post("/student-learning-activity-group/resend-invite")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .send({ group_id: group.id, student_id: invited.student_id });
+
+    expect(response.status).toBe(200);
+
+    const reissued =
+      await prisma.student_learning_activity_group_member.findUniqueOrThrow({
+        where: { id: invited.id },
+      });
+    expect(reissued.invite_token).toEqual(expect.any(String));
+    expect(reissued.invite_token).not.toBe("learning-ran-out");
+    expect(reissued.token_expiry?.getTime()).toBeGreaterThan(Date.now());
+    expect(reissued.status).toBe("PENDING");
+
+    const accepted = await request(app)
+      .post("/group/accept-invite")
+      .send({
+        token: reissued.invite_token,
+        action: "ACCEPT",
+        type: "learning-activity",
+      });
+
+    expect(accepted.status).toBe(200);
+    expect(
+      await prisma.student_learning_activity_group_member.findUniqueOrThrow({
+        where: { id: invited.id },
+      }),
+    ).toMatchObject({ status: "ACCEPT" });
+  });
+
+  it("puts the old link out of use", async () => {
+    const group = await createLearningActivityGroup({
+      members: [{}, { invite_token: "learning-superseded" }],
+    });
+    const [leader, invited] = group.student_learning_activity_group_member;
+
+    await request(app)
+      .post("/student-learning-activity-group/resend-invite")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .send({ group_id: group.id, student_id: invited.student_id });
+
+    const response = await request(app)
+      .post("/group/accept-invite")
+      .send({
+        token: "learning-superseded",
+        action: "ACCEPT",
+        type: "learning-activity",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe(
+      "โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว",
+    );
+  });
+
+  it("refuses a member who has already accepted", async () => {
+    const group = await createLearningActivityGroup({
+      members: [{}, { invite_token: "learning-already-in", status: "ACCEPT" }],
+    });
+    const [leader, invited] = group.student_learning_activity_group_member;
+
+    const response = await request(app)
+      .post("/student-learning-activity-group/resend-invite")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .send({ group_id: group.id, student_id: invited.student_id });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ส่งคำเชิญซ้ำได้เฉพาะสมาชิกที่ยังไม่ตอบรับคำเชิญ",
+    });
+    expect(
+      await prisma.student_learning_activity_group_member.findUniqueOrThrow({
+        where: { id: invited.id },
+      }),
+    ).toMatchObject({ status: "ACCEPT", invite_token: "learning-already-in" });
+  });
+
+  it("refuses a member who turned the invitation down", async () => {
+    const group = await createLearningActivityGroup({
+      members: [{}, { invite_token: "learning-said-no", status: "REJECTED" }],
+    });
+    const [leader, invited] = group.student_learning_activity_group_member;
+
+    const response = await request(app)
+      .post("/student-learning-activity-group/resend-invite")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .send({ group_id: group.id, student_id: invited.student_id });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe(
+      "ส่งคำเชิญซ้ำได้เฉพาะสมาชิกที่ยังไม่ตอบรับคำเชิญ",
+    );
+  });
+
+  it("answers 404 for a student who is not in the group", async () => {
+    const group = await createLearningActivityGroup();
+    const leader = group.student_learning_activity_group_member[0];
+    const stranger = await createStudent();
+
+    const response = await request(app)
+      .post("/student-learning-activity-group/resend-invite")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .send({ group_id: group.id, student_id: stranger.student_id });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบสมาชิกคนนี้ในกลุ่ม",
+    });
+  });
+
+  it("refuses a group that does not exist in the same words", async () => {
+    const student = await createStudent();
+
+    const response = await request(app)
+      .post("/student-learning-activity-group/resend-invite")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .send({ group_id: 999_999, student_id: student.student_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe("เฉพาะหัวหน้ากลุ่มเท่านั้นที่แก้ไขกลุ่มได้");
+  });
+
+  it("refuses a member who is not the leader", async () => {
+    const group = await createLearningActivityGroup({ members: [{}, {}, {}] });
+    const [, member, other] = group.student_learning_activity_group_member;
+
+    const response = await request(app)
+      .post("/student-learning-activity-group/resend-invite")
+      .set("Cookie", sessionCookie({ userId: member.student_id }))
+      .send({ group_id: group.id, student_id: other.student_id });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: "เฉพาะหัวหน้ากลุ่มเท่านั้นที่แก้ไขกลุ่มได้",
+    });
+    expect(
+      await prisma.student_learning_activity_group_member.findUniqueOrThrow({
+        where: { id: other.id },
+      }),
+    ).toMatchObject({ invite_token: other.invite_token });
+  });
+
+  it("answers 400 for a request that names no student", async () => {
+    const group = await createLearningActivityGroup();
+    const leader = group.student_learning_activity_group_member[0];
+
+    const response = await request(app)
+      .post("/student-learning-activity-group/resend-invite")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .send({ group_id: group.id });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      { field: "student_id", location: "body", message: "ต้องระบุ" },
+    ]);
+  });
+
+  it("refuses a request with no session", async () => {
+    const group = await createLearningActivityGroup();
+    const invited = group.student_learning_activity_group_member[1];
+
+    const response = await request(app)
+      .post("/student-learning-activity-group/resend-invite")
+      .send({ group_id: group.id, student_id: invited.student_id });
+
+    expect(response.status).toBe(401);
+  });
+
+  it("refuses a teacher", async () => {
+    const group = await createLearningActivityGroup();
+    const invited = group.student_learning_activity_group_member[1];
+    const teacher = await createTeacher();
+
+    const response = await request(app)
+      .post("/student-learning-activity-group/resend-invite")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ group_id: group.id, student_id: invited.student_id });
+
+    expect(response.status).toBe(403);
+  });
+});
+
 describe("GET /student-learning-activity-group", () => {
   it("returns the group the student is in for that learning activity", async () => {
     const { learningActivity, students } = await classWithStudents(2);

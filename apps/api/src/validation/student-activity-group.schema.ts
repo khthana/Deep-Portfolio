@@ -63,6 +63,24 @@ export const updateStudentActivityGroupBody = z.object({
 export const groupParams = z.object({ group_id: id });
 
 /**
+ * `POST /resend-invite` — one member of one group, invited again (#57).
+ *
+ * The only write here that names a single member rather than the whole list,
+ * because it is the only one that does not rewrite the group: it replaces the
+ * token on one row and leaves everything else standing. `group_id` is in the
+ * body rather than the path so `requireGroupLeader(…, "body")` reads it the
+ * same way it does on `PATCH`.
+ *
+ * Shared by both group routers, as `groupParams` already is: the two sides send
+ * the same two fields, and the router the request arrived on is what says which
+ * pair of tables they name.
+ */
+export const resendInviteBody = z.object({
+  group_id: id,
+  student_id: userId,
+});
+
+/**
  * These two reads are about the student who is signed in, so `student_id` is not
  * a parameter of either — it comes from the session (#26, ADR-0003). What is
  * left is the thing being asked about, and it is required.

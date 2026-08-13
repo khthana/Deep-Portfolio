@@ -1,5 +1,4 @@
 import prisma from "../config/prisma";
-import crypto from "crypto";
 import {
   CreateStudentActivityGroupBody,
   GetStudentActivityGroupResp,
@@ -13,7 +12,7 @@ import {
   GetStudentLearningActivityGroupResp,
   UpdateStudentLearningActivityGroupBody,
 } from "../models/student-learning-activity-group.model";
-import GroupService, { assertMembersEnrolled } from "./group.service";
+import GroupService, { assertMembersEnrolled, mintInvite } from "./group.service";
 
 export default class StudentLearningActivityGroupService {
   private readonly groupService: GroupService;
@@ -86,9 +85,7 @@ export default class StudentLearningActivityGroupService {
         if (!userDetail || !userDetail.email) continue;
 
         // 2.5 สร้าง Token และวันหมดอายุ
-        const inviteToken = crypto.randomBytes(32).toString("hex");
-        const tokenExpiry = new Date();
-        tokenExpiry.setDate(tokenExpiry.getDate() + 7);
+        const invite = mintInvite();
 
         // 2.6 สร้าง group member + ผูก student_learning_activity พร้อมใส่สถานะและ Token
         await tx.student_learning_activity_group_member.create({
@@ -98,8 +95,10 @@ export default class StudentLearningActivityGroupService {
             role: member.role,
             student_learning_activity_id: studentActivity.id,
             // ใส่เงื่อนไขแบบเดียวกับ activity: LEADER เข้ากลุ่มเลย ลูกน้องต้องรอตอบรับ
-            invite_token: member.role === "LEADER" ? null : inviteToken,
-            token_expiry: member.role === "LEADER" ? null : tokenExpiry,
+            invite_token:
+              member.role === "LEADER" ? null : invite.invite_token,
+            token_expiry:
+              member.role === "LEADER" ? null : invite.token_expiry,
             status: member.role === "LEADER" ? "ACCEPT" : "PENDING",
           },
         });
@@ -108,7 +107,7 @@ export default class StudentLearningActivityGroupService {
         if (member.role !== "LEADER") {
           emailsToSend.push({
             email: userDetail.email,
-            token: inviteToken,
+            token: invite.invite_token,
             name: `${userDetail.first_name_th} ${userDetail.last_name_th}`,
           });
         } else {
@@ -232,9 +231,7 @@ export default class StudentLearningActivityGroupService {
             },
           });
         } else {
-          const inviteToken = crypto.randomBytes(32).toString("hex");
-          const tokenExpiry = new Date();
-          tokenExpiry.setDate(tokenExpiry.getDate() + 7);
+          const invite = mintInvite();
 
           await tx.student_learning_activity_group_member.create({
             data: {
@@ -242,15 +239,14 @@ export default class StudentLearningActivityGroupService {
               student_id: member.student_id,
               role: member.role,
               student_learning_activity_id: studentActivity.id,
-              invite_token: inviteToken,
-              token_expiry: tokenExpiry,
+              ...invite,
               status: "PENDING",
             },
           });
 
           emailsToSend.push({
             email: userDetail.email,
-            token: inviteToken,
+            token: invite.invite_token,
             name: `${userDetail.first_name_th} ${userDetail.last_name_th}`,
           });
         }

@@ -11,6 +11,7 @@ import { validate } from "../validation/validate";
 import {
   createStudentActivityGroupBody,
   groupParams,
+  resendInviteBody,
   studentActivityGroupInSecQuery,
   studentActivityGroupQuery,
   studentsWithoutGroupQuery,
@@ -39,6 +40,21 @@ studentActivityGroupRouter.delete(
   validate({ params: groupParams }),
   requireGroupLeader(groupLeader.activity, "params"),
   studentActivityGroupController.deleteStudentActivityGroup.bind(
+    studentActivityGroupController,
+  ),
+);
+
+// Inviting a member again is the leader's too (#57): it replaces the token on
+// their row, which is a change to the group in the same sense disbanding it is.
+// Not on /group with the other two invite endpoints — those are answered from
+// an email link by someone who may not be signed in, and this one is asked by a
+// leader who is.
+studentActivityGroupRouter.post(
+  "/resend-invite",
+  requireRole("STUDENT"),
+  validate({ body: resendInviteBody }),
+  requireGroupLeader(groupLeader.activity, "body"),
+  studentActivityGroupController.resendInvite.bind(
     studentActivityGroupController,
   ),
 );

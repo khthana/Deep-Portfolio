@@ -11,6 +11,7 @@ import {
   getStudentLearningActivityWithoutGroup,
   getStudentLessonPlanWithMaterial,
   getStudentWithoutGroup,
+  resendStudentActivityGroupInvite,
   submitActivity,
   submitLearningActivity,
   updateStudentActivityGroup,
@@ -33,6 +34,7 @@ import type {
   GetStudentEvaluationListParams,
   GetStudentEvaluationListResp,
   GetStudentLessonPlanWithMaterialResp,
+  ResendInviteBody,
 } from "../types/course-type";
 import type {
   AnnouncementDetailResp,
@@ -53,6 +55,7 @@ import type { GetStudentLearningActivityDetailResp } from "../../../../types/stu
 import {
   createStudentLearningActivityGroup,
   getStudentLearningActivityGroup,
+  resendStudentLearningActivityGroupInvite,
   updateStudentLearningActivityGroup,
 } from "../services/course-service.service";
 
@@ -125,6 +128,11 @@ export const patchStudentActivityGroup = createAsyncThunk<
   UpdateStudentActivityGroupBody
 >("student/group/update", updateStudentActivityGroup);
 
+export const postResendActivityGroupInvite = createAsyncThunk<
+  ResponseWrapper<null>,
+  ResendInviteBody
+>("student/group/resend-invite", resendStudentActivityGroupInvite);
+
 export const fetchStudentActivityGroup = createAsyncThunk<
   ResponseWrapper<GetStudentActivityGroupResp | null>,
   GetStudentActivityGroupParams
@@ -151,6 +159,14 @@ export const patchStudentLearningActivityGroup = createAsyncThunk<
   ResponseWrapper<{ group_id: number }>,
   UpdateStudentLearningActivityGroupBody
 >("student/learning-activity-group/update", updateStudentLearningActivityGroup);
+
+export const postResendLearningActivityGroupInvite = createAsyncThunk<
+  ResponseWrapper<null>,
+  ResendInviteBody
+>(
+  "student/learning-activity-group/resend-invite",
+  resendStudentLearningActivityGroupInvite,
+);
 
 export const fetchStudentLearningActivityGroup = createAsyncThunk<
   ResponseWrapper<GetStudentActivityGroupResp | null>,

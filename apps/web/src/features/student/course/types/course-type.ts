@@ -171,6 +171,13 @@ export type MemberDetail = {
   role: GroupRole;
 };
 
+/** Inviting one member again (#57). The same two fields on both kinds of group,
+ *  which is why one type serves both thunks. */
+export type ResendInviteBody = {
+  group_id: number;
+  student_id: string;
+};
+
 export type GroupRole = "LEADER" | "MEMBER";
 
 export const memberStatus = {

@@ -118,6 +118,7 @@ export const endpoints = {
     root: ROOTS.STUDENT_ACTIVITY_GROUP,
     all: `${ROOTS.STUDENT_ACTIVITY_GROUP}/all`,
     without_group: `${ROOTS.STUDENT_ACTIVITY_GROUP}/without-group`,
+    resend_invite: `${ROOTS.STUDENT_ACTIVITY_GROUP}/resend-invite`,
   },
   portfolio_personal: {
     root: ROOTS.PORTFOLIO_PERSONAL,
@@ -170,6 +171,7 @@ export const endpoints = {
     root: ROOTS.STUDENT_LEARNING_ACTIVITY_GROUP,
     all: `${ROOTS.STUDENT_LEARNING_ACTIVITY_GROUP}/all`,
     without_group: `${ROOTS.STUDENT_LEARNING_ACTIVITY_GROUP}/without-group`,
+    resend_invite: `${ROOTS.STUDENT_LEARNING_ACTIVITY_GROUP}/resend-invite`,
   },
   gradebook: {
     root: ROOTS.GRADEBOOK,

@@ -1,9 +1,13 @@
 import { NextFunction, Request, Response } from "express";
 import StudentLearningActivityGroupService from "../services/student-learning-activity-group.service";
+import GroupService from "../services/group.service";
 import { sessionUserId } from "../middlewares/auth.middleware";
 import { successResponse } from "../utils/response";
 import { validated } from "../validation/validate";
-import { groupParams } from "../validation/student-activity-group.schema";
+import {
+  groupParams,
+  resendInviteBody,
+} from "../validation/student-activity-group.schema";
 import {
   createStudentLearningActivityGroupBody,
   studentLearningActivityGroupInSecQuery,
@@ -14,10 +18,14 @@ import {
 
 export default class StudentLearningActivityGroupController {
   private readonly studentLearningActivityGroupService: StudentLearningActivityGroupService;
+  /** Re-inviting a member is the same work on both kinds of group, so it lives
+   *  once in GroupService and the router says which kind asked (#57). */
+  private readonly groupService: GroupService;
 
   constructor() {
     this.studentLearningActivityGroupService =
       new StudentLearningActivityGroupService();
+    this.groupService = new GroupService();
   }
 
   async createStudentLearningActivityGroup(
@@ -53,6 +61,24 @@ export default class StudentLearningActivityGroupController {
         );
 
       successResponse(res, group, "Update group successfully");
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async resendInvite(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { group_id, student_id } = validated(req, resendInviteBody);
+      // Who the invitation comes from is the session's, not the body's — the
+      // same rule the rest of these endpoints follow (ADR-0001).
+      await this.groupService.resendInvite(
+        group_id,
+        student_id,
+        sessionUserId(req),
+        "learning-activity",
+      );
+
+      successResponse(res, null, "Resend invite successfully");
     } catch (err) {
       next(err);
     }

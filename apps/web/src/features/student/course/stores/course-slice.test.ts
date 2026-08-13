@@ -19,6 +19,8 @@ import {
   fetchStudentWithoutGroup,
   patchStudentActivityGroup,
   patchStudentLearningActivityGroup,
+  postResendActivityGroupInvite,
+  postResendLearningActivityGroupInvite,
   postStudentActivityGroup,
   postStudentLearningActivityGroup,
   postSubmitActivity,
@@ -138,6 +140,13 @@ describe("studentCourseSlice", () => {
         thunk: patchStudentActivityGroup,
         flag: "patchStudentActivityGroupLoading",
       },
+      // The two resends belong here rather than beside the reads: the new token
+      // is mailed to the member, so a success leaves the store exactly as it
+      // found it (#57).
+      {
+        thunk: postResendActivityGroupInvite,
+        flag: "postResendActivityGroupInviteLoading",
+      },
       {
         thunk: postStudentLearningActivityGroup,
         flag: "postStudentLearningActivityGroupLoading",
@@ -145,6 +154,10 @@ describe("studentCourseSlice", () => {
       {
         thunk: patchStudentLearningActivityGroup,
         flag: "patchStudentLearningActivityGroupLoading",
+      },
+      {
+        thunk: postResendLearningActivityGroupInvite,
+        flag: "postResendLearningActivityGroupInviteLoading",
       },
       {
         thunk: fetchStudentEvaluationList,

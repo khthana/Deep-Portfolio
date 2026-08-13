@@ -12,6 +12,12 @@ type Props = {
   status?: MemberStatus;
   action?: boolean;
   handleOnRemove?: (value: string) => void;
+  /** Offer this member a fresh invitation (#57). The leader is the only one who
+   *  sees it, and only on a member who has not answered yet — which of those
+   *  two the row satisfies is the caller's to decide, not this component's. */
+  resend?: boolean;
+  resendLoading?: boolean;
+  handleOnResend?: (value: string) => void;
 };
 
 const GroupMemberItem = ({
@@ -20,6 +26,9 @@ const GroupMemberItem = ({
   handleOnRemove,
   status,
   action = false,
+  resend = false,
+  resendLoading = false,
+  handleOnResend,
 }: Props) => {
   return (
     <div className="px-4 py-2 border border-primary-grey rounded-full flex justify-between items-center">
@@ -28,7 +37,23 @@ const GroupMemberItem = ({
         <div>{studentName}</div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
+        {resend && (
+          <div
+            className={`caption-regular underline ${
+              resendLoading
+                ? "text-primary-grey cursor-not-allowed"
+                : "text-secondary-blue cursor-pointer"
+            }`}
+            onClick={() => {
+              if (resendLoading) return;
+              handleOnResend?.(studentId);
+            }}
+          >
+            ส่งคำเชิญอีกครั้ง
+          </div>
+        )}
+
         {status && (
           <div
             className="px-4 py-1 rounded-full caption-bold"
