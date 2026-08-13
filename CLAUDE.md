@@ -80,7 +80,8 @@ the teacher at all, so their unanswered invitations do not either; **#57** an
 invitation cannot be sent again once its seven days run out, and editing the
 group carries the old token over rather than issuing a new one; **#60**
 `npm run lint` fails today, `apps/api` has no `lint` script, and no formatter
-is configured anywhere. The other five are the work the spec put out of scope
+is configured anywhere — and since the CI half of #59 shipped without one,
+whether a git hook should run any of it is #60's question too. The other five are the work the spec put out of scope
 on purpose: **#58** the two empty enums, **#59** phase 5 — a real server and
 CI/CD, **#61** the shared types package `packages/` is reserved for, **#62**
 component and E2E tests, **#63** the `any` sweep and the long files.
@@ -93,8 +94,8 @@ mark it. Whether such a student should be markable is a course decision, not a
 code one, so #56 made the refusal legible (`400` with a Thai sentence, where a
 bare `Error` used to reach the caller as `500`) and left the question to #64.
 **#65** is the second: #59 said itself that its CI half could be done without
-knowing anything about a server and its CD half could not, so the CI half was
-done and #59 closed on it, and #65 carries the five decisions CD still waits on.
+knowing anything about a server and its CD half could not, so the CI half is
+what shipped under #59, and #65 carries the five decisions CD still waits on.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

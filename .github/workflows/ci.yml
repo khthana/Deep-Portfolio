@@ -21,6 +21,12 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+# Nothing here writes anything back to the repo — it reads the code, typechecks
+# it and runs the tests. Say so, rather than inheriting whatever the repository
+# default happens to be.
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest

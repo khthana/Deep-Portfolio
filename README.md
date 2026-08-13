@@ -271,7 +271,8 @@ npm run test:down
 [ADR-0026](docs/adr/0026-ci-runs-what-a-developer-runs.md)
 
 ส่วน **CD ยังไม่มี** ระบบยังไม่ได้ deploy ที่ไหนเลย และตัดสินไม่ได้จนกว่าจะรู้ว่า
-server ปลายทางคืออะไร
+server ปลายทางคืออะไร — คำถามที่ต้องตอบก่อนอยู่ครบใน
+[#65](https://github.com/khthana/Deep-Portfolio/issues/65)
 
 ## ฐานข้อมูล
 
