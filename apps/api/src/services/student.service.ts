@@ -18,7 +18,7 @@ import LearningActivityService from "./learning-activity.service";
 import StudentActivityService from "./student-activity.service";
 import StudentLearningActivityService from "./student-learning-activity.service";
 import MinIOService from "./upload.service";
-import { CourseDetail } from "../models/course.model";
+import type { CourseDetail } from "@deep-portfolio/api-types";
 import { sortByDate } from "../utils/sort-by-date";
 import { isAnnounced } from "../utils/is-announced";
 import { GetStudentActivityDetailResp } from "../models/student-activity.model";

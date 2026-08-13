@@ -43,10 +43,15 @@ const CLOTable = () => {
       fetchCLO(courseSlice.selectedCourse.section_id),
     ).unwrap();
 
+    // Both columns are nullable in the database and the API answers what it
+    // finds, which the shared type now says out loud. Neither fallback changes
+    // what a student sees: parseInt read a missing number as NaN before the
+    // type admitted it could be missing, and a missing detail rendered as
+    // nothing either way.
     const mappedData = result.data.map((clo) => ({
       key: clo.clo_id.toString(),
-      clo: parseInt(clo.clo_number),
-      desc: clo.clo_detail,
+      clo: parseInt(clo.clo_number ?? ""),
+      desc: clo.clo_detail ?? "",
     }));
 
     setData(mappedData);

@@ -36,9 +36,9 @@ import type {
   GetStudentLessonPlanWithMaterialResp,
   ResendInviteBody,
 } from "../types/course-type";
+import type { CLOResp, CourseDetail } from "@deep-portfolio/api-types";
 import type {
   AnnouncementDetailResp,
-  CourseDetail,
   ScoreWeightResp,
 } from "../../../../types/course-type.type";
 import {
@@ -46,7 +46,6 @@ import {
   getScoreWeight,
 } from "../../../../services/course-service.service";
 import { getCLO } from "../../../../services/course-service.service";
-import type { CLOResp } from "../../../../types/course-type.type";
 import { getAllAnnouncements } from "../../../../services/announcement-service.service";
 import { getStudentActivityDetail } from "../../../../services/student-activity-service.service";
 import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";

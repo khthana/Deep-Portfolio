@@ -17,7 +17,9 @@ Restructuring is done and the system stands on its own; what is left is
 mostly correctness work on top of it.
 
 - **Monorepo**: npm workspaces — `apps/api` (Express 5 + Prisma + PostgreSQL),
-  `apps/web` (React 19 + Vite + Ant Design), `packages/` empty and reserved.
+  `apps/web` (React 19 + Vite + Ant Design), and `packages/api-types`
+  (`@deep-portfolio/api-types`, the shapes the API answers in, imported by both
+  sides — ADR-0028; no build step, both apps read its `.ts` directly).
   One lockfile at the root; never run `npm install` in a subfolder.
 - **Runs locally in one command**: `docker compose up --build` brings up web,
   API, PostgreSQL and MinIO, and applies migrations on the way. Nothing is
@@ -46,7 +48,7 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1052 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 1055 API cases over
   40 files, 450 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
@@ -91,7 +93,9 @@ configured anywhere — it now passes, `apps/api` has a flat config of its own,
 Prettier runs from the root, both checks are CI steps, and the git-hook
 question ADR-0026 handed it is answered "no, on purpose" in ADR-0027. The other five are the work the spec put out of scope
 on purpose: **#58** the two empty enums, **#59** phase 5 — a real server and
-CI/CD, **#61** the shared types package `packages/` is reserved for, **#62**
+CI/CD, **#61** the shared types package `packages/` was reserved for — which
+now exists, holding the response envelope and the course feature, with both
+apps importing it and the API's own services bound to it (ADR-0028) — **#62**
 component and E2E tests, **#63** the `any` sweep and the long files.
 
 #1 closed with them filed, so the open list is #55–#63 plus whatever they spin
@@ -110,6 +114,11 @@ by adding the name ESLint asks for — several would turn into an endless fetch
 loop — so #60 left every one of them where it was and #66 owns the reading
 each site needs. #63 was corrected while filing it: the 215 it counted was
 every web warning, not the `any` ones, which are 141 (plus 2 in `apps/api`).
+**#67 and #68** are the fourth and fifth, both out of #61, which piloted one
+feature on purpose: #68 carries the 38 web files that still mirror a response
+by hand, one feature at a time, and #67 carries `ResponseWrapper`, the web's
+own envelope, which disagrees with the `ApiResponse`/`ApiError` the API
+actually answers and is read in 277 places.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

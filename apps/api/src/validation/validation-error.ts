@@ -1,14 +1,5 @@
+import type { FieldError } from "@deep-portfolio/api-types";
 import { HttpError } from "../utils/http-error";
-
-/** Where in the request a rejected field came from. */
-export type FieldLocation = "params" | "query" | "body";
-
-/** One rejected field, in the shape it is serialised in. */
-export interface FieldError {
-  field: string;
-  location: FieldLocation;
-  message: string;
-}
 
 /**
  * A request that never reached a controller because its input was not usable.

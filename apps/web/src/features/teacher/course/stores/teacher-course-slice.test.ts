@@ -13,7 +13,7 @@ import {
   removeCLO,
   removeScoreWeight,
 } from "./teacher-course-action";
-import type { CLOResp } from "../../../../types/course-type.type";
+import type { CLOResp } from "@deep-portfolio/api-types";
 import {
   itOnlyTracksLoading,
   itStoresTheResponse,

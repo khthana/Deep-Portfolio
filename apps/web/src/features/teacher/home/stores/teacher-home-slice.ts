@@ -2,8 +2,10 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
 import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import { fetchAllCourse, fetchCourseById } from "./teacher-home-action";
-import type { CourseDetailBrief } from "../types/home-type";
-import type { CourseDetail } from "../../../../types/course-type.type";
+import type {
+  CourseDetail,
+  CourseDetailBrief,
+} from "@deep-portfolio/api-types";
 
 type TeacherHomeSlice = {
   user_id: string;

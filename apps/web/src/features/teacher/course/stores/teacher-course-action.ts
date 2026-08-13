@@ -13,16 +13,13 @@ import type {
 } from "../types/score-weight-type.type";
 import type { AddCLOBody, UpdateCLOBody } from "../types/clo-type.type";
 import { addCLO, deleteCLO, updateCLO } from "../services/clo-service.service";
-import type { CLOResp } from "../../../../types/course-type.type";
+import type { CLOResp, PLOResp } from "@deep-portfolio/api-types";
 import {
   getCLO,
   getPLOList,
   getScoreWeight,
 } from "../../../../services/course-service.service";
-import type {
-  PLOResp,
-  ScoreWeightResp,
-} from "../../../../types/course-type.type";
+import type { ScoreWeightResp } from "../../../../types/course-type.type";
 import type { CreateCourseSectionScheduleReq } from "../types/course-type.type";
 import { createCourseSectionSchedule } from "../services/course-service.service";
 

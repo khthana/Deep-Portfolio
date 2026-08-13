@@ -1,3 +1,4 @@
+import type { CLOResp } from "@deep-portfolio/api-types";
 import prisma from "../config/prisma";
 import { AddCLOBody, UpdateCLOBody } from "../models/clo.model";
 import PLOService from "./plo.service";
@@ -27,7 +28,7 @@ export default class CLOService {
     return result.clo_id;
   }
 
-  async getCLO(section_id: number) {
+  async getCLO(section_id: number): Promise<CLOResp[]> {
     const allCLO = await prisma.subject_clo.findMany({
       where: { section_id: section_id },
       orderBy: { clo_id: "asc" },
@@ -37,9 +38,16 @@ export default class CLOService {
       allCLO.map(async (clo) => {
         const plo = await this.ploService.getPLO(clo.plo_id ?? 0);
 
+        // The PLO's fields first, so that a CLO field never loses to one of
+        // them — and the two timestamps last, spelt out as the strings the
+        // caller parses rather than the Dates this row holds. `toISOString` is
+        // what `JSON.stringify` was already calling on them, so nothing about
+        // the response changes; what changes is that CLOResp now checks it.
         return {
           ...plo,
           ...clo,
+          created_at: clo.created_at?.toISOString() ?? null,
+          updated_at: clo.updated_at?.toISOString() ?? null,
         };
       }),
     );

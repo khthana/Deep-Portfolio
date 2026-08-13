@@ -1,6 +1,6 @@
 import { paths } from "../../../../routes/paths.config";
 import { useNavigate, generatePath } from "react-router-dom";
-import type { CourseDetailBrief } from "../types/home-type";
+import type { CourseDetailBrief } from "@deep-portfolio/api-types";
 import { weekdayLabel } from "../../../../constants/date";
 
 type Props = {

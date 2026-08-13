@@ -16,7 +16,7 @@ import EditableCell from "../../../../components/input/table/editable-cell";
 import type { AddCLOBody, UpdateCLOBody } from "../types/clo-type.type";
 import CLOColumn from "./clo-column";
 import WhiteContainer from "../../../../components/container/white-container";
-import type { PLOResp } from "../../../../types/course-type.type";
+import type { PLOResp } from "@deep-portfolio/api-types";
 
 export type DataType = {
   key: string;
@@ -51,11 +51,17 @@ const CLOTable = () => {
       fetchCLO(homeSlice.selectedCourse.section_id),
     ).unwrap();
 
+    // All three columns are nullable in the database and the API answers what
+    // it finds, which the shared type now says out loud. None of the fallbacks
+    // changes what the teacher sees: parseInt read a missing number as NaN
+    // before the type admitted it could be missing, a missing detail rendered
+    // as nothing either way, and 0 is already what a row with no PLO carries —
+    // handleAdd below opens every new row with it.
     const mappedData = result.data.map((clo) => ({
       key: clo.clo_id.toString(),
-      clo: parseInt(clo.clo_number),
-      desc: clo.clo_detail,
-      plo: clo.plo_id,
+      clo: parseInt(clo.clo_number ?? ""),
+      desc: clo.clo_detail ?? "",
+      plo: clo.plo_id ?? 0,
       id: clo.clo_id,
     }));
 

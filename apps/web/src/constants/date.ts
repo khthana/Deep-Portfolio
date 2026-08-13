@@ -1,3 +1,5 @@
+import type { Weekday } from "@deep-portfolio/api-types";
+
 export const daysOfWeek = [
   "อาทิตย์",
   "จันทร์",
@@ -40,7 +42,11 @@ export const monthShortNames = [
   "ธ.ค.",
 ];
 
-export type Weekday = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+// The days themselves are the API's — they arrive on every schedule it
+// answers — so @deep-portfolio/api-types declares them. Re-exported here
+// because a screen that reads a weekday almost always wants its Thai in the
+// same import, and that has always been this file.
+export type { Weekday };
 
 export const weekdayLabel: Record<Weekday, string> = {
   MON: "จันทร์",

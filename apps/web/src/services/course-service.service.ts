@@ -1,9 +1,8 @@
 import { endpoints } from "../configs/endpoints.config";
 import { axiosInstance } from "../lib/axios";
-import type { CLOResp, LessonPlanResp } from "../types/course-type.type";
+import type { CLOResp, CourseDetail, PLOResp } from "@deep-portfolio/api-types";
 import type {
-  CourseDetail,
-  PLOResp,
+  LessonPlanResp,
   ScoreWeightResp,
 } from "../types/course-type.type";
 import type { ResponseWrapper } from "../types/global-type";

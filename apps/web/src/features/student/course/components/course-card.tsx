@@ -3,7 +3,7 @@ import { homeSliceAction } from "../../home/stores/home-slice";
 import { generatePath, useNavigate } from "react-router-dom";
 import type { AppDispatch } from "../../../../stores/stores";
 import { paths } from "../../../../routes/paths.config";
-import type { CourseDetail } from "../../../../types/course-type.type";
+import type { CourseDetail } from "@deep-portfolio/api-types";
 import { weekdayLabel } from "../../../../constants/date";
 
 type Props = {

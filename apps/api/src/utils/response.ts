@@ -1,27 +1,15 @@
 import type { Response } from "express";
-import type { FieldError } from "../validation/validation-error";
+import type {
+  ApiError,
+  ApiResponse,
+  FieldError,
+} from "@deep-portfolio/api-types";
 
 /**
- * The two envelopes every endpoint answers in.
- *
- * `success` is the field a caller branches on, and it is present either way —
- * before #20 a rejection from the auth middleware had no `success` at all while
- * one from the error handler did, so the frontend could not read a response
- * without knowing which layer had produced it.
+ * The two envelopes every endpoint answers in are declared in
+ * @deep-portfolio/api-types, where the frontend reads them from too. The
+ * `satisfies` clauses below are what holds this file to them.
  */
-export type ApiResponse<T> = {
-  success: true;
-  message: string;
-  data?: T;
-};
-
-export type ApiError = {
-  success: false;
-  message: string;
-  /** Present only when the request was refused field by field. */
-  errors?: FieldError[];
-};
-
 export function successResponse<T>(
   res: Response,
   data: T,

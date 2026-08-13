@@ -1,10 +1,12 @@
-import prisma from "../config/prisma";
-import {
+import type {
   CourseDetail,
   CourseDetailBrief,
+  TeacherCourseListResp,
+} from "@deep-portfolio/api-types";
+import prisma from "../config/prisma";
+import {
   CreateCourseSectionScheduleReq,
   GetAllCoursesParams,
-  TeacherCourseListResp,
 } from "../models/course.model";
 import {
   convertTimeToDate,

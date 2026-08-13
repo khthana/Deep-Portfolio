@@ -31,7 +31,7 @@ belong to any teacher, and why the rule is not narrowed to the caller's own
 programme) and `0020-mapping-names-own-submission.md` (an id that arrives in a
 `POST` body and names a row with an owner: ask before writing, `400` when the
 row is not there and `403` when it belongs to someone else). Read all eleven
-before adding an authorisation check anywhere. Sixteen
+before adding an authorisation check anywhere. Seventeen
 more are about when or what rather than who: `0005-announcement-date.md` — a
 piece of work with no announcement date counts as announced, on every
 student-facing read — `0008-attachment-lifecycle.md`, which says an attachment
@@ -82,7 +82,11 @@ a developer cannot run the same way, and its follow-up
 config, Prettier runs from the root with its defaults over everything but
 `*.md`, CI fails on an ESLint error and never on a count of warnings, and no
 git hook runs any of it — read it before adding a rule, a formatter option or a
-`--max-warnings` anywhere.
+`--max-warnings` anywhere, and `0028-shared-api-types.md`, which says the shape
+of a response is declared once in `@deep-portfolio/api-types`, written by hand
+to what the JSON actually carries rather than to what Prisma holds, and
+imported by the API as well as the web — read it before writing a type that
+mirrors a response, or before putting a `Date` in one.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same
@@ -116,10 +120,11 @@ Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
         └── docs/adr/
 ```
 
-Note: this repo uses an npm-workspaces layout (`apps/api`, `apps/web`, and an
-empty `packages/`). That is a package boundary, not a bounded-context
-boundary — it does not on its own justify switching to multi-context. Revisit
-only if `packages/` grows genuinely separate domains.
+Note: this repo uses an npm-workspaces layout (`apps/api`, `apps/web`, and
+`packages/api-types`, which holds the shapes the API answers in). That is a
+package boundary, not a bounded-context boundary — it does not on its own
+justify switching to multi-context. Revisit only if `packages/` grows
+genuinely separate domains.
 
 ## Use the glossary's vocabulary
 

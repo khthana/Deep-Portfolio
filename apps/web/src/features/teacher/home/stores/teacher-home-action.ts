@@ -1,12 +1,12 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import type {
-  GetAllCoursesParams,
+  CourseDetail,
   TeacherCourseListResp,
-} from "../types/home-type";
+} from "@deep-portfolio/api-types";
+import type { GetAllCoursesParams } from "../types/home-type";
 import { getAllCourses } from "../services/home-service.service";
 import type { ResponseWrapper } from "../../../../types/global-type";
 import { getCourseById } from "../../../../services/course-service.service";
-import type { CourseDetail } from "../../../../types/course-type.type";
 
 export const fetchAllCourse = createAsyncThunk<
   ResponseWrapper<TeacherCourseListResp>,

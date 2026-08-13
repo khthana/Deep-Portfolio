@@ -33,9 +33,9 @@ import {
   type GetStudentActivityGroupResp,
   type GetStudentWithoutGroupResp,
 } from "../types/course-type";
+import type { CourseDetail } from "@deep-portfolio/api-types";
 import type {
   AnnouncementDetailResp,
-  CourseDetail,
   ScoreWeightResp,
 } from "../../../../types/course-type.type";
 import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";

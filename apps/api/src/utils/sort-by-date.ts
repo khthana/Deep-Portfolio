@@ -1,4 +1,4 @@
-import { Weekday } from "../models/course.model";
+import type { Weekday } from "@deep-portfolio/api-types";
 
 /**
  * Timetable order: by weekday, then by the time the class starts.

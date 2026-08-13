@@ -6,7 +6,7 @@
 แผนงานหลักอยู่ที่ [`docs/spec-refactor-redeploy.md`](docs/spec-refactor-redeploy.md)
 ซึ่งส่งมอบครบทุกข้อแล้วเมื่อ 12 สิงหาคม 2026 — [issue #1](https://github.com/khthana/Deep-Portfolio/issues/1)
 ที่ใช้ติดตามมันจึงปิดไปแล้ว แต่ตัวเอกสารยังเป็นแผนอ้างอิงว่าทำไมระบบถึงเป็นรูปนี้
-งานที่เหลืออยู่ตอนนี้คือ [#58 กับ #61–#66](https://github.com/khthana/Deep-Portfolio/issues)
+งานที่เหลืออยู่ตอนนี้คือ [#58 กับ #62–#68](https://github.com/khthana/Deep-Portfolio/issues)
 ทั้งของค้างที่ตั้งใจเลื่อน สิ่งที่ spec ระบุว่าอยู่นอกขอบเขต และใบที่แตกออกมาจากงาน
 ระหว่างทาง
 
@@ -30,12 +30,12 @@
 
 repo นี้เป็น monorepo ที่ใช้ [npm workspaces](https://docs.npmjs.com/cli/using-npm/workspaces)
 
-| โฟลเดอร์     | ชื่อ workspace          | คืออะไร                                    |
-| ------------ | ----------------------- | ------------------------------------------ |
-| `apps/api`   | `@deep-portfolio/api`   | REST API — Express 5 + Prisma + PostgreSQL |
-| `apps/web`   | `@deep-portfolio/web`   | หน้าเว็บ — React 19 + Vite + Ant Design    |
-| `packages/`  | —                       | เว้นไว้สำหรับ shared package ([อ่านเพิ่ม](packages/README.md)) |
-| `docs/`      | —                       | เอกสารประกอบ (spec, schema, test case, requirement) |
+| โฟลเดอร์             | ชื่อ workspace              | คืออะไร                                                                |
+| -------------------- | --------------------------- | ---------------------------------------------------------------------- |
+| `apps/api`           | `@deep-portfolio/api`       | REST API — Express 5 + Prisma + PostgreSQL                             |
+| `apps/web`           | `@deep-portfolio/web`       | หน้าเว็บ — React 19 + Vite + Ant Design                                |
+| `packages/api-types` | `@deep-portfolio/api-types` | รูปของ response ที่ทั้งสองฝั่ง import ([อ่านเพิ่ม](packages/README.md)) |
+| `docs/`              | —                           | เอกสารประกอบ (spec, schema, test case, requirement)                    |
 
 dependency ทั้งหมดถูกล็อกด้วย `package-lock.json` ไฟล์เดียวที่ root และติดตั้งลง
 `node_modules/` ที่ root เป็นหลัก — **ห้ามรัน `npm install` ในโฟลเดอร์ย่อย** เพราะจะสร้าง
@@ -215,7 +215,7 @@ npm test
 ฐานข้อมูลไว้ก่อน คำสั่งเดียวนี้ยก PostgreSQL กับ MinIO ของ test ขึ้นมา รัน migration
 แล้วรัน test ทั้งสอง workspace
 
-ปัจจุบันมี **1,052 เคสฝั่ง API** (40 ไฟล์ ยิงผ่าน HTTP เข้าหา Express app ตัวจริง) และ
+ปัจจุบันมี **1,055 เคสฝั่ง API** (40 ไฟล์ ยิงผ่าน HTTP เข้าหา Express app ตัวจริง) และ
 **450 เคสฝั่งเว็บ** (31 ไฟล์ เฉพาะฟังก์ชันบริสุทธิ์) ทั้งหมดเขียนตามพฤติกรรมที่ระบบ
 ทำอยู่จริง ไม่ใช่ตามที่เอกสารบอกว่าควรทำ จุดที่ต่างกันถูกบันทึกไว้ใน
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md)

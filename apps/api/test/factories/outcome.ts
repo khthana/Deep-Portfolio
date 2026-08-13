@@ -51,12 +51,17 @@ export interface CLOOptions {
    *  arrangement. A case about the numbering itself should say the number. */
   clo_number?: string;
   clo_detail?: string;
-  /** learning_outcomes.outcome_id. A PLO is created if this is left out. */
-  plo_id?: number;
+  /** learning_outcomes.outcome_id. A PLO is created if this is left out; pass
+   *  null for an outcome that maps onto none, which the column allows and the
+   *  response shows by leaving the PLO's fields out altogether. */
+  plo_id?: number | null;
 }
 
 export async function createCLO(options: CLOOptions) {
-  const plo_id = options.plo_id ?? (await createPLO()).outcome_id;
+  const plo_id =
+    options.plo_id === undefined
+      ? (await createPLO()).outcome_id
+      : options.plo_id;
   const clo_number =
     options.clo_number ?? (await nextCLONumber(options.section_id));
 

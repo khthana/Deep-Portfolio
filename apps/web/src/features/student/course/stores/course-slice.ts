@@ -27,9 +27,9 @@ import {
   fetchStudentLearningActivityWithoutGroup,
   fetchStudentEvaluationList,
 } from "./course-action";
+import type { CourseDetail } from "@deep-portfolio/api-types";
 import type {
   AnnouncementDetailResp,
-  CourseDetail,
   ScoreWeightResp,
 } from "../../../../types/course-type.type";
 import type {

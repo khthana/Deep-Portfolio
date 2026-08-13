@@ -57,6 +57,39 @@ describe("GET /course/clo", () => {
     ]);
   });
 
+  it("leaves the PLO's fields out of an outcome that maps onto none", async () => {
+    const course = await createCourse();
+    await createCLO({ section_id: course.section_id, plo_id: null });
+
+    const response = await request(app)
+      .get("/course/clo")
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    // Absent, not null: the service spreads the fields of a PLO row it did not
+    // find, and JSON.stringify drops a key whose value is undefined. That is
+    // why CLOResp in @deep-portfolio/api-types marks the three optional.
+    expect(response.body.data[0]).not.toHaveProperty("outcome_code");
+    expect(response.body.data[0]).not.toHaveProperty("outcome_title");
+    expect(response.body.data[0]).not.toHaveProperty("outcome_description");
+    expect(response.body.data[0].plo_id).toBeNull();
+  });
+
+  it("answers the timestamps as strings", async () => {
+    const course = await createCourse();
+    await createCLO({ section_id: course.section_id });
+
+    const response = await request(app)
+      .get("/course/clo")
+      .query({ section_id: course.section_id });
+
+    // What a caller parses is a string, whatever the service is holding — the
+    // reason the shared types are written against the JSON rather than taken
+    // from Prisma. The PLO list below is the same.
+    expect(response.body.data[0].created_at).toEqual(expect.any(String));
+    expect(Date.parse(response.body.data[0].created_at)).not.toBeNaN();
+  });
+
   it("returns only this section's outcomes, oldest first", async () => {
     const course = await createCourse();
     const otherCourse = await createCourse();
@@ -503,6 +536,21 @@ describe("GET /course/plo/list", () => {
     expect(positionsOf(response, [mine.outcome_id, theirs.outcome_id])).toEqual(
       [mine.outcome_id],
     );
+  });
+
+  it("answers the timestamps as strings", async () => {
+    const plo = await createPLO();
+
+    const response = await request(app)
+      .get("/course/plo/list")
+      .query({ program_id: BASELINE.program.program_id });
+
+    const row = response.body.data.find(
+      (candidate: { outcome_id: number }) =>
+        candidate.outcome_id === plo.outcome_id,
+    );
+    expect(row.created_at).toEqual(expect.any(String));
+    expect(Date.parse(row.created_at)).not.toBeNaN();
   });
 
   it("returns an empty list for a programme that does not exist", async () => {

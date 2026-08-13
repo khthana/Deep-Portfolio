@@ -11,10 +11,13 @@ const TeacherMappingPage = () => {
   const homeSlice = useSelector((state: RootState) => state.teacherHome);
   const cloSlice = useSelector((state: RootState) => state.teacherCourse);
 
+  // Both columns are nullable in the database and the API answers what it
+  // finds, which the shared type now says out loud. MappingSection prints them
+  // as they arrive, and an empty string prints the same as a missing one did.
   const cloData = cloSlice.cloData.map((clo) => {
     return {
-      cloNumber: clo.clo_number,
-      detail: clo.clo_detail,
+      cloNumber: clo.clo_number ?? "",
+      detail: clo.clo_detail ?? "",
       id: clo.clo_id,
     };
   });

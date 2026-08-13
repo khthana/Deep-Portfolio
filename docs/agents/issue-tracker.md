@@ -109,14 +109,19 @@ Run `gh issue view <number> --comments`.
   `ready-for-agent` alongside it; it closed on 2026-08-13 together with #56 and
   #57. #60 carried `ready-for-agent` too, and its work has landed.
 
-- **#64–#66 came out of that batch, one each.** `#64` (from #56) asks whether a
+- **#64–#68 came out of that batch.** `#64` (from #56) asks whether a
   student in no group may be marked at all; `#65` (from #59) carries the five
   decisions CD waits on; `#66` (from #60) owns the 74
   `react-hooks/exhaustive-deps` warnings #60 deliberately left alone, because
-  each one needs its screen read rather than the missing name pasted in. All
+  each one needs its screen read rather than the missing name pasted in. Those
   three carry `needs-info`. `#63` was corrected while `#66` was filed: its 215
   counted every web warning, not the `any` ones — those are 141, plus 2 in
-  `apps/api`.
+  `apps/api`. `#67` and `#68` came out of `#61` on 2026-08-13, which piloted
+  one feature into `@deep-portfolio/api-types` and left the rest on purpose:
+  `#68` (`ready-for-agent`) is the 38 web files that still mirror a response by
+  hand, moved one feature at a time, and `#67` (`needs-info`) is
+  `ResponseWrapper`, read in 277 places and disagreeing with the envelope the
+  API actually answers in.
 
   A new defect gets a new issue on the same terms: say what has to be decided,
   and record the caller's view of it in `BEHAVIOR-CHANGES.md`.

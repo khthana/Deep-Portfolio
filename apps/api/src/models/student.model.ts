@@ -1,5 +1,5 @@
 import { Prisma, student_activity_status } from "@prisma/client";
-import { Weekday } from "./course.model";
+import type { Weekday } from "@deep-portfolio/api-types";
 import type {
   SubmitActivityFields,
   SubmitLearningActivityFields,

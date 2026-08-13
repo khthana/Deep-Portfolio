@@ -1,6 +1,6 @@
 import { endpoints } from "../../../../configs/endpoints.config";
 import { axiosInstance } from "../../../../lib/axios";
-import type { CourseDetail } from "../../../../types/course-type.type";
+import type { CourseDetail } from "@deep-portfolio/api-types";
 import type { ResponseWrapper } from "../../../../types/global-type";
 import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
 import type { GetStudentLearningActivityDetailResp } from "../../../../types/student-learning-activity-type.type";

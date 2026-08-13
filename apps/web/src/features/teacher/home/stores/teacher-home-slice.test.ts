@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { teacherHomeSlice, teacherHomeSliceAction } from "./teacher-home-slice";
 import { fetchAllCourse, fetchCourseById } from "./teacher-home-action";
-import type { CourseDetailBrief } from "../types/home-type";
-import type { CourseDetail } from "../../../../types/course-type.type";
+import type {
+  CourseDetail,
+  CourseDetailBrief,
+} from "@deep-portfolio/api-types";
 import {
   failed,
   initialStateOf,

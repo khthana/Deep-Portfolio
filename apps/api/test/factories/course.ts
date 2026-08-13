@@ -1,5 +1,5 @@
 import prisma from "../../src/config/prisma";
-import type { Weekday } from "../../src/models/course.model";
+import type { Weekday } from "@deep-portfolio/api-types";
 import { BASELINE } from "../seed";
 import { nextSubjectId } from "./ids";
 
