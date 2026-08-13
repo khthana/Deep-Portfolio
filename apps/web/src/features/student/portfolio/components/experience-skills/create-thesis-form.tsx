@@ -8,11 +8,7 @@ import { createPortfolioThesis } from "../../../../../services/portfolio-thesis.
 import type { CreatePortfolioThesisReq } from "../../types/portfolio-thesis-type.type";
 import { useNavigate } from "react-router-dom";
 
-import { useSelector } from "react-redux";
-import type { RootState } from "../../../../../stores/stores";
-
 const CreateThesisForm = () => {
-  const { studentId } = useSelector((state: RootState) => state.home);
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();

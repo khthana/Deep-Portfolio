@@ -1,0 +1,19 @@
+# Build output. Generated, and regenerated on the next build.
+dist
+
+# Vendored, and minified by whoever built it. react-pdf loads this file as-is;
+# unminifying it here would only make it bigger and no easier to read.
+apps/web/public/pdf.worker.min.mjs
+
+# The lockfile is npm's to write. Reformatting it would make every install
+# produce a diff.
+package-lock.json
+
+# Prose. README.md, BEHAVIOR-CHANGES.md and docs/ are Thai paragraphs wrapped by
+# hand at the width they read best, with tables aligned the same way. Prettier
+# would rewrap the tables and nothing about that is an improvement, so the
+# formatter stays on the code and the prose stays hand-set.
+*.md
+
+# Real people's data, and not ours to rewrite. Gitignored as well.
+data

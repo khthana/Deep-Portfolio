@@ -1,7 +1,6 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import { AttachmentDetailResp } from "../models/announcement.model";
-import { AddStudentActivity } from "../models/student-activity.model";
 import {
   AddStudentLearningActivityToBookmark,
   GetAllStudentLearningActivity,
@@ -14,7 +13,6 @@ import { splitByAcceptance } from "../utils/group-members";
 import { HttpError } from "../utils/http-error";
 import { isAnnounced } from "../utils/is-announced";
 import { byUnsubmittedLast } from "../utils/submission-order";
-import ActivityService from "./activity.service";
 import AttachmentsService from "./attachments.service";
 import LearningActivityService from "./learning-activity.service";
 

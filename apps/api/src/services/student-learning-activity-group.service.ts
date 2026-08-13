@@ -1,11 +1,9 @@
 import prisma from "../config/prisma";
 import {
-  CreateStudentActivityGroupBody,
   GetStudentActivityGroupResp,
   GetStudentsWithoutGroupResp,
   GroupRole,
   MemberDetailResp,
-  UpdateStudentActivityGroupBody,
 } from "../models/student-activity-group.model";
 import {
   CreateStudentLearningActivityGroupBody,

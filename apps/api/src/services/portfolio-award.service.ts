@@ -8,21 +8,14 @@ import {
 import AttachmentsService from "./attachments.service";
 import MinIOService from "./upload.service";
 
-// Helper to infer the type
-const inferAward = () =>
-  prisma.portfolio_award.findFirst({
-    include: {
-      portfolio_award_attachments: {
-        include: {
-          attachments: true,
-        },
-      },
-    },
-  });
-
-type PortfolioAwardWithAttachments = NonNullable<
-  Prisma.PromiseReturnType<typeof inferAward>
->;
+// The row as every read in this file asks for it: the record plus its
+// attachments, reached through the join table. Derived from the schema, so
+// a column added to either side arrives here without an edit.
+type PortfolioAwardWithAttachments = Prisma.portfolio_awardGetPayload<{
+  include: {
+    portfolio_award_attachments: { include: { attachments: true } };
+  };
+}>;
 
 type PortfolioAwardAttachment = NonNullable<
   PortfolioAwardResp["attachments"]
@@ -202,7 +195,7 @@ export default class PortfolioAwardService {
   ): Promise<PortfolioAwardResp> {
     const { ids_to_delete, ...updateData } = data;
 
-    const updatedAward = await prisma.portfolio_award.update({
+    await prisma.portfolio_award.update({
       where: { id },
       data: updateData,
     });

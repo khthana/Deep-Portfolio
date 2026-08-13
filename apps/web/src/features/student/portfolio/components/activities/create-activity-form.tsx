@@ -2,7 +2,6 @@ import { DatePicker, Form, Input, Upload, Image } from "antd";
 import type { UploadFile } from "antd";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 import buddhistEra from "dayjs/plugin/buddhistEra";
@@ -13,7 +12,6 @@ import Button from "../../../../../components/button/button";
 import { createPortfolioActivity } from "../../../../../services/portfolio-activity.service";
 import type { CreatePortfolioActivityReq } from "../../../../../types/portfolio-activity-type.type";
 import { paths } from "../../../../../routes/paths.config";
-import type { RootState } from "../../../../../stores/stores";
 
 import type { MessageInstance } from "antd/es/message/interface";
 
@@ -22,7 +20,6 @@ type CreateActivityFormProps = {
 };
 
 const CreateActivityForm = ({ messageApi }: CreateActivityFormProps) => {
-  const { studentId } = useSelector((state: RootState) => state.home);
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);

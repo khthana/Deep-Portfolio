@@ -11,8 +11,6 @@ import type { CreatePortfolioEducationReq } from "../../../../../types/portfolio
 import { useNavigate } from "react-router-dom";
 import { paths } from "../../../../../routes/paths.config";
 
-import { useSelector } from "react-redux";
-import type { RootState } from "../../../../../stores/stores";
 import { convertToCE } from "../../../../../utils/year-utils";
 import type { MessageInstance } from "antd/es/message/interface";
 
@@ -21,7 +19,6 @@ type CreateEducationFormProps = {
 };
 
 const CreateEducationForm = ({ messageApi }: CreateEducationFormProps) => {
-  const { studentId } = useSelector((state: RootState) => state.home);
   const [degree, setDegree] = useState<educationDegreeType | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();

@@ -37,9 +37,6 @@ interface FormValues {
   reflection: string;
 }
 
-import { useSelector } from "react-redux";
-import type { RootState } from "../../../../../stores/stores";
-
 import type { MessageInstance } from "antd/es/message/interface";
 
 interface CreateExperienceFormProps {
@@ -47,7 +44,6 @@ interface CreateExperienceFormProps {
 }
 
 const CreateExperienceForm = ({ messageApi }: CreateExperienceFormProps) => {
-  const { studentId } = useSelector((state: RootState) => state.home);
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);

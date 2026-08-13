@@ -9,8 +9,6 @@ import CountryInput from "../../../../../components/input/country-input";
 import { paths } from "../../../../../routes/paths.config";
 import type { CreatePortfolioTrainingReq } from "../../../../../types/portfolio-training-type.type";
 
-import { useSelector } from "react-redux";
-import type { RootState } from "../../../../../stores/stores";
 import { convertToCE } from "../../../../../utils/year-utils";
 
 import type { MessageInstance } from "antd/es/message/interface";
@@ -21,7 +19,6 @@ type CreateTrainingFormProps = {
 };
 
 const CreateTrainingForm = ({ messageApi }: CreateTrainingFormProps) => {
-  const { studentId } = useSelector((state: RootState) => state.home);
   const [loading, setLoading] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const navigate = useNavigate();

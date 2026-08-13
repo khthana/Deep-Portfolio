@@ -3,10 +3,7 @@ import {
   AnnouncementDetailResp,
   AttachmentDetailResp,
   CreateAnnouncementReqBody,
-  FileDetail,
-  URLDetail,
 } from "../models/announcement.model";
-import { formatFileType } from "../utils/format-file-type";
 import AttachmentsService, {
   transactionWithUploads,
 } from "./attachments.service";

@@ -3,7 +3,7 @@ import path from "node:path";
 import type { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import { parseCsv } from "./csv";
-import { keyOf, prepare, type ImportError, type PreparedRow } from "./rows";
+import { prepare, type ImportError, type PreparedRow } from "./rows";
 import { isMasterTable, orderByDependencies, tableOf, type Table } from "./tables";
 
 /**

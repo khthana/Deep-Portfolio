@@ -10,7 +10,6 @@ import {
   SubmitActivityBody,
   SubmitLearningActivityBody,
 } from "../models/student.model";
-import ActivityService from "./activity.service";
 import AttachmentsService, {
   transactionWithUploads,
 } from "./attachments.service";
@@ -23,7 +22,6 @@ import { CourseDetail } from "../models/course.model";
 import { sortByDate } from "../utils/sort-by-date";
 import { isAnnounced } from "../utils/is-announced";
 import { GetStudentActivityDetailResp } from "../models/student-activity.model";
-import { GetLearningActivityDetailResp } from "../models/learning-activity.model";
 import { GetStudentLearningActivityDetailResp } from "../models/student-learning-activity.model";
 import { HttpError } from "../utils/http-error";
 

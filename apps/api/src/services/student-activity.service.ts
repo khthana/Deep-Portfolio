@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import { AttachmentDetailResp } from "../models/announcement.model";
 import {

@@ -70,7 +70,7 @@ export default class AuthService {
         name: `${user.title_th} ${user.first_name_th} ${user.last_name_th}`,
         roles: user.user_roles_user_roles_user_idTousers.map((r) => r.role_id),
       };
-    } catch (error) {
+    } catch {
       throw new Error("Failed to fetch user profile");
     }
   }

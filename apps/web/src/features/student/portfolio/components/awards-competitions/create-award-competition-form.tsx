@@ -20,9 +20,6 @@ import buddhistEra from "dayjs/plugin/buddhistEra";
 dayjs.extend(buddhistEra);
 dayjs.locale("th");
 
-import { useSelector } from "react-redux";
-import type { RootState } from "../../../../../stores/stores";
-
 import type { MessageInstance } from "antd/es/message/interface";
 
 type CreateAwardCompetitionFormProps = {
@@ -32,7 +29,6 @@ type CreateAwardCompetitionFormProps = {
 const CreateAwardCompetitionForm = ({
   messageApi,
 }: CreateAwardCompetitionFormProps) => {
-  const { studentId } = useSelector((state: RootState) => state.home);
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);

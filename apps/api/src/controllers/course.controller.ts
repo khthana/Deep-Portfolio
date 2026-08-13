@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import CourseService from "../services/course.service";
 import { successResponse } from "../utils/response";
-import UserService from "../services/user.service";
 import CLOService from "../services/clo.service";
 import PLOService from "../services/plo.service";
 import { sessionUserId } from "../middlewares/auth.middleware";

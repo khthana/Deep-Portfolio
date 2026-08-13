@@ -8,21 +8,14 @@ import {
 import AttachmentsService from "./attachments.service";
 import MinIOService from "./upload.service";
 
-// Helper to infer the type
-const inferActivity = () =>
-  prisma.portfolio_activities.findFirst({
-    include: {
-      portfolio_activity_attachments: {
-        include: {
-          attachments: true,
-        },
-      },
-    },
-  });
-
-type PortfolioActivityWithAttachments = NonNullable<
-  Prisma.PromiseReturnType<typeof inferActivity>
->;
+// The row as every read in this file asks for it: the record plus its
+// attachments, reached through the join table. Derived from the schema, so
+// a column added to either side arrives here without an edit.
+type PortfolioActivityWithAttachments = Prisma.portfolio_activitiesGetPayload<{
+  include: {
+    portfolio_activity_attachments: { include: { attachments: true } };
+  };
+}>;
 
 type PortfolioActivityAttachment = NonNullable<
   PortfolioActivityResp["attachments"]

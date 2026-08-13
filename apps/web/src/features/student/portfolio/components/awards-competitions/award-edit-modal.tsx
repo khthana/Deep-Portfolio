@@ -27,9 +27,6 @@ import type {
 } from "../../../../../types/portfolio-award-type.type";
 import { getFile } from "../../../../../utils/get-file";
 
-import { useSelector } from "react-redux";
-import type { RootState } from "../../../../../stores/stores";
-
 import type { MessageInstance } from "antd/es/message/interface";
 
 type AwardEditModalProps = {
@@ -47,7 +44,6 @@ const AwardEditModal = ({
   data,
   messageApi,
 }: AwardEditModalProps) => {
-  const { studentId } = useSelector((state: RootState) => state.home);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -108,8 +104,6 @@ const AwardEditModal = ({
       }
 
       setLoading(true);
-
-      const userId = studentId;
 
       const files = fileList
         .filter((file) => file.originFileObj)

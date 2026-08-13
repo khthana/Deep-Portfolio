@@ -8,21 +8,14 @@ import {
 import AttachmentsService from "./attachments.service";
 import MinIOService from "./upload.service";
 
-// Helper to infer the type
-const inferTraining = () =>
-  prisma.portfolio_training.findFirst({
-    include: {
-      portfolio_training_attachments: {
-        include: {
-          attachments: true,
-        },
-      },
-    },
-  });
-
-type PortfolioTrainingWithAttachments = NonNullable<
-  Prisma.PromiseReturnType<typeof inferTraining>
->;
+// The row as every read in this file asks for it: the record plus its
+// attachments, reached through the join table. Derived from the schema, so
+// a column added to either side arrives here without an edit.
+type PortfolioTrainingWithAttachments = Prisma.portfolio_trainingGetPayload<{
+  include: {
+    portfolio_training_attachments: { include: { attachments: true } };
+  };
+}>;
 
 type PortfolioTrainingAttachment = NonNullable<
   PortfolioTrainingResp["attachments"]
@@ -198,7 +191,7 @@ export default class PortfolioTrainingService {
   ): Promise<PortfolioTrainingResp> {
     const { ids_to_delete, ...updateData } = data;
 
-    const updatedTraining = await prisma.portfolio_training.update({
+    await prisma.portfolio_training.update({
       where: { id },
       data: updateData,
     });

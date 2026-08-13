@@ -14,9 +14,6 @@ import buddhistEra from "dayjs/plugin/buddhistEra";
 dayjs.extend(buddhistEra);
 dayjs.locale("th");
 
-import { useSelector } from "react-redux";
-import type { RootState } from "../../../../../stores/stores";
-
 import type { MessageInstance } from "antd/es/message/interface";
 
 type CreateCertificateFormProps = {
@@ -24,7 +21,6 @@ type CreateCertificateFormProps = {
 };
 
 const CreateCertificateForm = ({ messageApi }: CreateCertificateFormProps) => {
-  const { studentId } = useSelector((state: RootState) => state.home);
   const [loading, setLoading] = useState(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const navigate = useNavigate();

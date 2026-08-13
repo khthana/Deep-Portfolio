@@ -9,7 +9,6 @@ import {
 } from "../models/portfolio.model";
 
 import {
-  Prisma,
   portfolio,
   portfolio_template,
   portfolio_skill_mapping,
