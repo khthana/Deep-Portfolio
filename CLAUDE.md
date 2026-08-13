@@ -81,7 +81,9 @@ nor an issue number are deliberate, not outstanding.
 
 Everything the spec still owed now has a ticket of its own, **#55–#63**, filed
 on 2026-08-12 so that #1 could close on a delivered spec rather than an open
-list. Four are defects or gaps in what runs today: **#55** `/auth/refresh`
+list. **Six of the nine closed on 2026-08-13** — #55, #56 and #57 in the
+morning, #59, #60 and #61 in the afternoon — leaving #58, #62 and #63. Four are
+defects or gaps in what runs today: **#55** `/auth/refresh`
 mints a token for a user who no longer exists (a caller sees `200` and then
 `401` on the next call — every guarded route re-reads `users`, so nothing opens
 that shouldn't); **#56** groups still holding `NOT_SUBMITTED` never appear to
@@ -91,15 +93,18 @@ group carries the old token over rather than issuing a new one; **#60**
 `npm run lint` failed, `apps/api` had no `lint` script, and no formatter was
 configured anywhere — it now passes, `apps/api` has a flat config of its own,
 Prettier runs from the root, both checks are CI steps, and the git-hook
-question ADR-0026 handed it is answered "no, on purpose" in ADR-0027. The other five are the work the spec put out of scope
-on purpose: **#58** the two empty enums, **#59** phase 5 — a real server and
-CI/CD, **#61** the shared types package `packages/` was reserved for — which
-now exists, holding the response envelope and the course feature, with both
-apps importing it and the API's own services bound to it (ADR-0028) — **#62**
-component and E2E tests, **#63** the `any` sweep and the long files.
+question ADR-0026 handed it is answered "no, on purpose" in ADR-0027. The other
+five are the work the spec put out of scope on purpose: **#58** the two empty
+enums; **#59** phase 5 — a real server and CI/CD, whose CI half shipped and
+whose CD half is now #65; **#61** the shared types package `packages/` was
+reserved for, which now exists, holding the response envelope and the course
+feature, with both apps importing it and the API's own services bound to it
+(ADR-0028); **#62** component and E2E tests; and **#63** the `any` sweep and
+the long files.
 
-#1 closed with them filed, so the open list is #55–#63 plus whatever they spin
-off — nothing else is outstanding anywhere. **#64** is the first of those: #56
+#1 closed with them filed, so the open list is what is left of #55–#63 plus
+whatever they spun off: **#58, #62, #63 and #64–#68**, and nothing else is
+outstanding anywhere. **#64** is the first of those: #56
 put a row on the teacher's marking table for a student who is in no group at
 all, and the only link that row offers leads to a grading page that cannot
 mark it. Whether such a student should be markable is a course decision, not a

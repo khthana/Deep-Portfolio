@@ -105,9 +105,12 @@ Run `gh issue view <number> --comments`.
   `/auth/refresh`, `#56` invisible `NOT_SUBMITTED` groups, `#57` no way to
   re-send an invitation, `#60` lint failing with nothing to catch it).
   Most carry `needs-info`: the decision named in the body has to be answered
-  before the ticket can be picked up. #55 was the one that carried
-  `ready-for-agent` alongside it; it closed on 2026-08-13 together with #56 and
-  #57. #60 carried `ready-for-agent` too, and its work has landed.
+  before the ticket can be picked up. **Six of the nine closed on 2026-08-13** —
+  #55, #56 and #57 first, then #59, #60 and #61. #55 was the one that carried
+  `ready-for-agent` alongside `needs-info` from the start; #60 carried it too.
+  The other four were picked up once their question had an answer, which is the
+  path a `needs-info` ticket is supposed to take: answer it, record the answer
+  in an ADR, then implement. #58, #62 and #63 are what is left of the batch.
 
 - **#64–#68 came out of that batch.** `#64` (from #56) asks whether a
   student in no group may be marked at all; `#65` (from #59) carries the five
