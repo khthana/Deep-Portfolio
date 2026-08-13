@@ -431,6 +431,59 @@ describe("POST /auth/refresh", () => {
     expect(response.status).toBe(401);
   });
 
+  it("refuses a refresh token for a user who no longer exists", async () => {
+    // The signature is this server's own, so the token is genuine — it names an
+    // account that is not there any more. This used to answer 200, and the
+    // browser was told its session had been renewed a moment before every
+    // request after it came back 401 (#55).
+    const response = await request(app)
+      .post("/auth/refresh")
+      .set("Cookie", refreshCookie({ userId: "99999999" }));
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      success: false,
+      message: "ไม่พบ Token หรือ Token หมดอายุ",
+    });
+  });
+
+  // All three refusals mean the same thing — this pair cannot buy an access
+  // token any more — so all three take the pair off the browser rather than
+  // leaving it to be spent on another identical 401.
+  const refusals = {
+    "no refresh cookie at all": undefined,
+    "a refresh token signed with the wrong secret": refreshCookie({
+      userId: "99999999",
+      secret: "not-the-refresh-secret",
+    }),
+    "a refresh token for a user who no longer exists": refreshCookie({
+      userId: "99999999",
+    }),
+  };
+
+  for (const [refusal, cookie] of Object.entries(refusals)) {
+    it(`clears both cookies when it refuses ${refusal}`, async () => {
+      const pending = request(app).post("/auth/refresh");
+      const response = await (cookie ? pending.set("Cookie", cookie) : pending);
+
+      expect(response.status).toBe(401);
+
+      for (const name of ["access_token", "refresh_token"]) {
+        const cleared = setCookie(response, name);
+
+        // Named the way googleLogin set them, as logout is: a clear on a
+        // different path or domain expires nothing and leaves the live pair
+        // where it was. COOKIE_DOMAIN is unset here, so they are host-only.
+        expect(cleared?.value).toBe("");
+        expect(cleared?.path).toBe("/");
+        expect(cleared?.domain).toBeUndefined();
+        expect(new Date(cleared?.expires ?? "").getTime()).toBeLessThan(
+          Date.now(),
+        );
+      }
+    });
+  }
+
   it("issues an access token that works on the rest of the API", async () => {
     // The regression: the replacement cookie used to be set without a path, so
     // it landed scoped to /auth/refresh and was never sent anywhere else — the

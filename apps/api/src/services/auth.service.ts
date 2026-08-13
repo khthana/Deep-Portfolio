@@ -23,6 +23,22 @@ export default class AuthService {
     });
   }
 
+  /**
+   * Whether this user_id still names a row in `users`.
+   *
+   * The same question `requireUser` asks on every guarded request, asked here
+   * because /auth/refresh answers before any middleware would. Only the
+   * existence matters, so only the key is selected.
+   */
+  async userExists(user_id: string) {
+    const user = await prisma.users.findUnique({
+      where: { user_id },
+      select: { user_id: true },
+    });
+
+    return user !== null;
+  }
+
   async getUserDetail(user_id: string) {
     try {
       const user = await prisma.users.findUnique({

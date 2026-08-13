@@ -20,6 +20,17 @@ const GOOGLE_REJECTED = "ยืนยันตัวตนกับ Google ไ�
 const NOT_REGISTERED =
   "ไม่พบบัญชีผู้ใช้ของอีเมลนี้ในระบบ กรุณาติดต่อผู้ดูแลระบบ";
 
+/**
+ * Takes the session off the browser.
+ *
+ * Cleared with exactly the attributes googleLogin set them with. Anything else
+ * names a different cookie and is a no-op that looks like a logout.
+ */
+function clearSessionCookies(res: Response) {
+  res.clearCookie("access_token", sessionCookieOptions());
+  res.clearCookie("refresh_token", sessionCookieOptions());
+}
+
 export default class AuthController {
   private readonly authService = new AuthService();
 
@@ -43,10 +54,7 @@ export default class AuthController {
   }
 
   async logout(req: Request, res: Response) {
-    // Cleared with exactly the attributes googleLogin set them with. Anything
-    // else is a no-op that looks like a logout.
-    res.clearCookie("access_token", sessionCookieOptions());
-    res.clearCookie("refresh_token", sessionCookieOptions());
+    clearSessionCookies(res);
 
     successResponse(res, undefined, "Logout successful");
   }
@@ -102,12 +110,39 @@ export default class AuthController {
     }
   }
 
-  async refresh(req: Request, res: Response) {
+  /**
+   * The one answer every refusal on the refresh path gives: 401, and the
+   * browser loses the pair it was carrying.
+   *
+   * All three ways this endpoint can say no mean the same thing — that refresh
+   * token cannot buy an access token any more — and none of them get better by
+   * being tried again, so leaving the cookies in place only buys another
+   * identical 401.
+   */
+  private refuseAndClearSession(res: Response) {
+    clearSessionCookies(res);
+
+    return errorResponse(res, 401, NO_SESSION);
+  }
+
+  /**
+   * Renews the access token, for a session that is still a session.
+   *
+   * Verifying the refresh token proves this server minted it. Whether the
+   * account it names is still in `users` is the separate question `requireUser`
+   * asks on every guarded request, and the one this endpoint used to skip: a
+   * deleted user was told "Refreshed session successfully" and then refused by
+   * the very next call (#55). The existence check sits outside the catch on
+   * purpose — a database that cannot answer is a 500, not a missing session.
+   */
+  async refresh(req: Request, res: Response, next: NextFunction) {
     const refreshToken = req.cookies.refresh_token;
 
     if (!refreshToken) {
-      return errorResponse(res, 401, NO_SESSION);
+      return this.refuseAndClearSession(res);
     }
+
+    let user_id: string;
 
     try {
       // Verified, then read as a payload of our own making — the only tokens
@@ -117,11 +152,19 @@ export default class AuthController {
         user_id: string;
       };
 
-      const newAccessToken = jwt.sign(
-        { user_id: decoded.user_id },
-        env.JWT_SECRET,
-        { expiresIn: "15m" },
-      );
+      user_id = decoded.user_id;
+    } catch {
+      return this.refuseAndClearSession(res);
+    }
+
+    try {
+      if (!(await this.authService.userExists(user_id))) {
+        return this.refuseAndClearSession(res);
+      }
+
+      const newAccessToken = jwt.sign({ user_id }, env.JWT_SECRET, {
+        expiresIn: "15m",
+      });
 
       // Setting it is enough — a cookie of the same name, domain and path
       // replaces the old one. The clearCookie that used to run first cleared a
@@ -130,8 +173,8 @@ export default class AuthController {
       res.cookie("access_token", newAccessToken, sessionCookieOptions());
 
       successResponse(res, undefined, "Refreshed session successfully");
-    } catch {
-      errorResponse(res, 401, NO_SESSION);
+    } catch (err) {
+      next(err);
     }
   }
 }

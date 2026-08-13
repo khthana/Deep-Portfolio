@@ -18,13 +18,17 @@ export const axiosInstance = axios.create({
  *
  * A page load fires several requests at once, so an expired access token comes
  * back as a burst of 401s rather than a single one. Every request in that burst
- * waits on the same attempt: the API rotates the refresh token on each use, so
- * two refreshes racing means the second spends a token the first has already
- * replaced, and the session ends on a request that should have renewed it.
+ * waits on the same attempt, rather than each posting its own /auth/refresh and
+ * minting an access token that the next one immediately overwrites.
  *
  * This used to be a `isRefreshing` boolean, and a request that found it set was
  * rejected outright — the first 401 of a burst renewed the session and the rest
  * failed anyway, which is what put a loaded page back on the login screen.
+ *
+ * When the attempt is refused rather than lost — a 401 from the API, not a
+ * network error — the API clears both cookies on the way out (#55), so the
+ * /login this sends everyone to is reached with no session left on the
+ * browser, rather than with a pair it cannot spend.
  */
 const refreshSession = singleFlight(async () => {
   try {
