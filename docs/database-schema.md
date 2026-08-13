@@ -593,4 +593,7 @@
 ทั้งคู่ผ่าน `Unsupported(...)` ทั้งสองจึงไม่ปรากฏเป็น enum ของ Prisma ผลคือคอลัมน์
 `learning_activity` และ `cognitive_level` ของ `subject_clo_measurable_behavior` เป็น
 `NOT NULL` ที่ไม่มีค่าใดใส่ได้ ตารางนั้นจึงยังเขียนอะไรลงไปไม่ได้เลย รวมทั้งผ่านตัวนำเข้า
+— Prisma ไม่สร้าง `create`/`createMany`/`upsert` ให้ model ที่มีคอลัมน์ `Unsupported`
+แบบ `NOT NULL` การเขียนจึงถูกปฏิเสธตั้งแต่ยังไม่ส่ง SQL และเติมค่าให้ enum อย่างเดียว
+ยังไม่พอ ต้องแก้ `schema.prisma` ให้ประกาศทั้งคู่เป็น `enum` จริงด้วย
 ดู [#58](https://github.com/khthana/Deep-Portfolio/issues/58)

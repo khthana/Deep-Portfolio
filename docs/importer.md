@@ -146,10 +146,16 @@ faculty_id,faculty_name_th,faculty_name_en
   `learning_activity_enum` / `cognitive_level_enum` ซึ่งเป็น **enum ว่าง** ตั้งแต่
   migration แรก (ค่าจริงกู้ไม่ได้ เลือกให้ INSERT ล้มเสียงดังดีกว่าเดาค่า — ดู
   [D2](spec-refactor-redeploy.md) ตรงสามจุดที่ต้องแก้มือใน migration) `schema.prisma`
-  ประกาศทั้งคู่เป็น `Unsupported(...)` ตัวนำเข้าจึงข้ามสองคอลัมน์นี้ไปโดยไม่ขอจากไฟล์
-  แล้ว Postgres ปฏิเสธการเขียนเพราะค่าว่าง แถวในตารางข้างบนบอกเฉพาะคอลัมน์ที่ตัวนำเข้า
-  บังคับ ไม่ได้แปลว่าตารางนี้เข้าได้ — ต้องเติมค่า enum ก่อน ดู
-  [#58](https://github.com/khthana/Deep-Portfolio/issues/58)
+  ประกาศทั้งคู่เป็น `Unsupported(...)` ตัวนำเข้าจึงไม่เห็นสองคอลัมน์นี้เลย (มันอ่านรายชื่อ
+  คอลัมน์จาก DMMF ตาม D7) ไฟล์จะระบุมาก็ไม่ได้ และ Prisma เองก็ไม่สร้าง
+  `create`/`createMany`/`upsert` ให้ model ที่มีคอลัมน์ `Unsupported` แบบ `NOT NULL`
+  **การรันจึงโยน exception ทิ้งทั้งรอบ ไม่ใช่ฟ้องเลขบรรทัดแบบข้อผิดพลาดอื่น ๆ**
+  (`Operation 'createOne' for model 'subject_clo_measurable_behavior' does not match any query.`)
+  แถวในตารางข้างบนบอกเฉพาะคอลัมน์ที่ตัวนำเข้าบังคับ ไม่ได้แปลว่าตารางนี้เข้าได้ — เติมค่า
+  ให้ enum อย่างเดียวยังไม่พอ ต้องให้ `schema.prisma` ประกาศทั้งคู่เป็น `enum` จริงด้วย
+  ตัวนำเข้าถึงจะเริ่มขอสองคอลัมน์นี้จากไฟล์ ดู
+  [#58](https://github.com/khthana/Deep-Portfolio/issues/58) และเคสที่ปักหมุดสถานะนี้ไว้ใน
+  `apps/api/test/importer.test.ts`
 - **`learning_outcomes.parent_outcome_id` ชี้ไปที่แถวในไฟล์เดียวกันไม่ได้** — คอลัมน์นี้
   ชี้ไปที่ `outcome_id` ซึ่งฐานข้อมูลแจกเลขให้ตอนเขียน ไฟล์จึงไม่มีทางรู้เลขของแถวแม่ที่
   กำลังจะถูกเขียนพร้อมกันในรอบเดียวกัน ตัวนำเข้าจะฟ้อง

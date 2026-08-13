@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import prisma from "../src/config/prisma";
 import { runImport } from "../src/importer/run";
-import { createSharedRubric } from "./factories";
+import { createCLO, createSharedRubric } from "./factories";
 import { BASELINE } from "./seed";
 
 /**
@@ -645,5 +645,63 @@ describe("runImport, when the files are wrong", () => {
         message: "มี 2 ช่อง แต่หัวตารางมี 3 คอลัมน์",
       },
     ]);
+  });
+});
+
+/**
+ * PINNED, not asserted-as-correct — [#58](https://github.com/khthana/Deep-Portfolio/issues/58).
+ *
+ * `subject_clo_measurable_behavior` is on the master-data list and documented in
+ * importer.md, but nothing can be written to it, and no file can be written that
+ * would change that. Its `learning_activity` and `cognitive_level` columns are
+ * NOT NULL and typed by two enums the baseline migration had to create empty,
+ * because their real members were not recoverable from anywhere — the original
+ * database is gone and the thesis document does not record them (D2).
+ *
+ * Two consequences, and this case pins both:
+ *
+ * The columns are `Unsupported(...)` in schema.prisma, so they are absent from
+ * the DMMF the importer reads its columns off. A file cannot supply them — it
+ * would be told the table has no such column — and no default stands behind
+ * them.
+ *
+ * Prisma generates no `create`, `createMany` or `upsert` for a model with a
+ * required unsupported field, there being no way to write a row it could not
+ * fill. `writeTable`'s `model.create` is therefore an operation this model does
+ * not have, and Prisma refuses the call rather than sending SQL. The run throws
+ * instead of reporting: no `ImportError` describes this, and the transaction
+ * takes the whole run down with it — the loud failure D2 chose over guessing at
+ * values.
+ *
+ * Which is why #58 cannot be closed by a migration alone, whatever its
+ * acceptance criteria say: `ALTER TYPE ... ADD VALUE` fills the enums, but the
+ * importer only starts asking for the two columns once schema.prisma declares
+ * them as enums rather than as `Unsupported`. When that happens this case is the
+ * one that should fail — the file below names neither column, so it should start
+ * being refused with a line number rather than throwing. Rewrite it then; do not
+ * relax it.
+ */
+describe("runImport, on the table that cannot be written yet", () => {
+  it("throws on subject_clo_measurable_behavior, however sound the file (#58)", async () => {
+    // Everything a file can get right is right here: the id this table's
+    // generated key has to be given, a CLO that exists, and cells of the types
+    // their columns want.
+    const clo = await createCLO({ section_id: 9_801 });
+    const directory = await importable({
+      "subject_clo_measurable_behavior.csv": [
+        "id,clo_id,behavior_no,behavior_detail",
+        `9801,${clo.clo_id},1,อธิบายหลักการของเรื่องที่เรียนได้`,
+      ].join("\n"),
+    });
+
+    await expect(runImport(directory)).rejects.toThrow(
+      "Operation 'createOne' for model 'subject_clo_measurable_behavior' does not match any query.",
+    );
+
+    expect(
+      await prisma.subject_clo_measurable_behavior.count({
+        where: { clo_id: clo.clo_id },
+      }),
+    ).toBe(0);
   });
 });

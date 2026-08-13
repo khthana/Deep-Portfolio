@@ -33,7 +33,7 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1051 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 1052 API cases over
   40 files, 450 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 

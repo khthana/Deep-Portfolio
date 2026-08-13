@@ -209,7 +209,7 @@ npm test
 ฐานข้อมูลไว้ก่อน คำสั่งเดียวนี้ยก PostgreSQL กับ MinIO ของ test ขึ้นมา รัน migration
 แล้วรัน test ทั้งสอง workspace
 
-ปัจจุบันมี **1,051 เคสฝั่ง API** (40 ไฟล์ ยิงผ่าน HTTP เข้าหา Express app ตัวจริง) และ
+ปัจจุบันมี **1,052 เคสฝั่ง API** (40 ไฟล์ ยิงผ่าน HTTP เข้าหา Express app ตัวจริง) และ
 **450 เคสฝั่งเว็บ** (31 ไฟล์ เฉพาะฟังก์ชันบริสุทธิ์) ทั้งหมดเขียนตามพฤติกรรมที่ระบบ
 ทำอยู่จริง ไม่ใช่ตามที่เอกสารบอกว่าควรทำ จุดที่ต่างกันถูกบันทึกไว้ใน
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md)
@@ -318,7 +318,9 @@ npx prisma migrate diff --from-schema-datasource prisma/schema.prisma \
    (`GENERATED ALWAYS AS ... STORED`) ไม่ใช่คอลัมน์ธรรมดา — เขียนค่าลงไปตรง ๆ ไม่ได้
 2. enum `learning_activity_enum` กับ `cognitive_level_enum` ถูกสร้างเป็น **enum ว่าง**
    เพราะไม่มีที่ไหนบันทึกค่าจริงไว้ ตาราง `subject_clo_measurable_behavior`
-   จึงยัง insert ไม่ได้จนกว่าจะเติมค่าเข้าไป
+   จึงยัง insert ไม่ได้ และเติมค่าให้ enum อย่างเดียวยังไม่พอ ต้องแก้ `schema.prisma`
+   ให้ประกาศทั้งคู่เป็น `enum` แทน `Unsupported(...)` ด้วย
+   ([#58](https://github.com/khthana/Deep-Portfolio/issues/58))
 3. check constraint ของเดิม 4 ตารางหายไป เพราะ Prisma ไม่รองรับ — ต้องเพิ่มกลับเองถ้าจำเป็น
 
 ## ข้อมูลตั้งต้น (master data)
