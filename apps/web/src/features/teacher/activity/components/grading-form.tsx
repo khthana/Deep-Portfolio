@@ -1,7 +1,5 @@
 import { Form, Tooltip, type FormInstance } from "antd";
-import type {
-  GradingFormType,
-} from "../types/activity-type.type";
+import type { GradingFormType } from "../types/activity-type.type";
 import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
 import TextArea from "antd/es/input/TextArea";
 import RubricCard from "./rubric-card";

@@ -121,11 +121,14 @@ const StudentWorkColumn = (props: Props) => {
       dataIndex: "operation",
       width: 120,
       render: (_: any, record: DataType) => {
-        const path = generatePath(paths.teacher.course.learningActivity.grading, {
-          secId: secId,
-          activityId: activityId,
-          workId: record.id,
-        });
+        const path = generatePath(
+          paths.teacher.course.learningActivity.grading,
+          {
+            secId: secId,
+            activityId: activityId,
+            workId: record.id,
+          },
+        );
 
         return (
           <div className="text-center">

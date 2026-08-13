@@ -24,8 +24,10 @@ const PersonalDetailsSection = ({
 }: PersonalDetailsSectionProps) => {
   const { first_name_th, last_name_th, first_name_en, last_name_en } =
     user || {};
-  const fullNameTh = first_name_th && last_name_th ? `${first_name_th} ${last_name_th}` : "-";
-  const fullNameEn = first_name_en && last_name_en ? `${first_name_en} ${last_name_en}` : "-";
+  const fullNameTh =
+    first_name_th && last_name_th ? `${first_name_th} ${last_name_th}` : "-";
+  const fullNameEn =
+    first_name_en && last_name_en ? `${first_name_en} ${last_name_en}` : "-";
 
   const birthDate = portfolioPersonal?.date_of_birth
     ? (() => {
@@ -44,9 +46,7 @@ const PersonalDetailsSection = ({
           <div className="w-32 h-32 md:w-40 md:h-40 md:min-w-[150px] aspect-square rounded-full overflow-hidden shadow-sm border border-gray-100 flex-shrink-0">
             <img
               src={
-                imageUrl
-                  ? getFile(imageUrl)
-                  : "/assets/user/fallback-user.png"
+                imageUrl ? getFile(imageUrl) : "/assets/user/fallback-user.png"
               }
               alt="user image"
               className="w-full h-full object-cover"

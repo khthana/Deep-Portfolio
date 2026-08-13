@@ -33,7 +33,9 @@ export default class PortfolioInternshipController {
       const { user_id } = validated(req, portfolioOwnerQuery);
 
       const result =
-        await this.portfolioInternshipService.getAllPortfolioInternship(user_id);
+        await this.portfolioInternshipService.getAllPortfolioInternship(
+          user_id,
+        );
 
       successResponse(res, result, "Fetched portfolio internship successfully");
     } catch (err) {

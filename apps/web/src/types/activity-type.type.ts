@@ -88,7 +88,4 @@ export type UnacceptedMember = {
 };
 
 export type StudentActivityStatusDB =
-  | "NOT_SUBMITTED"
-  | "SUBMITTED"
-  | "GRADED"
-  | "GRADING";
+  "NOT_SUBMITTED" | "SUBMITTED" | "GRADED" | "GRADING";

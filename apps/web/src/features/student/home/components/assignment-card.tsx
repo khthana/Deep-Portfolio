@@ -4,9 +4,7 @@ import {
   ClassworkStatus,
   type ClassworkDetail,
 } from "../../course/types/course-type";
-import {
-  convertDateToThaiFormat,
-} from "../../../../utils/format-thai-date";
+import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import { generateHTML } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useMemo } from "react";

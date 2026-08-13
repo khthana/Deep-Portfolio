@@ -1,10 +1,4 @@
-import {
-  DatePicker,
-  Form,
-  Input,
-  Select,
-  Upload,
-} from "antd";
+import { DatePicker, Form, Input, Select, Upload } from "antd";
 import { type FormInstance } from "antd/es/form/Form";
 import TextEditor from "../../../../components/input/text-editor";
 import Button from "../../../../components/button/button";

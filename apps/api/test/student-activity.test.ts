@@ -260,9 +260,7 @@ describe("POST /student-activity/grade", () => {
         id: { in: [leader.student_activity_id, member.student_activity_id] },
       },
     });
-    expect(
-      submissions.map((row) => [Number(row.score), row.status]),
-    ).toEqual([
+    expect(submissions.map((row) => [Number(row.score), row.status])).toEqual([
       [50, "GRADED"],
       [50, "GRADED"],
     ]);
@@ -371,7 +369,8 @@ describe("POST /student-activity/grade", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "นักศึกษาคนนี้ยังไม่ได้อยู่ในกลุ่มใด จึงยังให้คะแนนงานกลุ่มไม่ได้",
+      message:
+        "นักศึกษาคนนี้ยังไม่ได้อยู่ในกลุ่มใด จึงยังให้คะแนนงานกลุ่มไม่ได้",
     });
     expect(
       await prisma.student_activity.findUniqueOrThrow({

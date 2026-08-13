@@ -12,7 +12,10 @@ type Props = UploadProps & {
    * Left off by a form that is still a mock-up: the button is drawn and the
    * file is picked, but nobody is listening for it yet.
    */
-  onUpload?: (info: UploadChangeParam<UploadFile>, type: AttachmentType) => void;
+  onUpload?: (
+    info: UploadChangeParam<UploadFile>,
+    type: AttachmentType,
+  ) => void;
   color?: "blue" | "orange";
   loading?: boolean;
   noStyle?: boolean;

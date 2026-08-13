@@ -62,8 +62,7 @@ export async function createActivityGroup(options: ActivityGroupOptions = {}) {
   });
 
   for (const [index, member] of members.entries()) {
-    const student_id =
-      member.student_id ?? (await createStudent()).student_id;
+    const student_id = member.student_id ?? (await createStudent()).student_id;
     const role = member.role ?? (index === 0 ? "LEADER" : "MEMBER");
 
     const submission = await prisma.student_activity.create({
@@ -114,8 +113,7 @@ export async function createLearningActivityGroup(
   });
 
   for (const [index, member] of members.entries()) {
-    const student_id =
-      member.student_id ?? (await createStudent()).student_id;
+    const student_id = member.student_id ?? (await createStudent()).student_id;
     const role = member.role ?? (index === 0 ? "LEADER" : "MEMBER");
 
     const submission = await prisma.student_learning_activity.create({

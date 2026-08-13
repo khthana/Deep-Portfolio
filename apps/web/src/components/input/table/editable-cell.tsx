@@ -36,7 +36,6 @@ const EditableCell = <T extends Record<string, any>>({
       <Select
         options={options}
         style={{ width: "100%", minWidth: 100, maxWidth: "100%" }}
-        
       />
     );
 

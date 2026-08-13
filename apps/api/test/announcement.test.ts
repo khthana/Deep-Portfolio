@@ -54,7 +54,9 @@ describe("GET /announcement", () => {
 
     expect(response.status).toBe(200);
     expect(
-      response.body.data.map((a: { announcement_id: number }) => a.announcement_id),
+      response.body.data.map(
+        (a: { announcement_id: number }) => a.announcement_id,
+      ),
     ).toEqual([newer.announcement_id, older.announcement_id]);
     expect(response.body.data[0]).toMatchObject({
       title: "ประกาศใหม่",
@@ -112,7 +114,9 @@ describe("GET /announcement", () => {
       .query({ section_id: course.section_id });
 
     expect(
-      response.body.data.map((a: { announcement_id: number }) => a.announcement_id),
+      response.body.data.map(
+        (a: { announcement_id: number }) => a.announcement_id,
+      ),
     ).toEqual([mine.announcement_id]);
   });
 
@@ -123,9 +127,7 @@ describe("GET /announcement", () => {
     expect(response.body).toEqual({
       success: false,
       message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: section_id ต้องระบุ",
-      errors: [
-        { field: "section_id", location: "query", message: "ต้องระบุ" },
-      ],
+      errors: [{ field: "section_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });
@@ -381,7 +383,10 @@ describe("POST /announcement", () => {
       .field("content", JSON.stringify({ text: "งดการเรียนการสอน" }))
       .field("section_id", String(first.section_id))
       .field("all_section", "true")
-      .field("urls", JSON.stringify([{ title: "รายละเอียด", url: attachment }]));
+      .field(
+        "urls",
+        JSON.stringify([{ title: "รายละเอียด", url: attachment }]),
+      );
 
     expect(response.status).toBe(200);
 

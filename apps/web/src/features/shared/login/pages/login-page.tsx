@@ -116,7 +116,9 @@ const LoginPage = () => {
     if (!CLIENT_ID) {
       // A build without a client id cannot show a button at all. Say so rather
       // than render an empty box someone spends an afternoon on.
-      setError("ระบบยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย Google กรุณาติดต่อผู้ดูแลระบบ");
+      setError(
+        "ระบบยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย Google กรุณาติดต่อผู้ดูแลระบบ",
+      );
       return;
     }
 

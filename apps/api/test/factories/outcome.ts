@@ -64,7 +64,8 @@ export async function createCLO(options: CLOOptions) {
     data: {
       section_id: options.section_id,
       clo_number,
-      clo_detail: options.clo_detail ?? "รายละเอียดผลลัพธ์การเรียนรู้ของรายวิชา",
+      clo_detail:
+        options.clo_detail ?? "รายละเอียดผลลัพธ์การเรียนรู้ของรายวิชา",
       plo_id,
     },
   });

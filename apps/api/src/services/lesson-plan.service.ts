@@ -190,7 +190,7 @@ export default class LessonPlanService {
       where: { course_syllabus_id: lesson_plan_id },
       data: { course_syllabus_id: null },
     });
-    
+
     await prisma.learning_activities.updateMany({
       where: { course_syllabus_id: lesson_plan_id },
       data: { course_syllabus_id: null },

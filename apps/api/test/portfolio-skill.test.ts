@@ -593,9 +593,9 @@ describe("PUT /portfolio-skill/:id", () => {
       .send({ name: "ชื่อใหม่" });
 
     expect(response.status).toBe(200);
-    expect(response.body.data.mappings.map((m: { id: number }) => m.id)).toEqual(
-      [mapping.id],
-    );
+    expect(
+      response.body.data.mappings.map((m: { id: number }) => m.id),
+    ).toEqual([mapping.id]);
   });
 
   it("refuses a mapping onto a submission that does not exist, and keeps the ones it had", async () => {

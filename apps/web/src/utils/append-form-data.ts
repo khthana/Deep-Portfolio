@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 export const appendPrimitive = (
   formData: FormData,
   key: string,
-  value: unknown
+  value: unknown,
 ) => {
   if (value === null || value === undefined) return;
 
@@ -29,7 +29,7 @@ export const appendPrimitive = (
 
 export const appendAttachments = (
   formData: FormData,
-  attachments: AttachmentDetailItem[]
+  attachments: AttachmentDetailItem[],
 ) => {
   if (!attachments?.length) return;
 
@@ -48,7 +48,7 @@ export const appendAttachments = (
     .filter(
       (a) =>
         a.attachmentType === AttachmentType.FILE ||
-        a.attachmentType === AttachmentType.IMAGE
+        a.attachmentType === AttachmentType.IMAGE,
     )
     .forEach((a) => {
       formData.append("files", a.attachmentItems.originFileObj as File);

@@ -421,7 +421,8 @@ describe("PUT /portfolio-personal/:user_id", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: date_of_birth ต้องเป็นวันที่ที่ถูกต้อง",
+      message:
+        "ข้อมูลที่ส่งมาไม่ถูกต้อง: date_of_birth ต้องเป็นวันที่ที่ถูกต้อง",
       errors: [
         {
           field: "date_of_birth",

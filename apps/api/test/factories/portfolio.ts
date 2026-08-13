@@ -347,7 +347,9 @@ export interface PortfolioAwardOptions {
   attachment_ids?: number[];
 }
 
-export async function createPortfolioAward(options: PortfolioAwardOptions = {}) {
+export async function createPortfolioAward(
+  options: PortfolioAwardOptions = {},
+) {
   const award = await prisma.portfolio_award.create({
     data: {
       user_id: options.user_id ?? (await someStudent()),

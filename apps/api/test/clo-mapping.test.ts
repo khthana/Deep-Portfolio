@@ -157,7 +157,9 @@ describe("POST /mapping/activity", () => {
     // and clo_id is the value it points at — so an id matching nothing is the
     // 404 of ADR-0012, not the 400 that a body value naming nothing gets.
     const teacher = await createTeacher();
-    const clo = await createCLO({ section_id: (await createCourse()).section_id });
+    const clo = await createCLO({
+      section_id: (await createCourse()).section_id,
+    });
 
     const response = await request(app)
       .post("/mapping/activity")
@@ -367,7 +369,9 @@ describe("GET /mapping/activity", () => {
   });
 
   it("returns an empty list for a CLO nothing measures", async () => {
-    const clo = await createCLO({ section_id: (await createCourse()).section_id });
+    const clo = await createCLO({
+      section_id: (await createCourse()).section_id,
+    });
 
     const response = await request(app)
       .get("/mapping/activity")
@@ -478,9 +482,10 @@ describe("POST /mapping/learning-activity", () => {
 
     expect(response.status).toBe(200);
 
-    const mapping = await prisma.learning_activity_clo_mapping.findUniqueOrThrow(
-      { where: { id: response.body.data.id } },
-    );
+    const mapping =
+      await prisma.learning_activity_clo_mapping.findUniqueOrThrow({
+        where: { id: response.body.data.id },
+      });
     expect(mapping).toMatchObject({
       learning_activity_id: activity.id,
       clo_id: clo.clo_id,
@@ -523,7 +528,9 @@ describe("POST /mapping/learning-activity", () => {
     // failed and nothing else. Prisma's message names the table and the
     // constraint, and used to be forwarded verbatim.
     const teacher = await createTeacher();
-    const clo = await createCLO({ section_id: (await createCourse()).section_id });
+    const clo = await createCLO({
+      section_id: (await createCourse()).section_id,
+    });
 
     const response = await request(app)
       .post("/mapping/learning-activity")
@@ -594,7 +601,9 @@ describe("GET /mapping/learning-activity", () => {
   });
 
   it("returns an empty list for a CLO nothing measures", async () => {
-    const clo = await createCLO({ section_id: (await createCourse()).section_id });
+    const clo = await createCLO({
+      section_id: (await createCourse()).section_id,
+    });
 
     const response = await request(app)
       .get("/mapping/learning-activity")

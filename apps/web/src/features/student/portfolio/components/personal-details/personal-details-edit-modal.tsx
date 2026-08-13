@@ -71,7 +71,7 @@ const PersonalDetailsEditModal = ({
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      
+
       if (values.date_of_birth) {
         if (values.date_of_birth.isAfter(dayjs())) {
           messageApi.error("วันเกิดไม่สามารถเป็นอนาคตได้");

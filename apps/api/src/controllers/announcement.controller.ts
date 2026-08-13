@@ -31,7 +31,7 @@ export default class AnnouncementController {
       successResponse(
         res,
         announcement,
-        "Created announcement with attachments"
+        "Created announcement with attachments",
       );
     } catch (err) {
       next(err);
@@ -57,8 +57,7 @@ export default class AnnouncementController {
     try {
       const { id } = validated(req, announcementAttachmentsParams);
 
-      const attachments =
-        await this.announcementService.getAllAttachments(id);
+      const attachments = await this.announcementService.getAllAttachments(id);
 
       successResponse(res, attachments, "get attachments successfully");
     } catch (err) {

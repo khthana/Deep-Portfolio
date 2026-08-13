@@ -53,7 +53,7 @@
 
 //     setPreviewAllFiles(newList);
 //   };
-  
+
 //   return (
 //     <div>
 //           <div className="flex gap-6">

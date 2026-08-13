@@ -1,7 +1,4 @@
-import {
-  CheckOutlined,
-  CloseOutlined,
-} from "@ant-design/icons";
+import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import { Input } from "antd";
 import { useState, type Dispatch, type SetStateAction } from "react";
 

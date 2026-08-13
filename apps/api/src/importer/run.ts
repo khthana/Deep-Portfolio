@@ -4,7 +4,12 @@ import type { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import { parseCsv } from "./csv";
 import { prepare, type ImportError, type PreparedRow } from "./rows";
-import { isMasterTable, orderByDependencies, tableOf, type Table } from "./tables";
+import {
+  isMasterTable,
+  orderByDependencies,
+  tableOf,
+  type Table,
+} from "./tables";
 
 /**
  * The importer itself: a directory of CSV files in, rows in the database out.
@@ -71,7 +76,10 @@ function delegate(client: object, table: string): Delegate {
 }
 
 /** Where-clause matching one row on its key columns. */
-function keyWhere(table: Table, values: Record<string, unknown>): Record<string, unknown> {
+function keyWhere(
+  table: Table,
+  values: Record<string, unknown>,
+): Record<string, unknown> {
   const where: Record<string, unknown> = {};
 
   for (const name of table.key) {
@@ -143,7 +151,9 @@ async function checkReferences(
         ),
       );
 
-      const unresolved = [...used.entries()].filter(([key]) => !arriving.has(key));
+      const unresolved = [...used.entries()].filter(
+        ([key]) => !arriving.has(key),
+      );
 
       if (unresolved.length === 0) {
         continue;

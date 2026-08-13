@@ -164,7 +164,9 @@ function enumValues(name: string): readonly string[] {
  * limit the file can exceed one character at a time, and the coercions below
  * report those failures in their own terms.
  */
-function maxLengthOf(nativeType: readonly [string, readonly string[]] | null): number | null {
+function maxLengthOf(
+  nativeType: readonly [string, readonly string[]] | null,
+): number | null {
   if (!nativeType) {
     return null;
   }
@@ -214,7 +216,10 @@ function maxValueOf(
       return null;
     }
 
-    return 10 ** ((precision as number) - (scale as number)) - 10 ** -(scale as number);
+    return (
+      10 ** ((precision as number) - (scale as number)) -
+      10 ** -(scale as number)
+    );
   }
 
   return null;
@@ -233,13 +238,17 @@ function maxValueOf(
  * Only when neither exists does this fall back to the surrogate, and it says so
  * — see `keyIsGenerated`.
  */
-function keyColumnsOf(model: Prisma.DMMF.Model): { key: string[]; generated: boolean } {
+function keyColumnsOf(model: Prisma.DMMF.Model): {
+  key: string[];
+  generated: boolean;
+} {
   if (model.primaryKey && model.primaryKey.fields.length > 0) {
     return { key: [...model.primaryKey.fields], generated: false };
   }
 
   const idField = model.fields.find((field) => field.isId);
-  const idIsGenerated = idField?.hasDefaultValue === true &&
+  const idIsGenerated =
+    idField?.hasDefaultValue === true &&
     typeof idField.default === "object" &&
     idField.default !== null &&
     !Array.isArray(idField.default);
@@ -283,7 +292,11 @@ function describe(model: Prisma.DMMF.Model): Table {
         continue;
       }
 
-      references.push({ columns: [...from], table: field.type, targetColumns: [...to] });
+      references.push({
+        columns: [...from],
+        table: field.type,
+        targetColumns: [...to],
+      });
 
       if (field.type !== model.name && MASTER_SET.has(field.type)) {
         dependencies.add(field.type);
@@ -296,10 +309,10 @@ function describe(model: Prisma.DMMF.Model): Table {
       continue;
     }
 
-    const kind: ColumnKind = field.kind === "enum" ? "Enum" : (field.type as ColumnKind);
+    const kind: ColumnKind =
+      field.kind === "enum" ? "Enum" : (field.type as ColumnKind);
     const nativeType = (field.nativeType ?? null) as
-      | readonly [string, readonly string[]]
-      | null;
+      readonly [string, readonly string[]] | null;
 
     columns.push({
       name: field.name,

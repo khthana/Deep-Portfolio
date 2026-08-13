@@ -168,7 +168,10 @@ const EducationEditModal = ({
             name="institution"
             className="col-span-2"
           >
-            <Input size="large" placeholder="เช่น สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง" />
+            <Input
+              size="large"
+              placeholder="เช่น สถาบันเทคโนโลยีพระจอมเกล้าเจ้าคุณทหารลาดกระบัง"
+            />
           </Form.Item>
 
           {degree !== "HIGH_SCHOOL" && (

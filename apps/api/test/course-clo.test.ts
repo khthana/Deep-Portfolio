@@ -76,8 +76,9 @@ describe("GET /course/clo", () => {
 
     // By clo_id, which is insertion order — not by clo_number, which is why
     // the "2" above comes back first.
-    expect(response.body.data.map((clo: { clo_id: number }) => clo.clo_id))
-      .toEqual([second.clo_id, first.clo_id]);
+    expect(
+      response.body.data.map((clo: { clo_id: number }) => clo.clo_id),
+    ).toEqual([second.clo_id, first.clo_id]);
   });
 
   it("returns an empty list for a section that has none", async () => {
@@ -98,9 +99,7 @@ describe("GET /course/clo", () => {
     expect(response.body).toEqual({
       success: false,
       message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: section_id ต้องระบุ",
-      errors: [
-        { field: "section_id", location: "query", message: "ต้องระบุ" },
-      ],
+      errors: [{ field: "section_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 
@@ -416,9 +415,7 @@ describe("DELETE /course/clo", () => {
       where: { section_id: course.section_id },
       orderBy: { clo_id: "asc" },
     });
-    expect(
-      remaining.map((clo) => [clo.clo_id, clo.clo_number]),
-    ).toEqual([
+    expect(remaining.map((clo) => [clo.clo_id, clo.clo_number])).toEqual([
       [second.clo_id, "1"],
       [third.clo_id, "2"],
     ]);
@@ -469,10 +466,7 @@ describe("GET /course/plo/list", () => {
    *  cases above have already put PLOs in the baseline programme — isolation
    *  here is per file, not per case — so a case about ordering has to look at
    *  its own rows rather than the whole list. */
-  function positionsOf(
-    response: request.Response,
-    ids: number[],
-  ): number[] {
+  function positionsOf(response: request.Response, ids: number[]): number[] {
     return response.body.data
       .map((plo: { outcome_id: number }) => plo.outcome_id)
       .filter((id: number) => ids.includes(id));
@@ -506,9 +500,9 @@ describe("GET /course/plo/list", () => {
       .get("/course/plo/list")
       .query({ program_id: BASELINE.program.program_id });
 
-    expect(
-      positionsOf(response, [mine.outcome_id, theirs.outcome_id]),
-    ).toEqual([mine.outcome_id]);
+    expect(positionsOf(response, [mine.outcome_id, theirs.outcome_id])).toEqual(
+      [mine.outcome_id],
+    );
   });
 
   it("returns an empty list for a programme that does not exist", async () => {

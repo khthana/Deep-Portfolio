@@ -1,12 +1,4 @@
-import {
-  Modal,
-  Form,
-  Input,
-  Checkbox,
-  Upload,
-  Image,
-  DatePicker,
-} from "antd";
+import { Modal, Form, Input, Checkbox, Upload, Image, DatePicker } from "antd";
 import type { MessageInstance } from "antd/es/message/interface";
 import { useEffect, useState } from "react";
 import type { UploadFile } from "antd";

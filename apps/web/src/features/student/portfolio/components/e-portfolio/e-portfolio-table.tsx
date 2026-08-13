@@ -56,7 +56,7 @@ const EPortfolioTable = () => {
     try {
       setLoading(true);
       if (studentId === "") return;
-      
+
       const res = await getAllPortfolios(studentId);
       if (res.success) {
         const formattedData: DataType[] = res.data.map((portfolio, index) => ({

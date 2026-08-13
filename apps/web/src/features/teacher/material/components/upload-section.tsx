@@ -6,12 +6,7 @@ import {
   AttachmentType,
   type AttachmentDetailItem,
 } from "../../announcement/types/announement-type";
-import {
-  Form,
-  Upload,
-  type FormInstance,
-  type UploadFile,
-} from "antd";
+import { Form, Upload, type FormInstance, type UploadFile } from "antd";
 import type { UploadChangeParam } from "antd/es/upload";
 import MaterialUploadLinkForm from "./material-upload-link-form";
 import type { AttachmentItemsType } from "./material-table";

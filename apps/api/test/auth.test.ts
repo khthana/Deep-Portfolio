@@ -21,8 +21,7 @@ import { useFakeIdentityProvider } from "./helpers/identity";
 /** The attributes of one Set-Cookie header, as the browser would read them. */
 function setCookie(response: request.Response, name: string) {
   const header = response.headers["set-cookie"] as unknown as
-    | string[]
-    | undefined;
+    string[] | undefined;
   const raw = (header ?? []).find((cookie) => cookie.startsWith(`${name}=`));
 
   if (!raw) {

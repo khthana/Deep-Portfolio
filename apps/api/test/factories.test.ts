@@ -141,7 +141,9 @@ describe("createCourse", () => {
       },
     });
 
-    expect(section.semester_courses.subjects.subject_id).toBe(course.subject_id);
+    expect(section.semester_courses.subjects.subject_id).toBe(
+      course.subject_id,
+    );
     expect(section.semester_courses.academic_year).toBe(
       BASELINE.term.academic_year,
     );

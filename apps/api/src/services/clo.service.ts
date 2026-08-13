@@ -41,7 +41,7 @@ export default class CLOService {
           ...plo,
           ...clo,
         };
-      })
+      }),
     );
 
     return result;

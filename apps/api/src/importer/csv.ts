@@ -146,7 +146,9 @@ export function parseCsv(text: string): Sheet | null {
 
   const header = headerRecord.cells.map((name) => name.trim());
   const rows = all
-    .filter((record) => record.line > headerRecord.line && !isBlank(record.cells))
+    .filter(
+      (record) => record.line > headerRecord.line && !isBlank(record.cells),
+    )
     .map((record) => ({ line: record.line, cells: record.cells }));
 
   return { header, headerLine: headerRecord.line, rows };

@@ -138,7 +138,8 @@ describe("calendarSlice", () => {
       );
 
       expect(
-        reducer(filled, calendarSliceAction.setUpcomingEvents([])).upcomingEvents,
+        reducer(filled, calendarSliceAction.setUpcomingEvents([]))
+          .upcomingEvents,
       ).toEqual([]);
     });
   });

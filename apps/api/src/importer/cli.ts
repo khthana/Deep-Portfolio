@@ -37,17 +37,24 @@ function describeError(error: ImportError): string {
     .filter((part) => part !== null)
     .join(" ");
 
-  return place === "" ? `    ${error.message}` : `    ${place}: ${error.message}`;
+  return place === ""
+    ? `    ${error.message}`
+    : `    ${place}: ${error.message}`;
 }
 
 function report(result: ImportReport): string {
   const lines: string[] = [];
 
   if (!result.ok) {
-    lines.push(`พบข้อผิดพลาด ${result.errors.length} รายการ ไม่ได้เขียนข้อมูลลงฐานข้อมูล`, "");
+    lines.push(
+      `พบข้อผิดพลาด ${result.errors.length} รายการ ไม่ได้เขียนข้อมูลลงฐานข้อมูล`,
+      "",
+    );
 
     // Grouped by file, because that is the thing the operator opens to fix it.
-    for (const table of [...new Set(result.errors.map((error) => error.table))]) {
+    for (const table of [
+      ...new Set(result.errors.map((error) => error.table)),
+    ]) {
       lines.push(`  ${table}.csv`);
 
       for (const error of result.errors.filter((e) => e.table === table)) {
@@ -69,7 +76,9 @@ function report(result: ImportReport): string {
   let updated = 0;
 
   for (const count of result.tables) {
-    lines.push(`  ${count.table}: เพิ่ม ${count.created} อัปเดต ${count.updated}`);
+    lines.push(
+      `  ${count.table}: เพิ่ม ${count.created} อัปเดต ${count.updated}`,
+    );
     created += count.created;
     updated += count.updated;
   }

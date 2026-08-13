@@ -314,7 +314,9 @@ describe("PUT /learning-activity", () => {
 
     const updated = await prisma.learning_activities.findUniqueOrThrow({
       where: { id: activity.id },
-      include: { learning_activity_attachments: { include: { attachments: true } } },
+      include: {
+        learning_activity_attachments: { include: { attachments: true } },
+      },
     });
     expect(updated).toMatchObject({
       learning_activity_name: "ใบงานที่ 1 (แก้ไข)",
@@ -440,7 +442,9 @@ describe("DELETE /learning-activity", () => {
 
     expect(response.status).toBe(401);
     expect(
-      await prisma.learning_activities.findUnique({ where: { id: activity.id } }),
+      await prisma.learning_activities.findUnique({
+        where: { id: activity.id },
+      }),
     ).not.toBeNull();
   });
 
@@ -455,7 +459,9 @@ describe("DELETE /learning-activity", () => {
 
     expect(response.status).toBe(403);
     expect(
-      await prisma.learning_activities.findUnique({ where: { id: activity.id } }),
+      await prisma.learning_activities.findUnique({
+        where: { id: activity.id },
+      }),
     ).not.toBeNull();
   });
 
@@ -479,7 +485,9 @@ describe("DELETE /learning-activity", () => {
 
     expect(response.status).toBe(200);
     expect(
-      await prisma.learning_activities.findUnique({ where: { id: activity.id } }),
+      await prisma.learning_activities.findUnique({
+        where: { id: activity.id },
+      }),
     ).toBeNull();
     expect(
       await prisma.student_learning_activity.findUnique({
@@ -500,7 +508,9 @@ describe("DELETE /learning-activity", () => {
       }),
     ).toEqual([]);
     expect(
-      await prisma.learning_activities.findUnique({ where: { id: survivor.id } }),
+      await prisma.learning_activities.findUnique({
+        where: { id: survivor.id },
+      }),
     ).not.toBeNull();
   });
 
@@ -532,7 +542,9 @@ describe("DELETE /learning-activity", () => {
       { field: "learning_activity_id", location: "query", message: "ต้องระบุ" },
     ]);
     expect(
-      await prisma.learning_activities.findUnique({ where: { id: activity.id } }),
+      await prisma.learning_activities.findUnique({
+        where: { id: activity.id },
+      }),
     ).not.toBeNull();
   });
 });

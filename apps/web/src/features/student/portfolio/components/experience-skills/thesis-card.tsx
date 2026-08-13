@@ -84,8 +84,6 @@ const ThesisCard = (props: Props) => {
               ))}
           </div>
         )}
-
-        
       </div>
     </WhiteContainer>
   );

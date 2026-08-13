@@ -47,7 +47,7 @@ const MappingSection = (props: Props) => {
   const [messageApi, contextHolder] = message.useMessage();
 
   const [activityData, setActivityData] = useState<ActivityMappingDetailResp[]>(
-    []
+    [],
   );
   const [learningActivityData, setLearningActivityData] = useState<
     LearningActivityDetail[]
@@ -80,7 +80,7 @@ const MappingSection = (props: Props) => {
       };
 
       const { data } = await dispatch(
-        postLearningActivityCLOMapping(body)
+        postLearningActivityCLOMapping(body),
       ).unwrap();
 
       if (data) {
@@ -107,7 +107,7 @@ const MappingSection = (props: Props) => {
   const fetchLearningActivityData = async () => {
     try {
       const { data } = await dispatch(
-        fetchLearningActivity(props.cloData.id)
+        fetchLearningActivity(props.cloData.id),
       ).unwrap();
 
       if (data) {

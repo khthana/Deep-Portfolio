@@ -1,4 +1,7 @@
-import type { Prisma, student_activity_group_member_status } from "@prisma/client";
+import type {
+  Prisma,
+  student_activity_group_member_status,
+} from "@prisma/client";
 import crypto from "crypto";
 import prisma from "../config/prisma";
 import { transporter } from "../config/mailer";
@@ -76,7 +79,10 @@ export async function assertMembersEnrolled(
   const roster = new Set(enrolled.map((row) => row.student_id));
 
   if (members.some((member) => !roster.has(member.student_id))) {
-    throw new HttpError(400, "รายชื่อมีนักศึกษาที่ไม่ได้ลงทะเบียนกลุ่มเรียนนี้");
+    throw new HttpError(
+      400,
+      "รายชื่อมีนักศึกษาที่ไม่ได้ลงทะเบียนกลุ่มเรียนนี้",
+    );
   }
 }
 
@@ -199,7 +205,10 @@ export default class GroupService {
     }
 
     if (invitation.status !== "PENDING") {
-      throw new HttpError(400, "ส่งคำเชิญซ้ำได้เฉพาะสมาชิกที่ยังไม่ตอบรับคำเชิญ");
+      throw new HttpError(
+        400,
+        "ส่งคำเชิญซ้ำได้เฉพาะสมาชิกที่ยังไม่ตอบรับคำเชิญ",
+      );
     }
 
     const invite = mintInvite();
@@ -286,18 +295,20 @@ async function findInvitation(
     );
   }
 
-  const member = await prisma.student_learning_activity_group_member.findUnique({
-    where: { group_id_student_id: { group_id, student_id } },
-    select: {
-      id: true,
-      status: true,
-      student_learning_activity_group: {
-        select: {
-          learning_activities: { select: { learning_activity_name: true } },
+  const member = await prisma.student_learning_activity_group_member.findUnique(
+    {
+      where: { group_id_student_id: { group_id, student_id } },
+      select: {
+        id: true,
+        status: true,
+        student_learning_activity_group: {
+          select: {
+            learning_activities: { select: { learning_activity_name: true } },
+          },
         },
       },
     },
-  });
+  );
 
   return (
     member && {

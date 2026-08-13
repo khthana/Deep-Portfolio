@@ -32,11 +32,9 @@ const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
  * it has no name for is "the format is wrong".
  */
 const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d$/;
-const timeOfDay = z
-  .string()
-  .refine((value) => TIME_OF_DAY.test(value), {
-    error: "ต้องเป็นเวลาตามรูปแบบ HH:MM",
-  });
+const timeOfDay = z.string().refine((value) => TIME_OF_DAY.test(value), {
+  error: "ต้องเป็นเวลาตามรูปแบบ HH:MM",
+});
 
 export const createScheduleBody = z.object({
   section_id: id,

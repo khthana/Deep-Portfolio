@@ -217,9 +217,9 @@ describe("GET /student/calendar", () => {
     expect(
       response.body.data.activities.map((a: { id: number }) => a.id),
     ).toEqual([submission.id]);
-    expect(
-      response.body.data.courses.map((c: { id: number }) => c.id),
-    ).toEqual([course.section_id]);
+    expect(response.body.data.courses.map((c: { id: number }) => c.id)).toEqual(
+      [course.section_id],
+    );
     expect(response.body.data.learning_activities).toEqual([]);
   });
 
@@ -265,9 +265,9 @@ describe("GET /student/calendar", () => {
       .set("Cookie", sessionCookie({ userId: student.student_id }))
       .query(TERM);
 
-    expect(
-      response.body.data.courses.map((c: { id: number }) => c.id),
-    ).toEqual([thisTerm.section_id]);
+    expect(response.body.data.courses.map((c: { id: number }) => c.id)).toEqual(
+      [thisTerm.section_id],
+    );
   });
 
   it("returns three empty lists for a student enrolled in nothing", async () => {

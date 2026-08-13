@@ -13,7 +13,7 @@ export const getCourseById = async (section_id: number) => {
     endpoints.course.root,
     {
       params: { section_id },
-    }
+    },
   );
 
   return resp.data;
@@ -22,7 +22,7 @@ export const getCourseById = async (section_id: number) => {
 export const getScoreWeight = async (section_id: number) => {
   const resp = await axiosInstance.get<ResponseWrapper<ScoreWeightResp[]>>(
     endpoints["score_weight"].root,
-    { params: { section_id } }
+    { params: { section_id } },
   );
 
   return resp.data;
@@ -31,7 +31,7 @@ export const getScoreWeight = async (section_id: number) => {
 export const getCLO = async (section_id: number) => {
   const resp = await axiosInstance.get<ResponseWrapper<CLOResp[]>>(
     endpoints.course.clo,
-    { params: { section_id } }
+    { params: { section_id } },
   );
 
   return resp.data;
@@ -40,7 +40,7 @@ export const getCLO = async (section_id: number) => {
 export const getPLOList = async (program_id: string) => {
   const resp = await axiosInstance.get<ResponseWrapper<PLOResp[]>>(
     endpoints.course.plo,
-    { params: { program_id } }
+    { params: { program_id } },
   );
 
   return resp.data;
@@ -49,7 +49,7 @@ export const getPLOList = async (program_id: string) => {
 export const getLessonPlan = async (section_id: number) => {
   const resp = await axiosInstance.get<ResponseWrapper<LessonPlanResp[]>>(
     endpoints.lesson_plan.root,
-    { params: { section_id } }
+    { params: { section_id } },
   );
 
   return resp.data;

@@ -19,7 +19,7 @@ export default class AnnouncementService {
   }
 
   async createAnnouncement(
-    data: CreateAnnouncementReqBody
+    data: CreateAnnouncementReqBody,
   ): Promise<{ announcement_id: number }> {
     return transactionWithUploads(async (tx, uploads) => {
       let targetSectionIds = [data.section_id];
@@ -96,7 +96,7 @@ export default class AnnouncementService {
   //-----------------------------------
 
   async getAnnouncements(
-    section_id: number
+    section_id: number,
   ): Promise<AnnouncementDetailResp[]> {
     const announcements = await prisma.announcements.findMany({
       where: {
@@ -108,20 +108,20 @@ export default class AnnouncementService {
     const result: AnnouncementDetailResp[] = await Promise.all(
       announcements.map(async (announcement) => {
         const attachments = await this.getAllAttachments(
-          announcement.announcement_id
+          announcement.announcement_id,
         );
         return {
           ...announcement,
           attachments,
         } as AnnouncementDetailResp;
-      })
+      }),
     );
 
     return result;
   }
 
   async getAllAttachments(
-    announcement_id: number
+    announcement_id: number,
   ): Promise<AttachmentDetailResp> {
     const attachmentsIds = await prisma.announcement_attachments.findMany({
       where: { announcement_id },

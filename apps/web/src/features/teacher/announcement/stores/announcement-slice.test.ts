@@ -3,10 +3,7 @@ import {
   teacherAnnouncementSlice,
   teacherAnnouncementSliceAction,
 } from "./announcement-slice";
-import {
-  fetchAllAnnouncements,
-  postAnnouncement,
-} from "./announcement-action";
+import { fetchAllAnnouncements, postAnnouncement } from "./announcement-action";
 import type { AnnouncmentFormType } from "../types/announement-type";
 import type { AnnouncementDetailResp } from "../../../../types/course-type.type";
 import {

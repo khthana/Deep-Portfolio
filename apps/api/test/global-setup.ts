@@ -6,12 +6,7 @@ import { Client } from "pg";
 import * as Minio from "minio";
 import { emptyAndRemoveBucket } from "./bucket";
 import { seedBaseline } from "./seed";
-import {
-  MINIO,
-  POSTGRES,
-  TEMPLATE_DATABASE,
-  postgresUrl,
-} from "./config";
+import { MINIO, POSTGRES, TEMPLATE_DATABASE, postgresUrl } from "./config";
 
 /**
  * Runs once per `vitest` invocation, before any test file.
@@ -33,14 +28,7 @@ const skipDocker = process.env.TEST_SKIP_DOCKER === "1";
 function composeUp(): void {
   execFileSync(
     "docker",
-    [
-      "compose",
-      "-f",
-      "docker-compose.test.yml",
-      "up",
-      "-d",
-      "--wait",
-    ],
+    ["compose", "-f", "docker-compose.test.yml", "up", "-d", "--wait"],
     { cwd: repoRoot, stdio: "inherit" },
   );
 }

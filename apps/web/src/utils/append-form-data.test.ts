@@ -91,7 +91,10 @@ describe("appendAttachments", () => {
     appendAttachments(formData, [
       {
         attachmentType: "LINK",
-        attachmentItems: { title: "เอกสารประกอบ", url: "https://example.test/a" },
+        attachmentItems: {
+          title: "เอกสารประกอบ",
+          url: "https://example.test/a",
+        },
       },
       {
         attachmentType: "LINK",
@@ -111,7 +114,10 @@ describe("appendAttachments", () => {
     const formData = new FormData();
 
     appendAttachments(formData, [
-      { attachmentType: "FILE", attachmentItems: uploadEntry("a.pdf", png("a.pdf")) },
+      {
+        attachmentType: "FILE",
+        attachmentItems: uploadEntry("a.pdf", png("a.pdf")),
+      },
     ]);
 
     expect(formData.has("urls")).toBe(false);
@@ -142,7 +148,7 @@ describe("appendAttachments", () => {
     ).toEqual(["report.pdf", "diagram.png"]);
   });
 
-  it("appends the string \"undefined\" for an attachment with no file picked", () => {
+  it('appends the string "undefined" for an attachment with no file picked', () => {
     // Pinned, not endorsed. An antd entry that came back from the server has no
     // `originFileObj`, and `FormData.append` stringifies whatever is not a
     // Blob — so re-saving a form without touching its existing attachments
@@ -150,7 +156,10 @@ describe("appendAttachments", () => {
     const formData = new FormData();
 
     appendAttachments(formData, [
-      { attachmentType: "FILE", attachmentItems: uploadEntry("already-stored.pdf") },
+      {
+        attachmentType: "FILE",
+        attachmentItems: uploadEntry("already-stored.pdf"),
+      },
     ]);
 
     expect(formData.get("files")).toBe("undefined");

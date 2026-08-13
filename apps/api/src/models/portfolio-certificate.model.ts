@@ -3,7 +3,8 @@ import type {
   UpdatePortfolioCertificateFields,
 } from "../validation/portfolio-sections.schema";
 
-export type CreatePortfolioCertificateReqBody = CreatePortfolioCertificateFields;
+export type CreatePortfolioCertificateReqBody =
+  CreatePortfolioCertificateFields;
 
 export type UpdatePortfolioCertificateReqBody =
   UpdatePortfolioCertificateFields;

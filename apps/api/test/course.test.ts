@@ -115,8 +115,9 @@ describe("GET /course/list", () => {
       .query(BASELINE.term)
       .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
-    expect(response.body.data.active_courses.map((c: any) => c.section_id))
-      .toEqual([mine.section_id]);
+    expect(
+      response.body.data.active_courses.map((c: any) => c.section_id),
+    ).toEqual([mine.section_id]);
   });
 
   it("orders the active list by day of week, then by start time", async () => {

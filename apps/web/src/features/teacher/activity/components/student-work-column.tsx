@@ -1,6 +1,4 @@
-import {
-  type SubmissionStatus,
-} from "../types/activity-type.type";
+import { type SubmissionStatus } from "../types/activity-type.type";
 import { generatePath, useParams } from "react-router-dom";
 import { paths } from "../../../../routes/paths.config";
 import { formatScore } from "../../../../utils/format-score";

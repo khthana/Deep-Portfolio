@@ -179,9 +179,7 @@ describe("GET /portfolio-training", () => {
     expect(response.body).toEqual({
       success: false,
       message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: user_id ต้องระบุ",
-      errors: [
-        { field: "user_id", location: "query", message: "ต้องระบุ" },
-      ],
+      errors: [{ field: "user_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });
@@ -426,7 +424,9 @@ describe("PUT /portfolio-training/:id", () => {
       original_filename: string;
       file_path: string;
     }[];
-    const dropped = attachments.find((a) => a.original_filename === "dropped.pdf")!;
+    const dropped = attachments.find(
+      (a) => a.original_filename === "dropped.pdf",
+    )!;
     const kept = attachments.find((a) => a.original_filename === "kept.pdf")!;
     const droppedKey = signedFileKey(dropped.file_path);
 

@@ -67,7 +67,10 @@ function toBoolean(text: string): boolean | undefined {
  * The caller has already established that the cell is not empty, so "ต้องระบุ"
  * is not among the answers here.
  */
-function coerce(column: Column, text: string): { value: unknown } | { error: string } {
+function coerce(
+  column: Column,
+  text: string,
+): { value: unknown } | { error: string } {
   switch (column.kind) {
     case "String": {
       // Postgres counts characters, not bytes or code units, so Thai text is
@@ -87,7 +90,10 @@ function coerce(column: Column, text: string): { value: unknown } | { error: str
 
       const parsed = Number(text);
 
-      if (!Number.isSafeInteger(parsed) || outOfRange(parsed, column.maxValue)) {
+      if (
+        !Number.isSafeInteger(parsed) ||
+        outOfRange(parsed, column.maxValue)
+      ) {
         return { error: rangeError(column.maxValue) };
       }
 
@@ -197,7 +203,8 @@ function checkHeader(table: Table, sheet: Sheet): ImportError[] {
         table: table.name,
         line: sheet.headerLine,
         column: name,
-        message: "ฐานข้อมูลคำนวณคอลัมน์นี้เอง ไฟล์ระบุค่าไม่ได้ ให้ลบคอลัมน์นี้ออก",
+        message:
+          "ฐานข้อมูลคำนวณคอลัมน์นี้เอง ไฟล์ระบุค่าไม่ได้ ให้ลบคอลัมน์นี้ออก",
       });
       continue;
     }
@@ -308,7 +315,12 @@ export function prepare(table: Table, sheet: Sheet): Prepared {
       const result = coerce(column, text);
 
       if ("error" in result) {
-        errors.push({ table: table.name, line: row.line, column: name, message: result.error });
+        errors.push({
+          table: table.name,
+          line: row.line,
+          column: name,
+          message: result.error,
+        });
         rowFailed = true;
         return;
       }

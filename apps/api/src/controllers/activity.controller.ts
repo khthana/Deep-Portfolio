@@ -69,7 +69,8 @@ export default class ActivityController {
     try {
       const { activity_id } = validated(req, activityQuery);
 
-      const activity = await this.activityService.getActivityDetail(activity_id);
+      const activity =
+        await this.activityService.getActivityDetail(activity_id);
 
       successResponse(res, activity, "get activity successfully");
     } catch (err) {
@@ -122,7 +123,8 @@ export default class ActivityController {
     try {
       const { section_id } = validated(req, activityListQuery);
 
-      const activity = await this.activityService.getActivityOptions(section_id);
+      const activity =
+        await this.activityService.getActivityOptions(section_id);
 
       successResponse(res, activity, "get activity successfully");
     } catch (err) {

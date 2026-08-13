@@ -167,7 +167,9 @@ const ShowGroupworkModal = (props: Props) => {
       const resp =
         props.classworkDetail.category === "activity"
           ? await dispatch(postResendActivityGroupInvite(body)).unwrap()
-          : await dispatch(postResendLearningActivityGroupInvite(body)).unwrap();
+          : await dispatch(
+              postResendLearningActivityGroupInvite(body),
+            ).unwrap();
 
       if (resp.success) {
         messageApi.success("ส่งคำเชิญอีกครั้งแล้ว");

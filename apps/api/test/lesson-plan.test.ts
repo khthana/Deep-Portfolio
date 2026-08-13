@@ -128,9 +128,7 @@ describe("GET /lesson-plan", () => {
     expect(response.body).toEqual({
       success: false,
       message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: section_id ต้องระบุ",
-      errors: [
-        { field: "section_id", location: "query", message: "ต้องระบุ" },
-      ],
+      errors: [{ field: "section_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });
@@ -537,10 +535,9 @@ describe("DELETE /lesson-plan", () => {
     const storedActivity = await prisma.activities.findUnique({
       where: { id: activity.id },
     });
-    const storedLearningActivity =
-      await prisma.learning_activities.findUnique({
-        where: { id: learningActivity.id },
-      });
+    const storedLearningActivity = await prisma.learning_activities.findUnique({
+      where: { id: learningActivity.id },
+    });
 
     expect(storedActivity?.course_syllabus_id).toBeNull();
     expect(storedLearningActivity?.course_syllabus_id).toBeNull();

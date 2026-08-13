@@ -25,8 +25,8 @@ const BackButton = (props: Props) => {
           props.color === "blue"
             ? "text-secondary-blue"
             : props.color === "orange"
-            ? "text-primary-orange"
-            : "text-primary-black"
+              ? "text-primary-orange"
+              : "text-primary-black"
         }`}
       >
         {props.title}

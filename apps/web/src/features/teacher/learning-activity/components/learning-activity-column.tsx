@@ -79,10 +79,13 @@ const LearningActivityColumn = (props: Props) => {
       dataIndex: "operation",
       width: 120,
       render: (_: any, record: DataType) => {
-        const path = generatePath(paths.teacher.course.learningActivity.detail, {
-          secId: secId,
-          activityId: record.id,
-        });
+        const path = generatePath(
+          paths.teacher.course.learningActivity.detail,
+          {
+            secId: secId,
+            activityId: record.id,
+          },
+        );
         const editPath = generatePath(
           paths.teacher.course.learningActivity.edit,
           {

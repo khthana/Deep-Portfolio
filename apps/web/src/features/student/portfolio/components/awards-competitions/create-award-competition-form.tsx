@@ -1,11 +1,4 @@
-import {
-  DatePicker,
-  Form,
-  Input,
-  Upload,
-  Checkbox,
-  Image,
-} from "antd";
+import { DatePicker, Form, Input, Upload, Checkbox, Image } from "antd";
 import { useState } from "react";
 import type { UploadFile } from "antd";
 import { useNavigate } from "react-router-dom";

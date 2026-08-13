@@ -1,4 +1,7 @@
-import type { PersonalInfo, ContactInfo } from "../components/e-portfolio-template/types";
+import type {
+  PersonalInfo,
+  ContactInfo,
+} from "../components/e-portfolio-template/types";
 
 /**
  * Normalizes string values from the API.
@@ -18,11 +21,16 @@ export const normalizeValue = (val: any): string | undefined => {
  */
 export const mapContactInfo = (
   portfolioPersonal?: any,
-  userProfile?: any
+  userProfile?: any,
 ): ContactInfo => {
   return {
-    email: normalizeValue(portfolioPersonal?.email) ?? normalizeValue(userProfile?.email) ?? "",
-    phone: normalizeValue(portfolioPersonal?.phone_number) ?? normalizeValue(userProfile?.phone),
+    email:
+      normalizeValue(portfolioPersonal?.email) ??
+      normalizeValue(userProfile?.email) ??
+      "",
+    phone:
+      normalizeValue(portfolioPersonal?.phone_number) ??
+      normalizeValue(userProfile?.phone),
     github: normalizeValue(portfolioPersonal?.github),
     linkedin: normalizeValue(portfolioPersonal?.linkedin),
     website: normalizeValue(portfolioPersonal?.website),
@@ -35,16 +43,24 @@ export const mapContactInfo = (
 export const mapPersonalInfo = (
   userData: any,
   portfolioPersonal: any,
-  defaults: { firstName: string; lastName: string; fullName: string; profileImageUrl: string }
+  defaults: {
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    profileImageUrl: string;
+  },
 ): PersonalInfo => {
-  const firstName = normalizeValue(userData?.first_name_th) ?? defaults.firstName;
+  const firstName =
+    normalizeValue(userData?.first_name_th) ?? defaults.firstName;
   const lastName = normalizeValue(userData?.last_name_th) ?? defaults.lastName;
-  
+
   return {
     firstName,
     lastName,
     fullName: `${firstName} ${lastName}`.trim() || defaults.fullName,
-    profileImageUrl: normalizeValue(portfolioPersonal?.attachments?.url) ?? defaults.profileImageUrl,
+    profileImageUrl:
+      normalizeValue(portfolioPersonal?.attachments?.url) ??
+      defaults.profileImageUrl,
     contact: mapContactInfo(portfolioPersonal, userData),
   };
 };
@@ -61,11 +77,13 @@ export const formatBuddhistYear = (year: any): string => {
 /**
  * Maps education level to Thai label.
  */
-export const mapEducationLevel = (level: string, studyPlan?: string): string => {
+export const mapEducationLevel = (
+  level: string,
+  studyPlan?: string,
+): string => {
   if (level === "BACHELOR") return "ปริญญาตรี";
   if (level === "HIGH_SCHOOL" || level === "มัธยมปลาย") {
     return studyPlan ? `แผนการเรียน ${studyPlan}` : "มัธยมปลาย";
   }
   return level;
 };
-

@@ -49,9 +49,11 @@ describe("readEnv", () => {
   it("ignores everything else Vite puts on import.meta.env", () => {
     // MODE, DEV, PROD, BASE_URL and any other VITE_ variable a developer has
     // in their .env all arrive here. The app reads two, and reads them by name.
-    expect(readEnv({ ...complete, MODE: "test", VITE_SOMETHING: "x" })).toEqual({
-      BACKEND_URL: "http://localhost:4001",
-      GOOGLE_CLIENT_ID: "1234.apps.googleusercontent.com",
-    });
+    expect(readEnv({ ...complete, MODE: "test", VITE_SOMETHING: "x" })).toEqual(
+      {
+        BACKEND_URL: "http://localhost:4001",
+        GOOGLE_CLIENT_ID: "1234.apps.googleusercontent.com",
+      },
+    );
   });
 });

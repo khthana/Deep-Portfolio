@@ -31,7 +31,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       textMainColor: defaultTheme.textMainColor,
       textSubColor: defaultTheme.textSubColor,
     }),
-    [theme]
+    [theme],
   );
 
   const cssVariables = useMemo<React.CSSProperties>(
@@ -44,15 +44,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
         "--port-card": mergedTheme.cardColor,
         "--port-text-main": mergedTheme.textMainColor,
         "--port-text-sub": mergedTheme.textSubColor,
-        // Tailwind color variables 
+        // Tailwind color variables
         "--color-port-primary": mergedTheme.primaryColor,
         "--color-port-secondary": mergedTheme.secondaryColor,
         "--color-port-bg": mergedTheme.backgroundColor,
         "--color-port-card": mergedTheme.cardColor,
         "--color-port-text-main": mergedTheme.textMainColor,
         "--color-port-text-sub": mergedTheme.textSubColor,
-      } as React.CSSProperties),
-    [mergedTheme]
+      }) as React.CSSProperties,
+    [mergedTheme],
   );
 
   const value = useMemo(
@@ -60,7 +60,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       theme: mergedTheme,
       cssVariables,
     }),
-    [mergedTheme, cssVariables]
+    [mergedTheme, cssVariables],
   );
 
   return (
@@ -71,4 +71,3 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     </ThemeContext.Provider>
   );
 };
-

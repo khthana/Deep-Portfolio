@@ -1,11 +1,7 @@
 import type { Request, RequestHandler } from "express";
 import { z } from "zod";
 import { formatPath, thaiMessage } from "./messages";
-import {
-  FieldError,
-  FieldLocation,
-  ValidationError,
-} from "./validation-error";
+import { FieldError, FieldLocation, ValidationError } from "./validation-error";
 
 /**
  * The one place a request's input is checked, and the only way a controller is

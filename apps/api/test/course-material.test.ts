@@ -159,9 +159,7 @@ describe("GET /course-material", () => {
     expect(response.body).toEqual({
       success: false,
       message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: section_id ต้องระบุ",
-      errors: [
-        { field: "section_id", location: "query", message: "ต้องระบุ" },
-      ],
+      errors: [{ field: "section_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });

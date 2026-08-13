@@ -10,7 +10,10 @@ import {
   GetStudentLearningActivityGroupResp,
   UpdateStudentLearningActivityGroupBody,
 } from "../models/student-learning-activity-group.model";
-import GroupService, { assertMembersEnrolled, mintInvite } from "./group.service";
+import GroupService, {
+  assertMembersEnrolled,
+  mintInvite,
+} from "./group.service";
 
 export default class StudentLearningActivityGroupService {
   private readonly groupService: GroupService;
@@ -93,10 +96,8 @@ export default class StudentLearningActivityGroupService {
             role: member.role,
             student_learning_activity_id: studentActivity.id,
             // ใส่เงื่อนไขแบบเดียวกับ activity: LEADER เข้ากลุ่มเลย ลูกน้องต้องรอตอบรับ
-            invite_token:
-              member.role === "LEADER" ? null : invite.invite_token,
-            token_expiry:
-              member.role === "LEADER" ? null : invite.token_expiry,
+            invite_token: member.role === "LEADER" ? null : invite.invite_token,
+            token_expiry: member.role === "LEADER" ? null : invite.token_expiry,
             status: member.role === "LEADER" ? "ACCEPT" : "PENDING",
           },
         });
@@ -152,14 +153,13 @@ export default class StudentLearningActivityGroupService {
           where: { group_id: data.group_id },
         });
 
-      const group =
-        await tx.student_learning_activity_group.findUniqueOrThrow({
-          where: { id: data.group_id },
-          select: {
-            learning_activity_id: true,
-            learning_activities: { select: { section_id: true } },
-          },
-        });
+      const group = await tx.student_learning_activity_group.findUniqueOrThrow({
+        where: { id: data.group_id },
+        select: {
+          learning_activity_id: true,
+          learning_activities: { select: { section_id: true } },
+        },
+      });
 
       // ตรวจรายชื่อใหม่ก่อนลบรายชื่อเดิม (#37) ถ้าไม่ผ่าน กลุ่มยังเหมือนเดิมทุกอย่าง
       await assertMembersEnrolled(

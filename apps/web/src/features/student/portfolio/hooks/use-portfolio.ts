@@ -518,8 +518,6 @@ export const usePortfolio = (
       } catch (err) {
         console.error("Error fetching portfolio data:", err);
         setError(err instanceof Error ? err : new Error("Unknown error"));
-
-
       } finally {
         setLoading(false);
       }

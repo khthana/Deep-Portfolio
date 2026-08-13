@@ -257,7 +257,8 @@ export function requireGroupLeader(
  * that one is about a group that exists and is somebody else's, this one is
  * about a group that does not exist yet and is being made for somebody else.
  */
-export const NOT_SELF_LEADER = "สร้างกลุ่มได้เฉพาะกลุ่มที่ตัวเองเป็นหัวหน้าเท่านั้น";
+export const NOT_SELF_LEADER =
+  "สร้างกลุ่มได้เฉพาะกลุ่มที่ตัวเองเป็นหัวหน้าเท่านั้น";
 
 /**
  * The body carries a member list and the signed-in student must be the one it

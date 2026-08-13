@@ -1,12 +1,4 @@
-import {
-  Modal,
-  Form,
-  Input,
-  Upload,
-  Image,
-  DatePicker,
-  Checkbox,
-} from "antd";
+import { Modal, Form, Input, Upload, Image, DatePicker, Checkbox } from "antd";
 import { useEffect, useState } from "react";
 import type { UploadFile } from "antd";
 import dayjs from "dayjs";

@@ -172,9 +172,7 @@ describe("GET /rubric/shared-rubric", () => {
     expect(response.body).toEqual({
       success: false,
       message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: program_id ต้องระบุ",
-      errors: [
-        { field: "program_id", location: "query", message: "ต้องระบุ" },
-      ],
+      errors: [{ field: "program_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });

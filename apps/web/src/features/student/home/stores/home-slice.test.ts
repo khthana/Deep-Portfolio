@@ -5,10 +5,7 @@ import {
   fetchPortfolioPersonal,
   fetchStudentDetail,
 } from "./home-action";
-import type {
-  AllClassworkDetailResp,
-  StudentDetail,
-} from "../types/home-type";
+import type { AllClassworkDetailResp, StudentDetail } from "../types/home-type";
 import type { PortfolioPersonalResp } from "../../../../types/portfolio-personal-type.type";
 import {
   failed,
@@ -76,7 +73,9 @@ describe("homeSlice", () => {
     it("replaces all four buckets with what came back", () => {
       const late: AllClassworkDetailResp = {
         ...classwork,
-        late: [{ id: 7, name: "งานที่หนึ่ง" }] as AllClassworkDetailResp["late"],
+        late: [
+          { id: 7, name: "งานที่หนึ่ง" },
+        ] as AllClassworkDetailResp["late"],
       };
 
       const next = reducer(
@@ -185,7 +184,10 @@ describe("homeSlice", () => {
     });
 
     it("remembers whether the submenu is expanded", () => {
-      const shown = reducer(initialState, homeSliceAction.setIsShowSubMenu(true));
+      const shown = reducer(
+        initialState,
+        homeSliceAction.setIsShowSubMenu(true),
+      );
 
       expect(shown.isShowSubmenu).toBe(true);
       expect(
@@ -205,7 +207,10 @@ describe("homeSlice", () => {
     it("lets the caller set the id without fetching the student", () => {
       // The e-portfolio is reachable by a public link, where there is no
       // session to fetch a student from — the id comes off the route instead.
-      const next = reducer(initialState, homeSliceAction.setStudentId("65000002"));
+      const next = reducer(
+        initialState,
+        homeSliceAction.setStudentId("65000002"),
+      );
 
       expect(next.studentId).toBe("65000002");
       expect(next.studentDetail).toBeNull();

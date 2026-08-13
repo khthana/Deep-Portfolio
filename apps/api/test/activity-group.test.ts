@@ -848,7 +848,9 @@ describe("DELETE /student-activity-group/:group_id", () => {
     // work each of them had is still theirs — the same rule as dropping one
     // member out of the list.
     expect(
-      await prisma.student_activity.count({ where: { activity_id: activity.id } }),
+      await prisma.student_activity.count({
+        where: { activity_id: activity.id },
+      }),
     ).toBe(2);
   });
 
@@ -963,9 +965,10 @@ describe("POST /student-activity-group/resend-invite", () => {
 
     expect(response.status).toBe(200);
 
-    const reissued = await prisma.student_activity_group_member.findUniqueOrThrow(
-      { where: { id: invited.id } },
-    );
+    const reissued =
+      await prisma.student_activity_group_member.findUniqueOrThrow({
+        where: { id: invited.id },
+      });
     expect(reissued.invite_token).toEqual(expect.any(String));
     expect(reissued.invite_token).not.toBe("ran-out");
     expect(reissued.token_expiry?.getTime()).toBeGreaterThan(Date.now());
@@ -975,13 +978,11 @@ describe("POST /student-activity-group/resend-invite", () => {
     // The point of the endpoint is that this now goes through, so the case
     // follows the new token all the way to the answer rather than stopping at
     // the row it wrote.
-    const accepted = await request(app)
-      .post("/group/accept-invite")
-      .send({
-        token: reissued.invite_token,
-        action: "ACCEPT",
-        type: "activity",
-      });
+    const accepted = await request(app).post("/group/accept-invite").send({
+      token: reissued.invite_token,
+      action: "ACCEPT",
+      type: "activity",
+    });
 
     expect(accepted.status).toBe(200);
     expect(
@@ -1014,9 +1015,7 @@ describe("POST /student-activity-group/resend-invite", () => {
       .send({ token: "superseded", action: "ACCEPT", type: "activity" });
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toBe(
-      "โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว",
-    );
+    expect(response.body.message).toBe("โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว");
   });
 
   it("refuses a member who has already accepted", async () => {
@@ -1113,7 +1112,9 @@ describe("POST /student-activity-group/resend-invite", () => {
       .send({ group_id: 999_999, student_id: student.student_id });
 
     expect(response.status).toBe(403);
-    expect(response.body.message).toBe("เฉพาะหัวหน้ากลุ่มเท่านั้นที่แก้ไขกลุ่มได้");
+    expect(response.body.message).toBe(
+      "เฉพาะหัวหน้ากลุ่มเท่านั้นที่แก้ไขกลุ่มได้",
+    );
   });
 
   it("answers 400 for a request that names no student", async () => {

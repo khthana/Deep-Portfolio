@@ -99,8 +99,7 @@ export async function mapLearningActivityToCLO(
     (await createCLO({ section_id: activity.section_id })).clo_id;
 
   const sequence_order =
-    options.sequence_order ??
-    (await nextLearningSequenceOrder(activity.id));
+    options.sequence_order ?? (await nextLearningSequenceOrder(activity.id));
 
   return prisma.learning_activity_clo_mapping.create({
     data: {

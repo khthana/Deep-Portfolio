@@ -18,7 +18,7 @@ export const addScoreWeight = async (req: AddScoreWeightBody) => {
 export const updateScoreWeight = async (body: UpdateScoreWeightBody) => {
   const resp = await axiosInstance.put<ResponseWrapper<ScoreWeightResp>>(
     endpoints["score_weight"].root,
-    body
+    body,
   );
 
   return resp.data;
@@ -27,7 +27,7 @@ export const updateScoreWeight = async (body: UpdateScoreWeightBody) => {
 export const deleteScoreWeight = async (scoreId: number) => {
   const resp = await axiosInstance.delete<ResponseWrapper<ScoreWeightResp>>(
     endpoints["score_weight"].root,
-    { params: { scoreId } }
+    { params: { scoreId } },
   );
 
   return resp.data;
@@ -38,7 +38,7 @@ export const deleteScoreWeight = async (scoreId: number) => {
 export const getScoreWeightOptions = async (section_id: number) => {
   const resp = await axiosInstance.get<ResponseWrapper<Options[]>>(
     endpoints["score_weight"].options,
-    { params: { section_id } }
+    { params: { section_id } },
   );
 
   return resp.data;

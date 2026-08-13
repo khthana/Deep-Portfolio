@@ -271,9 +271,7 @@ describe("GET /student/course/list", () => {
   });
 
   it("refuses a request with no session", async () => {
-    const response = await request(app)
-      .get("/student/course/list")
-      .query(TERM);
+    const response = await request(app).get("/student/course/list").query(TERM);
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
@@ -616,9 +614,9 @@ describe("GET /student/all/classwork/list", () => {
       .query(TERM);
 
     expect(response.status).toBe(200);
-    expect(response.body.data.late.map((c: { name: string }) => c.name)).toEqual(
-      ["งานที่เลยกำหนด"],
-    );
+    expect(
+      response.body.data.late.map((c: { name: string }) => c.name),
+    ).toEqual(["งานที่เลยกำหนด"]);
     expect(
       response.body.data.upcoming.map((c: { name: string }) => c.name),
     ).toEqual(["งานที่ยังไม่ถึงกำหนด"]);

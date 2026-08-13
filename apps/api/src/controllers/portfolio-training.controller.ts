@@ -78,7 +78,12 @@ export default class PortfolioTrainingController {
           files,
         );
 
-      successResponse(res, result, "Created portfolio training successfully", 201);
+      successResponse(
+        res,
+        result,
+        "Created portfolio training successfully",
+        201,
+      );
     } catch (err) {
       next(err);
     }

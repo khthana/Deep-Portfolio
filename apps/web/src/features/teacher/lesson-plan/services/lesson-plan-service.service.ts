@@ -18,7 +18,7 @@ export const addLessonPlan = async (req: AddLessonPlanBody) => {
 export const updateLessonPlan = async (body: UpdateLessonPlanBody) => {
   const resp = await axiosInstance.put<ResponseWrapper<LessonPlanResp>>(
     endpoints.lesson_plan.root,
-    body
+    body,
   );
 
   return resp.data;
@@ -35,7 +35,7 @@ export const deleteLessonPlan = async (lesson_plan_id: number) => {
 export const getLessonPlanOptions = async (section_id: number) => {
   const resp = await axiosInstance.get<ResponseWrapper<Options[]>>(
     endpoints.lesson_plan.options,
-    { params: { section_id } }
+    { params: { section_id } },
   );
 
   return resp.data;

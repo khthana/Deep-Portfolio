@@ -88,9 +88,7 @@ describe("GET /score-weight", () => {
     expect(response.body).toEqual({
       success: false,
       message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: section_id ต้องระบุ",
-      errors: [
-        { field: "section_id", location: "query", message: "ต้องระบุ" },
-      ],
+      errors: [{ field: "section_id", location: "query", message: "ต้องระบุ" }],
     });
   });
 });
@@ -404,9 +402,9 @@ describe("DELETE /score-weight", () => {
     const remaining = await prisma.subject_score_ratio.findMany({
       where: { section_id: course.section_id },
     });
-    expect(
-      remaining.map((weight) => weight.score_ratio_id),
-    ).toEqual([kept.score_ratio_id]);
+    expect(remaining.map((weight) => weight.score_ratio_id)).toEqual([
+      kept.score_ratio_id,
+    ]);
   });
 
   it("leaves the activities that used it, unassigned", async () => {

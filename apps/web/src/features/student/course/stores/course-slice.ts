@@ -422,10 +422,13 @@ export const studentCourseSlice = createSlice({
       .addCase(postResendLearningActivityGroupInvite.fulfilled, (state) => {
         state.postResendLearningActivityGroupInviteLoading = false;
       })
-      .addCase(postResendLearningActivityGroupInvite.rejected, (state, action) => {
-        state.postResendLearningActivityGroupInviteLoading = false;
-        state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
-      });
+      .addCase(
+        postResendLearningActivityGroupInvite.rejected,
+        (state, action) => {
+          state.postResendLearningActivityGroupInviteLoading = false;
+          state.error = action.error.message ?? GENERIC_ERROR_MESSAGE;
+        },
+      );
 
     builder
       .addCase(fetchStudentLearningActivityGroup.pending, (state) => {

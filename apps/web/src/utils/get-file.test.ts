@@ -28,7 +28,8 @@ describe("getFile", () => {
   it("leaves the signature untouched", () => {
     // The whole query is signed, so anything added or re-escaped here would be
     // answered 403. This is the case that says the helper must stay this dumb.
-    const signed = "/files?path=section%2F1%2F%E0%B8%87%E0%B8%B2%E0%B8%99+%231.pdf&exp=1786000000&sig=x-_y";
+    const signed =
+      "/files?path=section%2F1%2F%E0%B8%87%E0%B8%B2%E0%B8%99+%231.pdf&exp=1786000000&sig=x-_y";
 
     expect(getFile(signed)).toBe(`http://backend.test${signed}`);
   });

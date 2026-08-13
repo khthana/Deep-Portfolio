@@ -338,7 +338,9 @@ describe("GET /portfolio/public/:token", () => {
       github: "https://example.test/manee",
     });
     expect(
-      response.body.data.educationData.map((e: { institution: string }) => e.institution),
+      response.body.data.educationData.map(
+        (e: { institution: string }) => e.institution,
+      ),
     ).toEqual(["โรงเรียนตัวอย่าง"]);
     expect(
       response.body.data.trainingData.map((t: { name: string }) => t.name),
@@ -409,7 +411,9 @@ describe("GET /portfolio/public/:token", () => {
   it("answers 404 for a token that opens nothing", async () => {
     await createPortfolio();
 
-    const response = await request(app).get(`/portfolio/public/${UNUSED_TOKEN}`);
+    const response = await request(app).get(
+      `/portfolio/public/${UNUSED_TOKEN}`,
+    );
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({

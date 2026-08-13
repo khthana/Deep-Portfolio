@@ -64,7 +64,10 @@ router.put(
   "/:id",
   requireUser,
   requireOwnEntry(entryOwner.education),
-  validate({ params: portfolioEntryParams, body: updatePortfolioEducationBody }),
+  validate({
+    params: portfolioEntryParams,
+    body: updatePortfolioEducationBody,
+  }),
   portfolioEducationController.updatePortfolioEducation.bind(
     portfolioEducationController,
   ),

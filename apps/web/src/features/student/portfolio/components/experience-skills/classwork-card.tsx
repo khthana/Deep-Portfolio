@@ -1,6 +1,4 @@
-import type {
-  MockClassworkType,
-} from "../../types/experience-skill-type.type";
+import type { MockClassworkType } from "../../types/experience-skill-type.type";
 
 type Props = {
   data: MockClassworkType;

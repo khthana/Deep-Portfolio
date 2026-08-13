@@ -11,11 +11,12 @@ import MinIOService from "./upload.service";
 // The row as every read in this file asks for it: the record plus its
 // attachments, reached through the join table. Derived from the schema, so
 // a column added to either side arrives here without an edit.
-type PortfolioCertificateWithAttachments = Prisma.portfolio_certificateGetPayload<{
-  include: {
-    portfolio_certificate_attachments: { include: { attachments: true } };
-  };
-}>;
+type PortfolioCertificateWithAttachments =
+  Prisma.portfolio_certificateGetPayload<{
+    include: {
+      portfolio_certificate_attachments: { include: { attachments: true } };
+    };
+  }>;
 
 type PortfolioCertificateAttachment = NonNullable<
   PortfolioCertificateResp["attachments"]

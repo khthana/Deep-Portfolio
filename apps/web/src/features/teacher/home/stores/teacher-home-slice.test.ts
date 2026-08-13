@@ -94,7 +94,10 @@ describe("teacherHomeSlice", () => {
         responded(fetchAllCourse, courseList),
       );
 
-      const rejected = reducer(loaded, failed(fetchAllCourse, "โหลดรายวิชาไม่สำเร็จ"));
+      const rejected = reducer(
+        loaded,
+        failed(fetchAllCourse, "โหลดรายวิชาไม่สำเร็จ"),
+      );
 
       expect(rejected.error).toBe("โหลดรายวิชาไม่สำเร็จ");
       expect(rejected.activeCourse).toEqual(active);

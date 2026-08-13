@@ -119,9 +119,7 @@ describe("POST /group/validate-invite", () => {
       .send({ token: "expired-token", type: "activity" });
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toBe(
-      "โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว",
-    );
+    expect(response.body.message).toBe("โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว");
   });
 
   it("does not answer an activity token asked about as a learning one", async () => {
@@ -169,13 +167,11 @@ describe("POST /group/accept-invite", () => {
     });
     const invited = group.student_activity_group_member[1];
 
-    const response = await request(app)
-      .post("/group/accept-invite")
-      .send({
-        token: "reject-activity",
-        action: "REJECTED",
-        type: "activity",
-      });
+    const response = await request(app).post("/group/accept-invite").send({
+      token: "reject-activity",
+      action: "REJECTED",
+      type: "activity",
+    });
 
     expect(response.status).toBe(200);
     expect(
@@ -191,13 +187,11 @@ describe("POST /group/accept-invite", () => {
     });
     const invited = group.student_learning_activity_group_member[1];
 
-    const response = await request(app)
-      .post("/group/accept-invite")
-      .send({
-        token: "accept-learning",
-        action: "ACCEPT",
-        type: "learning-activity",
-      });
+    const response = await request(app).post("/group/accept-invite").send({
+      token: "accept-learning",
+      action: "ACCEPT",
+      type: "learning-activity",
+    });
 
     expect(response.status).toBe(200);
     expect(
@@ -232,18 +226,14 @@ describe("POST /group/accept-invite", () => {
     });
     const invited = group.student_activity_group_member[1];
 
-    const response = await request(app)
-      .post("/group/accept-invite")
-      .send({
-        token: "expired-on-accept",
-        action: "ACCEPT",
-        type: "activity",
-      });
+    const response = await request(app).post("/group/accept-invite").send({
+      token: "expired-on-accept",
+      action: "ACCEPT",
+      type: "activity",
+    });
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toBe(
-      "โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว",
-    );
+    expect(response.body.message).toBe("โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว");
     expect(
       await prisma.student_activity_group_member.findUniqueOrThrow({
         where: { id: invited.id },

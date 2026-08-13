@@ -346,8 +346,8 @@ const StudentWorkDetailPage: React.FC = () => {
 
           <div className="flex flex-row items-start justify-start gap-12 w-full">
             {((work.isShowRole && work.roleAndResp) ||
-            (work.isShowExpectation && work.initialExpectation) ||
-            (work.isShowReflection && work.reflection)) && (
+              (work.isShowExpectation && work.initialExpectation) ||
+              (work.isShowReflection && work.reflection)) && (
               <div className="flex-1 flex flex-col items-start gap-12 max-w-[50%]">
                 {work.isShowRole && work.roleAndResp && (
                   <div>

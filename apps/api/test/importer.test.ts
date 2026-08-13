@@ -45,7 +45,9 @@ async function importable(files: Record<string, string>): Promise<string> {
 
 afterAll(async () => {
   await Promise.all(
-    directories.map((directory) => rm(directory, { recursive: true, force: true })),
+    directories.map((directory) =>
+      rm(directory, { recursive: true, force: true }),
+    ),
   );
 });
 
@@ -62,8 +64,12 @@ describe("runImport", () => {
 
     expect(result.ok).toBe(true);
     expect(result.errors).toEqual([]);
-    expect(result.tables).toEqual([{ table: "faculty", created: 1, updated: 0 }]);
-    expect(await prisma.faculty.findUnique({ where: { faculty_id: "93" } })).toMatchObject({
+    expect(result.tables).toEqual([
+      { table: "faculty", created: 1, updated: 0 },
+    ]);
+    expect(
+      await prisma.faculty.findUnique({ where: { faculty_id: "93" } }),
+    ).toMatchObject({
       faculty_name_th: "คณะทดสอบ",
       faculty_name_en: "Test Faculty",
       // Not in the file. The column's default is what fills it, which is why a
@@ -83,27 +89,35 @@ describe("runImport", () => {
     const first = await runImport(directory);
     const second = await runImport(directory);
 
-    expect(first.tables).toEqual([{ table: "faculty", created: 1, updated: 0 }]);
-    expect(second.tables).toEqual([{ table: "faculty", created: 0, updated: 1 }]);
+    expect(first.tables).toEqual([
+      { table: "faculty", created: 1, updated: 0 },
+    ]);
+    expect(second.tables).toEqual([
+      { table: "faculty", created: 0, updated: 1 },
+    ]);
     expect(await prisma.faculty.count({ where: { faculty_id: "94" } })).toBe(1);
   });
 
   it("carries an edit through on the second run", async () => {
     const before = await importable({
-      "faculty.csv": ["faculty_id,faculty_name_th,faculty_name_en", "95,ชื่อเก่า,Old Name"].join(
-        "\n",
-      ),
+      "faculty.csv": [
+        "faculty_id,faculty_name_th,faculty_name_en",
+        "95,ชื่อเก่า,Old Name",
+      ].join("\n"),
     });
     const after = await importable({
-      "faculty.csv": ["faculty_id,faculty_name_th,faculty_name_en", "95,ชื่อใหม่,New Name"].join(
-        "\n",
-      ),
+      "faculty.csv": [
+        "faculty_id,faculty_name_th,faculty_name_en",
+        "95,ชื่อใหม่,New Name",
+      ].join("\n"),
     });
 
     await runImport(before);
     await runImport(after);
 
-    expect(await prisma.faculty.findUnique({ where: { faculty_id: "95" } })).toMatchObject({
+    expect(
+      await prisma.faculty.findUnique({ where: { faculty_id: "95" } }),
+    ).toMatchObject({
       faculty_name_th: "ชื่อใหม่",
       faculty_name_en: "New Name",
     });
@@ -122,16 +136,19 @@ describe("runImport", () => {
         "department_id,department_name_th,department_name_en,faculty_id",
         "96,ภาควิชาทดสอบ,Test Department,96",
       ].join("\n"),
-      "faculty.csv": ["faculty_id,faculty_name_th,faculty_name_en", "96,คณะทดสอบสอง,Second Test Faculty"].join(
-        "\n",
-      ),
+      "faculty.csv": [
+        "faculty_id,faculty_name_th,faculty_name_en",
+        "96,คณะทดสอบสอง,Second Test Faculty",
+      ].join("\n"),
     });
 
     const result = await runImport(directory);
 
     expect(result.ok).toBe(true);
     expect(result.order).toEqual([["faculty"], ["departments"], ["programs"]]);
-    expect(await prisma.programs.findUnique({ where: { program_id: "9601" } })).toMatchObject({
+    expect(
+      await prisma.programs.findUnique({ where: { program_id: "9601" } }),
+    ).toMatchObject({
       department_id: "96",
     });
   });
@@ -149,7 +166,9 @@ describe("runImport", () => {
     const result = await runImport(directory);
 
     expect(result.ok).toBe(true);
-    expect(await prisma.faculty.findUnique({ where: { faculty_id: "97" } })).toMatchObject({
+    expect(
+      await prisma.faculty.findUnique({ where: { faculty_id: "97" } }),
+    ).toMatchObject({
       faculty_name_th: "คณะวิศวกรรมศาสตร์, วิทยาเขตหลัก",
       faculty_name_en: "Faculty of Engineering",
     });
@@ -168,11 +187,15 @@ describe("runImport", () => {
     const result = await runImport(directory);
 
     expect(result.errors).toEqual([]);
-    expect(await prisma.subjects.findUnique({ where: { subject_id: "90009701" } })).toMatchObject({
+    expect(
+      await prisma.subjects.findUnique({ where: { subject_id: "90009701" } }),
+    ).toMatchObject({
       description_th: 'บรรทัดแรก\nบรรทัดที่สอง "มีคำพูด" ด้วย',
     });
     // And the row after it is still one row, not two half-rows.
-    expect(await prisma.subjects.findUnique({ where: { subject_id: "90009702" } })).not.toBeNull();
+    expect(
+      await prisma.subjects.findUnique({ where: { subject_id: "90009702" } }),
+    ).not.toBeNull();
   });
 
   it("leaves a column alone when the cell for it is empty", async () => {
@@ -189,10 +212,14 @@ describe("runImport", () => {
     await runImport(named);
     const second = await runImport(blank);
 
-    expect(second.tables).toEqual([{ table: "departments", created: 0, updated: 1 }]);
+    expect(second.tables).toEqual([
+      { table: "departments", created: 0, updated: 1 },
+    ]);
     // An empty optional cell means "nothing to say about this column", not
     // "clear it" — otherwise a partial file would wipe what a fuller one wrote.
-    expect(await prisma.departments.findUnique({ where: { department_id: "98" } })).toMatchObject({
+    expect(
+      await prisma.departments.findUnique({ where: { department_id: "98" } }),
+    ).toMatchObject({
       department_name_th: "ภาควิชาเดิม",
     });
   });
@@ -226,7 +253,9 @@ describe("runImport", () => {
       updated: 1,
     });
     expect(
-      await prisma.program_subjects.count({ where: { subject_id: "90009801" } }),
+      await prisma.program_subjects.count({
+        where: { subject_id: "90009801" },
+      }),
     ).toBe(1);
   });
 
@@ -239,13 +268,17 @@ describe("runImport", () => {
       // student.student_id is a foreign key to users.user_id: staff and students
       // share one identifier space, so a student is a user first and a student
       // second. The write order is what makes one directory enough for both.
-      "users.csv": ["user_id,email", "65009901,student9901@example.ac.th"].join("\n"),
+      "users.csv": ["user_id,email", "65009901,student9901@example.ac.th"].join(
+        "\n",
+      ),
     });
 
     const result = await runImport(directory);
 
     expect(result.errors).toEqual([]);
-    expect(await prisma.student.findUnique({ where: { student_id: "65009901" } })).toMatchObject({
+    expect(
+      await prisma.student.findUnique({ where: { student_id: "65009901" } }),
+    ).toMatchObject({
       // Neither column is in the file, and neither could be: both are GENERATED
       // ALWAYS, from the two names and from the first two digits of the id.
       full_name_th: "นักศึกษา ทดสอบ",
@@ -259,18 +292,24 @@ describe("runImport", () => {
         "faculty_id,faculty_name_th,faculty_name_en,is_active",
         "99,คณะที่ปิดแล้ว,Closed Faculty,FALSE",
       ].join("\n"),
-      "programs.csv": ["program_id,created_at", "9901,2026-01-02T03:04:05Z"].join("\n"),
+      "programs.csv": [
+        "program_id,created_at",
+        "9901,2026-01-02T03:04:05Z",
+      ].join("\n"),
     });
 
     const result = await runImport(directory);
 
     expect(result.errors).toEqual([]);
-    expect(await prisma.faculty.findUnique({ where: { faculty_id: "99" } })).toMatchObject({
+    expect(
+      await prisma.faculty.findUnique({ where: { faculty_id: "99" } }),
+    ).toMatchObject({
       // Written "FALSE" by the spreadsheet, and false in the database.
       is_active: false,
     });
     expect(
-      (await prisma.programs.findUnique({ where: { program_id: "9901" } }))?.created_at,
+      (await prisma.programs.findUnique({ where: { program_id: "9901" } }))
+        ?.created_at,
     ).toEqual(new Date("2026-01-02T03:04:05Z"));
   });
 
@@ -289,10 +328,16 @@ describe("runImport", () => {
     const first = await runImport(directory);
     const second = await runImport(directory);
 
-    expect(first.tables).toEqual([{ table: "rubric_details", created: 1, updated: 0 }]);
-    expect(second.tables).toEqual([{ table: "rubric_details", created: 0, updated: 1 }]);
+    expect(first.tables).toEqual([
+      { table: "rubric_details", created: 1, updated: 0 },
+    ]);
+    expect(second.tables).toEqual([
+      { table: "rubric_details", created: 0, updated: 1 },
+    ]);
 
-    const detail = await prisma.rubric_details.findUnique({ where: { id: 900001 } });
+    const detail = await prisma.rubric_details.findUnique({
+      where: { id: 900001 },
+    });
 
     // Decimal(5, 2). Read back as a string so the assertion is about the digits
     // Postgres stored, not about what a float rounds to.
@@ -309,7 +354,9 @@ describe("runImport", () => {
 
     const result = await runImport(directory);
 
-    expect(result.tables).toEqual([{ table: "faculty", created: 0, updated: 1 }]);
+    expect(result.tables).toEqual([
+      { table: "faculty", created: 0, updated: 1 },
+    ]);
     expect(
       await prisma.faculty.findUnique({
         where: { faculty_id: BASELINE.faculty.faculty_id },
@@ -342,13 +389,17 @@ describe("runImport, when the files are wrong", () => {
     ]);
     // The second row was fine. It is still not in the database, because one bad
     // cell stops the whole run rather than half of it.
-    expect(await prisma.faculty.findUnique({ where: { faculty_id: "80" } })).toBeNull();
+    expect(
+      await prisma.faculty.findUnique({ where: { faculty_id: "80" } }),
+    ).toBeNull();
     expect(await prisma.faculty.count()).toBe(before);
   });
 
   it("refuses a file that leaves out a column the table requires", async () => {
     const directory = await importable({
-      "faculty.csv": ["faculty_id,faculty_name_th", "81,คณะขาดคอลัมน์"].join("\n"),
+      "faculty.csv": ["faculty_id,faculty_name_th", "81,คณะขาดคอลัมน์"].join(
+        "\n",
+      ),
     });
 
     const result = await runImport(directory);
@@ -360,7 +411,9 @@ describe("runImport, when the files are wrong", () => {
       column: "faculty_name_en",
       message: "ต้องมีคอลัมน์นี้ในไฟล์",
     });
-    expect(await prisma.faculty.findUnique({ where: { faculty_id: "81" } })).toBeNull();
+    expect(
+      await prisma.faculty.findUnique({ where: { faculty_id: "81" } }),
+    ).toBeNull();
   });
 
   it("refuses a column the table does not have", async () => {
@@ -401,7 +454,9 @@ describe("runImport, when the files are wrong", () => {
         message: "ไม่พบ 79 ในตาราง faculty (คอลัมน์ faculty_id)",
       },
     ]);
-    expect(await prisma.departments.findUnique({ where: { department_id: "83" } })).toBeNull();
+    expect(
+      await prisma.departments.findUnique({ where: { department_id: "83" } }),
+    ).toBeNull();
   });
 
   it("accepts a foreign key that the same run is about to create", async () => {
@@ -413,15 +468,18 @@ describe("runImport, when the files are wrong", () => {
         "department_id,department_name_th,faculty_id",
         "84,ภาควิชามีคณะใหม่,84",
       ].join("\n"),
-      "faculty.csv": ["faculty_id,faculty_name_th,faculty_name_en", "84,คณะใหม่,New Faculty"].join(
-        "\n",
-      ),
+      "faculty.csv": [
+        "faculty_id,faculty_name_th,faculty_name_en",
+        "84,คณะใหม่,New Faculty",
+      ].join("\n"),
     });
 
     const result = await runImport(directory);
 
     expect(result.ok).toBe(true);
-    expect(await prisma.departments.findUnique({ where: { department_id: "84" } })).toMatchObject({
+    expect(
+      await prisma.departments.findUnique({ where: { department_id: "84" } }),
+    ).toMatchObject({
       faculty_id: "84",
     });
   });
@@ -473,7 +531,9 @@ describe("runImport, when the files are wrong", () => {
     ]);
     // subjects.csv was faultless, and is still not in the database: the run is
     // one decision across every file, not one per file.
-    expect(await prisma.subjects.findUnique({ where: { subject_id: "90000001" } })).toBeNull();
+    expect(
+      await prisma.subjects.findUnique({ where: { subject_id: "90000001" } }),
+    ).toBeNull();
   });
 
   it("refuses a whole number the column's type cannot hold", async () => {
@@ -533,37 +593,53 @@ describe("runImport, when the files are wrong", () => {
 
     expect(result.ok).toBe(false);
     expect(result.errors).toEqual([
-      { table: "subjects", line: 2, column: "credits", message: "ต้องเป็นจำนวนเต็ม" },
+      {
+        table: "subjects",
+        line: 2,
+        column: "credits",
+        message: "ต้องเป็นจำนวนเต็ม",
+      },
     ]);
   });
 
   it("refuses a required cell left blank", async () => {
     const directory = await importable({
-      "faculty.csv": ["faculty_id,faculty_name_th,faculty_name_en", "86,,Blank Thai Name"].join(
-        "\n",
-      ),
+      "faculty.csv": [
+        "faculty_id,faculty_name_th,faculty_name_en",
+        "86,,Blank Thai Name",
+      ].join("\n"),
     });
 
     const result = await runImport(directory);
 
     expect(result.ok).toBe(false);
     expect(result.errors).toEqual([
-      { table: "faculty", line: 2, column: "faculty_name_th", message: "ต้องระบุ" },
+      {
+        table: "faculty",
+        line: 2,
+        column: "faculty_name_th",
+        message: "ต้องระบุ",
+      },
     ]);
   });
 
   it("refuses a file named after no table it can import", async () => {
     const directory = await importable({
-      "facultys.csv": ["faculty_id,faculty_name_th,faculty_name_en", "87,คณะสะกดผิด,Typo"].join(
-        "\n",
-      ),
+      "facultys.csv": [
+        "faculty_id,faculty_name_th,faculty_name_en",
+        "87,คณะสะกดผิด,Typo",
+      ].join("\n"),
     });
 
     const result = await runImport(directory);
 
     expect(result.ok).toBe(false);
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]).toMatchObject({ table: "facultys", line: null, column: null });
+    expect(result.errors[0]).toMatchObject({
+      table: "facultys",
+      line: null,
+      column: null,
+    });
   });
 
   it("refuses a column the database computes for itself", async () => {
@@ -587,10 +663,13 @@ describe("runImport, when the files are wrong", () => {
         table: "student",
         line: 1,
         column: "full_name_th",
-        message: "ฐานข้อมูลคำนวณคอลัมน์นี้เอง ไฟล์ระบุค่าไม่ได้ ให้ลบคอลัมน์นี้ออก",
+        message:
+          "ฐานข้อมูลคำนวณคอลัมน์นี้เอง ไฟล์ระบุค่าไม่ได้ ให้ลบคอลัมน์นี้ออก",
       },
     ]);
-    expect(await prisma.student.findUnique({ where: { student_id: "65009902" } })).toBeNull();
+    expect(
+      await prisma.student.findUnique({ where: { student_id: "65009902" } }),
+    ).toBeNull();
   });
 
   it("refuses a keyless table unless the file supplies the id itself", async () => {
@@ -695,9 +774,10 @@ describe("runImport, on the table that cannot be written yet", () => {
       // A table that writes perfectly well, and is written first because nothing
       // it references is in this run. It is here to show what the throw costs:
       // the transaction takes it back down with the file it could not write.
-      "faculty.csv": ["faculty_id,faculty_name_th,faculty_name_en", "78,คณะร่วมรอบ,Same Run Faculty"].join(
-        "\n",
-      ),
+      "faculty.csv": [
+        "faculty_id,faculty_name_th,faculty_name_en",
+        "78,คณะร่วมรอบ,Same Run Faculty",
+      ].join("\n"),
     });
 
     // The message is Prisma's own wording, not ours, so an upgrade may move it.
@@ -711,6 +791,8 @@ describe("runImport, on the table that cannot be written yet", () => {
         where: { clo_id: clo.clo_id },
       }),
     ).toBe(0);
-    expect(await prisma.faculty.findUnique({ where: { faculty_id: "78" } })).toBeNull();
+    expect(
+      await prisma.faculty.findUnique({ where: { faculty_id: "78" } }),
+    ).toBeNull();
   });
 });

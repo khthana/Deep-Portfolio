@@ -889,13 +889,11 @@ describe("POST /student-learning-activity-group/resend-invite", () => {
     expect(reissued.token_expiry?.getTime()).toBeGreaterThan(Date.now());
     expect(reissued.status).toBe("PENDING");
 
-    const accepted = await request(app)
-      .post("/group/accept-invite")
-      .send({
-        token: reissued.invite_token,
-        action: "ACCEPT",
-        type: "learning-activity",
-      });
+    const accepted = await request(app).post("/group/accept-invite").send({
+      token: reissued.invite_token,
+      action: "ACCEPT",
+      type: "learning-activity",
+    });
 
     expect(accepted.status).toBe(200);
     expect(
@@ -921,18 +919,14 @@ describe("POST /student-learning-activity-group/resend-invite", () => {
 
     expect(resent.status).toBe(200);
 
-    const response = await request(app)
-      .post("/group/accept-invite")
-      .send({
-        token: "learning-superseded",
-        action: "ACCEPT",
-        type: "learning-activity",
-      });
+    const response = await request(app).post("/group/accept-invite").send({
+      token: "learning-superseded",
+      action: "ACCEPT",
+      type: "learning-activity",
+    });
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toBe(
-      "โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว",
-    );
+    expect(response.body.message).toBe("โทเค็นคำเชิญไม่ถูกต้องหรือหมดอายุแล้ว");
   });
 
   it("refuses a member who has already accepted", async () => {
@@ -1001,7 +995,9 @@ describe("POST /student-learning-activity-group/resend-invite", () => {
       .send({ group_id: 999_999, student_id: student.student_id });
 
     expect(response.status).toBe(403);
-    expect(response.body.message).toBe("เฉพาะหัวหน้ากลุ่มเท่านั้นที่แก้ไขกลุ่มได้");
+    expect(response.body.message).toBe(
+      "เฉพาะหัวหน้ากลุ่มเท่านั้นที่แก้ไขกลุ่มได้",
+    );
   });
 
   it("refuses a member who is not the leader", async () => {

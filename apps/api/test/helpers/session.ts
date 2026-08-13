@@ -50,9 +50,7 @@ export function sessionCookie(options: SessionOptions): string {
 }
 
 /** The refresh cookie, for the POST /auth/refresh path. */
-export function refreshCookie(
-  options: Omit<SessionOptions, "role">,
-): string {
+export function refreshCookie(options: Omit<SessionOptions, "role">): string {
   const {
     userId,
     expiresIn = "7d",

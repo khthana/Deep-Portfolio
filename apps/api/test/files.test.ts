@@ -136,10 +136,7 @@ describe("GET /files", () => {
   it("answers 410 for a URL that was ours but has expired", async () => {
     // Signed two hours ago, so its hour ran out an hour ago. Told apart from a
     // forged link on purpose: reloading the page fixes this one.
-    const url = await storedFile(
-      "stale.txt",
-      Date.now() - 2 * 60 * 60 * 1000,
-    );
+    const url = await storedFile("stale.txt", Date.now() - 2 * 60 * 60 * 1000);
 
     const response = await request(app).get(url);
 

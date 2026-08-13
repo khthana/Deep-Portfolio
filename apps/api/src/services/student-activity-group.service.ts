@@ -7,7 +7,10 @@ import {
   MemberDetailResp,
   UpdateStudentActivityGroupBody,
 } from "../models/student-activity-group.model";
-import GroupService, { assertMembersEnrolled, mintInvite } from "./group.service";
+import GroupService, {
+  assertMembersEnrolled,
+  mintInvite,
+} from "./group.service";
 
 export default class StudentActivityGroupService {
   private readonly groupService: GroupService;
@@ -82,10 +85,8 @@ export default class StudentActivityGroupService {
             student_id: member.student_id,
             role: member.role,
             student_activity_id: studentActivity.id,
-            invite_token:
-              member.role === "LEADER" ? null : invite.invite_token,
-            token_expiry:
-              member.role === "LEADER" ? null : invite.token_expiry,
+            invite_token: member.role === "LEADER" ? null : invite.invite_token,
+            token_expiry: member.role === "LEADER" ? null : invite.token_expiry,
             status: member.role === "LEADER" ? "ACCEPT" : "PENDING",
           },
         });

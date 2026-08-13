@@ -176,8 +176,7 @@ export interface SubmissionOptions {
 }
 
 export async function createSubmission(options: SubmissionOptions = {}) {
-  const student_id =
-    options.student_id ?? (await createStudent()).student_id;
+  const student_id = options.student_id ?? (await createStudent()).student_id;
   const activity_id = options.activity_id ?? (await createActivity()).id;
 
   const submission = await prisma.student_activity.create({

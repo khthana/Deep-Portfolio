@@ -274,12 +274,12 @@ const StudentActivityDetailPage: React.FC = () => {
             </div>
 
             {activity.description && (
-                <p
-                  className="body-1 whitespace-pre-wrap"
-                  style={{ color: "var(--port-primary)" }}
-                >
-                  {activity.description}
-                </p>
+              <p
+                className="body-1 whitespace-pre-wrap"
+                style={{ color: "var(--port-primary)" }}
+              >
+                {activity.description}
+              </p>
             )}
           </div>
         </div>

@@ -11,7 +11,7 @@ const TeacherAnnouncementPage = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   const announcementSlice = useSelector(
-    (state: RootState) => state.teacherAnnouncement
+    (state: RootState) => state.teacherAnnouncement,
   );
   const homeSlice = useSelector((state: RootState) => state.teacherHome);
 
@@ -28,15 +28,19 @@ const TeacherAnnouncementPage = () => {
   return (
     <PageLayout>
       <TeacherBreadcrumb title="ประกาศ" />
-      
+
       <div className="flex flex-col gap-4">
-        {announcementSlice.announcements && announcementSlice.announcements.length > 0?
+        {announcementSlice.announcements &&
+        announcementSlice.announcements.length > 0 ? (
           announcementSlice.announcements.map((announcement) => (
             <AnnouncementCard
               key={announcement.announcement_id}
               announcement={announcement}
             />
-          )) : <p className="caption-bold text-primary-red">ยังไม่มีประกาศ</p>}
+          ))
+        ) : (
+          <p className="caption-bold text-primary-red">ยังไม่มีประกาศ</p>
+        )}
       </div>
 
       <CreateAnnouncementButton />

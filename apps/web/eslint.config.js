@@ -1,18 +1,18 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
-import { globalIgnores } from 'eslint/config'
+import js from "@eslint/js";
+import globals from "globals";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
+import tseslint from "typescript-eslint";
+import { globalIgnores } from "eslint/config";
 
 export default tseslint.config([
-  globalIgnores(['dist']),
+  globalIgnores(["dist"]),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
-      reactHooks.configs['recommended-latest'],
+      reactHooks.configs["recommended-latest"],
       reactRefresh.configs.vite,
     ],
     languageOptions: {
@@ -25,9 +25,9 @@ export default tseslint.config([
       // changing types to satisfy the rule would be a large edit nobody can
       // check (D8). They stay visible in the output, and turning this back up
       // to "error" is the last step of whoever takes that work on.
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': [
-        'error',
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
         {
           // Parameters are not checked. The callbacks here have signatures
           // their libraries chose — antd's `render: (value, record, index)`,
@@ -36,11 +36,11 @@ export default tseslint.config([
           // used cannot be dropped. The default, "after-used", still reports 92
           // of them; silencing those means prefixing 92 parameters with `_`
           // across files that have no test cover (D8), for no defect caught.
-          args: 'none',
+          args: "none",
           // An unused local or import is still an error: that one is real, and
           // deleting it is safe.
-          varsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
         },
       ],
     },
@@ -49,9 +49,9 @@ export default tseslint.config([
     // The entry point is the one module Vite never hot-replaces — it mounts the
     // app. "Move your component to another file so fast refresh works" is not
     // advice that applies to it.
-    files: ['src/main.tsx'],
+    files: ["src/main.tsx"],
     rules: {
-      'react-refresh/only-export-components': 'off',
+      "react-refresh/only-export-components": "off",
     },
   },
-])
+]);

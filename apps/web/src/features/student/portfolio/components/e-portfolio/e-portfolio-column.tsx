@@ -1,5 +1,10 @@
 import { Popconfirm, Tooltip } from "antd";
-import { CheckOutlined, CloseOutlined, CopyOutlined, ExportOutlined } from "@ant-design/icons";
+import {
+  CheckOutlined,
+  CloseOutlined,
+  CopyOutlined,
+  ExportOutlined,
+} from "@ant-design/icons";
 import type { DataType } from "./e-portfolio-table";
 
 type Props = {
@@ -20,7 +25,11 @@ const EPortfolioColumn = (props: Props) => [
     title: "ลำดับที่",
     dataIndex: "no",
     key: "no",
-    render: (text: any) => <div className="caption-bold flex items-center justify-center">{text}</div>,
+    render: (text: any) => (
+      <div className="caption-bold flex items-center justify-center">
+        {text}
+      </div>
+    ),
     align: "center",
     width: 100,
   },
@@ -28,7 +37,9 @@ const EPortfolioColumn = (props: Props) => [
     title: "ชื่อ",
     dataIndex: "name",
     key: "name",
-    render: (text: any) => <div className="text-left font-medium flex items-center">{text}</div>,
+    render: (text: any) => (
+      <div className="text-left font-medium flex items-center">{text}</div>
+    ),
     align: "center",
     editable: true,
     width: 200,
@@ -91,7 +102,12 @@ const EPortfolioColumn = (props: Props) => [
     key: "expiry",
     width: 150,
     render: (date: Date | null) => {
-      if (!date) return <div className="text-gray-400 flex items-center justify-center">ไม่มีวันหมดอายุ</div>;
+      if (!date)
+        return (
+          <div className="text-gray-400 flex items-center justify-center">
+            ไม่มีวันหมดอายุ
+          </div>
+        );
       const expiryDate = new Date(date);
       const isExpired = new Date() > expiryDate;
       return (

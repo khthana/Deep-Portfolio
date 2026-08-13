@@ -113,7 +113,9 @@ export default class CourseController {
 
   async updateCLO(req: Request, res: Response, next: NextFunction) {
     try {
-      const clo = await this.cloService.updateCLO(validated(req, updateCLOBody));
+      const clo = await this.cloService.updateCLO(
+        validated(req, updateCLOBody),
+      );
 
       res.status(200).json({
         success: true,

@@ -32,7 +32,10 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
         className="bg-white shadow-lg rounded-full p-4 hover:shadow-xl transition-all duration-300 flex items-center gap-3 border-2 border-gray-200"
         title="Customize Theme Color"
       >
-        <BgColorsOutlined className="text-2xl" style={{ color: currentColor }} />
+        <BgColorsOutlined
+          className="text-2xl"
+          style={{ color: currentColor }}
+        />
         <span className="font-medium text-gray-700 hidden sm:inline">
           เปลี่ยนสีธีม
         </span>

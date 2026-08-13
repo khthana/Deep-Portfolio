@@ -67,9 +67,6 @@ export default class MinIOService {
 
     // The presigned URL points at the in-network MinIO host, which the
     // browser cannot resolve. Rewrite it to the externally reachable one.
-    return presignedUrl.replace(
-      env.MINIO_INTERNAL_HOST,
-      env.MINIO_PUBLIC_HOST,
-    );
+    return presignedUrl.replace(env.MINIO_INTERNAL_HOST, env.MINIO_PUBLIC_HOST);
   }
 }

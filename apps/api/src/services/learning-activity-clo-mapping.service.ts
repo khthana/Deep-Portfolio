@@ -3,7 +3,7 @@ import { CreateLearningActivityCLOMappingBodyReq } from "../models/learning-acti
 
 export default class LearningActivityCLOMappingService {
   async createLearningActivityCLOMapping(
-    data: CreateLearningActivityCLOMappingBodyReq
+    data: CreateLearningActivityCLOMappingBodyReq,
   ) {
     const lastSequence = await prisma.learning_activity_clo_mapping.aggregate({
       where: {
@@ -41,7 +41,7 @@ export default class LearningActivityCLOMappingService {
           });
 
         return learningActivityDetail;
-      })
+      }),
     );
 
     return result;

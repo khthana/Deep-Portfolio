@@ -147,7 +147,8 @@ describe("POST /student-learning-activity/grade", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "นักศึกษาคนนี้ยังไม่ได้อยู่ในกลุ่มใด จึงยังให้คะแนนงานกลุ่มไม่ได้",
+      message:
+        "นักศึกษาคนนี้ยังไม่ได้อยู่ในกลุ่มใด จึงยังให้คะแนนงานกลุ่มไม่ได้",
     });
     expect(
       await prisma.student_learning_activity.findUniqueOrThrow({
@@ -190,7 +191,8 @@ describe("POST /student-learning-activity/grade", () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
       success: false,
-      message: "ข้อมูลที่ส่งมาไม่ถูกต้อง: student_learning_activity_id ต้องระบุ",
+      message:
+        "ข้อมูลที่ส่งมาไม่ถูกต้อง: student_learning_activity_id ต้องระบุ",
       errors: [
         {
           field: "student_learning_activity_id",

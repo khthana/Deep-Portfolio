@@ -80,7 +80,9 @@ async function dropDatabase(): Promise<void> {
     // FORCE terminates whatever is still attached. Prisma's pool does not
     // always close instantly, and a leaked connection would otherwise leave the
     // database behind forever.
-    await client.query(`DROP DATABASE IF EXISTS "${DATABASE_NAME}" WITH (FORCE)`);
+    await client.query(
+      `DROP DATABASE IF EXISTS "${DATABASE_NAME}" WITH (FORCE)`,
+    );
   });
 }
 
@@ -129,8 +131,5 @@ afterAll(async () => {
   const { default: prisma } = await import("../src/config/prisma");
   await prisma.$disconnect();
 
-  await Promise.all([
-    dropDatabase(),
-    emptyAndRemoveBucket(minio, BUCKET_NAME),
-  ]);
+  await Promise.all([dropDatabase(), emptyAndRemoveBucket(minio, BUCKET_NAME)]);
 });

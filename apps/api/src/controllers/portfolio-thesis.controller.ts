@@ -69,7 +69,12 @@ export default class PortfolioThesisController {
         files,
       );
 
-      successResponse(res, result, "Created portfolio thesis successfully", 201);
+      successResponse(
+        res,
+        result,
+        "Created portfolio thesis successfully",
+        201,
+      );
     } catch (err) {
       next(err);
     }

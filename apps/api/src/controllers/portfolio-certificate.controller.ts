@@ -37,7 +37,11 @@ export default class PortfolioCertificateController {
           user_id,
         );
 
-      successResponse(res, result, "Fetched portfolio certificate successfully");
+      successResponse(
+        res,
+        result,
+        "Fetched portfolio certificate successfully",
+      );
     } catch (err) {
       next(err);
     }
@@ -58,7 +62,11 @@ export default class PortfolioCertificateController {
         throw NOT_FOUND();
       }
 
-      successResponse(res, result, "Fetched portfolio certificate successfully");
+      successResponse(
+        res,
+        result,
+        "Fetched portfolio certificate successfully",
+      );
     } catch (err) {
       next(err);
     }
@@ -70,10 +78,7 @@ export default class PortfolioCertificateController {
     next: NextFunction,
   ) {
     try {
-      const data = validated(
-        req,
-        createPortfolioCertificateBody,
-      );
+      const data = validated(req, createPortfolioCertificateBody);
       const files = uploadedFiles(req);
 
       const result =
@@ -113,7 +118,11 @@ export default class PortfolioCertificateController {
         NOT_FOUND,
       );
 
-      successResponse(res, result, "Updated portfolio certificate successfully");
+      successResponse(
+        res,
+        result,
+        "Updated portfolio certificate successfully",
+      );
     } catch (err) {
       next(err);
     }

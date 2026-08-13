@@ -106,7 +106,11 @@ export function assertSignedFileUrl(query: {
 }): void {
   const { path, exp, sig } = query;
 
-  if (exp === undefined || sig === undefined || !matches(sign(path, exp), sig)) {
+  if (
+    exp === undefined ||
+    sig === undefined ||
+    !matches(sign(path, exp), sig)
+  ) {
     throw new HttpError(403, "ลิงก์ไฟล์นี้ไม่ถูกต้อง");
   }
 

@@ -40,16 +40,10 @@ type StudentActivityBrief = {
 };
 
 export type StudentActivityStatus =
-  | "NOT_SUBMITTED"
-  | "SUBMITTED"
-  | "GRADED"
-  | "LATE";
+  "NOT_SUBMITTED" | "SUBMITTED" | "GRADED" | "LATE";
 
 export type StudentActivityStatusDB =
-  | "NOT_SUBMITTED"
-  | "SUBMITTED"
-  | "GRADED"
-  | "GRADING";
+  "NOT_SUBMITTED" | "SUBMITTED" | "GRADED" | "GRADING";
 
 //-----------------------------------
 

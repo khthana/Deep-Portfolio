@@ -78,7 +78,12 @@ export default class PortfolioActivityController {
           files,
         );
 
-      successResponse(res, result, "Created portfolio activity successfully", 201);
+      successResponse(
+        res,
+        result,
+        "Created portfolio activity successfully",
+        201,
+      );
     } catch (err) {
       next(err);
     }

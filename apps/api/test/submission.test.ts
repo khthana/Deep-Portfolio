@@ -159,7 +159,9 @@ describe("POST /student/submit/activity", () => {
   it("keeps only the attachments named in existing_files_ids", async () => {
     const { course, student, activity, submission } = await individualCase();
     const kept = await createFileAttachment({ original_filename: "เก่า.pdf" });
-    const dropped = await createFileAttachment({ original_filename: "ทิ้ง.pdf" });
+    const dropped = await createFileAttachment({
+      original_filename: "ทิ้ง.pdf",
+    });
     await prisma.student_activity_attachments.createMany({
       data: [kept, dropped].map((attachment) => ({
         student_activity_id: submission.id,
@@ -220,7 +222,10 @@ describe("POST /student/submit/activity", () => {
     const response = await request(app)
       .post("/student/submit/activity")
       .set("Cookie", sessionCookie({ userId: leader.student_id }))
-      .field("student_activity_id", String(leaderSubmission.student_activity_id))
+      .field(
+        "student_activity_id",
+        String(leaderSubmission.student_activity_id),
+      )
       .field("section_id", String(course.section_id))
       .field("activity_id", String(activity.id))
       .field("type", "GROUP")

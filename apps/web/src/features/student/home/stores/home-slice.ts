@@ -1,7 +1,11 @@
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
 import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
-import { fetchAllClasswork, fetchPortfolioPersonal, fetchStudentDetail } from "./home-action";
+import {
+  fetchAllClasswork,
+  fetchPortfolioPersonal,
+  fetchStudentDetail,
+} from "./home-action";
 import type { AllClassworkDetailResp, StudentDetail } from "../types/home-type";
 import type { PortfolioPersonalResp } from "../../../../types/portfolio-personal-type.type";
 
@@ -68,7 +72,10 @@ export const homeSlice = createSlice({
     setStudentId(state, action: PayloadAction<string>) {
       state.studentId = action.payload;
     },
-    setPortfolioPersonal(state, action: PayloadAction<PortfolioPersonalResp | null>) {
+    setPortfolioPersonal(
+      state,
+      action: PayloadAction<PortfolioPersonalResp | null>,
+    ) {
       state.portfolioPersonal = action.payload;
     },
   },

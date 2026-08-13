@@ -9,7 +9,7 @@ import type {
 export const getSharedRubric = async (program_id: string) => {
   const resp = await axiosInstance.get<ResponseWrapper<SharedRubricResp[]>>(
     endpoints.rubric["shared-rubric"],
-    { params: { program_id } }
+    { params: { program_id } },
   );
 
   return resp.data;

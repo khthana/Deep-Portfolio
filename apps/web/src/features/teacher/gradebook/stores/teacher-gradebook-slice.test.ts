@@ -21,7 +21,10 @@ const reducer = teacherGradebookSlice.reducer;
 
 describe("teacherGradebookSlice", () => {
   itOnlyTracksLoading(reducer, [
-    { thunk: fetchGradebookPerStudent, flag: "fetchGradebookPerStudentLoading" },
+    {
+      thunk: fetchGradebookPerStudent,
+      flag: "fetchGradebookPerStudentLoading",
+    },
     {
       thunk: fetchGradebookPerActivity,
       flag: "fetchGradebookPerActivityLoading",

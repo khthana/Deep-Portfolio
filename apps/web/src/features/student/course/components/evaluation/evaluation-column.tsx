@@ -44,7 +44,9 @@ const EvaluationColumn = () => {
       dataIndex: "status",
       key: "status",
       render: (text: ClassworkStatus) => (
-        <div className="text-left">{text ? classworkStatusLabel[text] : "-"}</div>
+        <div className="text-left">
+          {text ? classworkStatusLabel[text] : "-"}
+        </div>
       ),
       align: "center",
       width: 140,
