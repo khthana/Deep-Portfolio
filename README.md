@@ -6,7 +6,7 @@
 แผนงานหลักอยู่ที่ [`docs/spec-refactor-redeploy.md`](docs/spec-refactor-redeploy.md)
 ซึ่งส่งมอบครบทุกข้อแล้วเมื่อ 12 สิงหาคม 2026 — [issue #1](https://github.com/khthana/Deep-Portfolio/issues/1)
 ที่ใช้ติดตามมันจึงปิดไปแล้ว แต่ตัวเอกสารยังเป็นแผนอ้างอิงว่าทำไมระบบถึงเป็นรูปนี้
-งานที่เหลืออยู่ตอนนี้คือ [#55–#66](https://github.com/khthana/Deep-Portfolio/issues)
+งานที่เหลืออยู่ตอนนี้คือ [#58 กับ #61–#66](https://github.com/khthana/Deep-Portfolio/issues)
 ทั้งของค้างที่ตั้งใจเลื่อน สิ่งที่ spec ระบุว่าอยู่นอกขอบเขต และใบที่แตกออกมาจากงาน
 ระหว่างทาง
 

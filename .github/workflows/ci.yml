@@ -52,11 +52,11 @@ jobs:
       # cheapest failure to read.
       - run: npm run typecheck
 
-      # Fails on an error, not on a warning. The 217 warnings the repo carries
-      # today are the subject of #63 and #66; the ceiling that holds is a rule
-      # turned up to error once its warnings are cleared, not a --max-warnings
-      # number in this file that goes stale on the next honest edit. ADR-0027
-      # has the reasoning.
+      # Fails on an error, not on a warning. The warnings the repo still
+      # carries are the subject of #63 and #66; the ceiling that holds is a
+      # rule turned up to error once its warnings are cleared, not a
+      # --max-warnings number in this file that goes stale on the next honest
+      # edit. ADR-0027 has the reasoning, and the count as it stood then.
       - run: npm run lint
 
       # Reads the tree, writes nothing. A red here means someone has not run
