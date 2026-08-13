@@ -692,8 +692,16 @@ describe("runImport, on the table that cannot be written yet", () => {
         "id,clo_id,behavior_no,behavior_detail",
         `9801,${clo.clo_id},1,อธิบายหลักการของเรื่องที่เรียนได้`,
       ].join("\n"),
+      // A table that writes perfectly well, and is written first because nothing
+      // it references is in this run. It is here to show what the throw costs:
+      // the transaction takes it back down with the file it could not write.
+      "faculty.csv": ["faculty_id,faculty_name_th,faculty_name_en", "78,คณะร่วมรอบ,Same Run Faculty"].join(
+        "\n",
+      ),
     });
 
+    // The message is Prisma's own wording, not ours, so an upgrade may move it.
+    // The pin is the refusal, not the sentence.
     await expect(runImport(directory)).rejects.toThrow(
       "Operation 'createOne' for model 'subject_clo_measurable_behavior' does not match any query.",
     );
@@ -703,5 +711,6 @@ describe("runImport, on the table that cannot be written yet", () => {
         where: { clo_id: clo.clo_id },
       }),
     ).toBe(0);
+    expect(await prisma.faculty.findUnique({ where: { faculty_id: "78" } })).toBeNull();
   });
 });
