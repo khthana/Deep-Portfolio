@@ -98,7 +98,8 @@ Run `gh issue view <number> --comments`.
 - **#55–#63 were filed on 2026-08-12**, all nine at once, so that #1 could be
   closed against a spec that was delivered rather than one with a list still
   hanging off it. They are not defects found while testing — they are what the
-  spec deferred on purpose (`#58` empty enums, `#59` phase 5 / CI, `#61` shared
+  spec deferred on purpose (`#58` empty enums, `#59` phase 5 — CI and CD, whose
+  CI half shipped and whose CD half is now `#65`, `#61` shared
   types, `#62` component and E2E tests, `#63` the `any` sweep) plus four things
   that only had a note in `BEHAVIOR-CHANGES.md` behind them (`#55`
   `/auth/refresh`, `#56` invisible `NOT_SUBMITTED` groups, `#57` no way to

@@ -258,6 +258,21 @@ npm run test:down
   เหมือนกันหมดทั้งใต้ `Asia/Bangkok`, `America/New_York` และ `Pacific/Kiritimati`
   ส่วน `TZ=UTC` ที่ pin ไว้ใน config มีไว้ให้ผลลัพธ์อ่านตรงกันทุกเครื่อง ไม่ใช่ให้ test พึ่ง
 
+## CI
+
+`.github/workflows/ci.yml` รัน `npm ci` → `npm run typecheck` → `npm test` บนทุก push
+เข้า `main` และทุก pull request ไม่มีอะไรใน workflow ที่ต่างจากคำสั่งที่รันบนเครื่อง
+ตัวเองได้ — บริการฐานข้อมูลกับ MinIO ก็มาจาก `docker-compose.test.yml` ตัวเดียวกัน
+ที่ชุด test ยกขึ้นให้เองอยู่แล้ว จึงไม่ต้องตั้ง secret ใด ๆ ให้ repo
+
+**`npm run lint` ยังไม่อยู่ใน workflow** เพราะตอนนี้มันล้ม
+([#60](https://github.com/khthana/Deep-Portfolio/issues/60)) — step นี้จะเข้ามาพร้อม
+กับใบที่แก้มัน เหตุผลเต็มอยู่ใน
+[ADR-0026](docs/adr/0026-ci-runs-what-a-developer-runs.md)
+
+ส่วน **CD ยังไม่มี** ระบบยังไม่ได้ deploy ที่ไหนเลย และตัดสินไม่ได้จนกว่าจะรู้ว่า
+server ปลายทางคืออะไร
+
 ## ฐานข้อมูล
 
 `apps/api/prisma/schema.prisma` เป็น source of truth ของ schema ทั้งหมด (72 ตาราง)

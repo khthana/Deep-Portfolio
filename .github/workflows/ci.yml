@@ -1,0 +1,55 @@
+# Runs the checks that were manual until now — typecheck and both test suites —
+# on every push to main and every pull request. See docs/adr/0026-ci-runs-what-a-
+# developer-runs.md for why this is one job that shells out to the repo's own
+# npm scripts rather than a workflow that reimplements them.
+#
+# `npm run lint` is deliberately absent: it exits non-zero today, which is #60.
+# The step goes in with the fix, not before it — a check that is red on arrival
+# teaches everyone to ignore the red.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch makes the first run's answer worthless, so
+# stop paying for it. Never cancels a run of main, which is the branch whose
+# history someone may want to read later.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # The suite takes about half a minute once the containers are warm, and a
+    # cold runner has to pull two images first. Anything past this is something
+    # hanging — waiting out the six-hour default helps nobody.
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # The floor in package.json's engines field. Pinned to the major only:
+          # a patch release should not need a commit here.
+          node-version: "22"
+          cache: npm
+
+      # One lockfile at the root covers both workspaces, and `ci` installs
+      # exactly what it pins. apps/api's postinstall generates the Prisma client,
+      # which everything downstream needs.
+      - run: npm ci
+
+      # Before the tests, because it costs seconds and a type error is the
+      # cheapest failure to read.
+      - run: npm run typecheck
+
+      # Brings up PostgreSQL and MinIO itself, from docker-compose.test.yml, the
+      # same way it does on a developer's machine — the runner already has
+      # Docker. Nothing else has to be provisioned here, and no secret is
+      # needed: test/setup.ts writes every variable src/config/env.ts requires.
+      - run: npm test

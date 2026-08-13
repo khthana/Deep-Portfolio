@@ -21,8 +21,14 @@ mostly correctness work on top of it.
   One lockfile at the root; never run `npm install` in a subfolder.
 - **Runs locally in one command**: `docker compose up --build` brings up web,
   API, PostgreSQL and MinIO, and applies migrations on the way. Nothing is
-  deployed to a server yet, and there is no CI — that is #59, and it was out
-  of the spec's scope on purpose, not skipped.
+  deployed to a server yet — that half of phase 5 is #65, and it was out of the
+  spec's scope on purpose, not skipped.
+- **CI runs the same commands you do**: `.github/workflows/ci.yml` runs
+  `npm ci`, `npm run typecheck` and `npm test` on every push to `main` and every
+  pull request, bringing its services up from `docker-compose.test.yml` — no
+  secret is configured on the repo, and nothing in the workflow is a step you
+  cannot run yourself. `npm run lint` is not in it yet because it fails today
+  (#60); the step lands with the fix. ADR-0026 has the reasoning.
 - **Auth is Google sign-in**, not the DEEP Core SSO cookie the hand-over
   assumed. There is no connection back to DEEP Core at all.
 - **The database is standalone** — 72 tables from one baseline migration.
@@ -86,6 +92,9 @@ all, and the only link that row offers leads to a grading page that cannot
 mark it. Whether such a student should be markable is a course decision, not a
 code one, so #56 made the refusal legible (`400` with a Thai sentence, where a
 bare `Error` used to reach the caller as `500`) and left the question to #64.
+**#65** is the second: #59 said itself that its CI half could be done without
+knowing anything about a server and its CD half could not, so the CI half was
+done and #59 closed on it, and #65 carries the five decisions CD still waits on.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

@@ -68,7 +68,7 @@ Portfolio ถูกออกแบบให้เป็นระบบดาว�
 | 2 | ทำให้รันได้ | `docker compose up` แล้วเปิดเว็บได้, migration รันผ่าน, seed ลงข้อมูลได้ | เสร็จ (#6, #7) |
 | 3 | เขียน test | ทุก endpoint มี test, traceability table ครบ TC-01..TC-75 | เสร็จ (#8–#19, #22) |
 | 4 | แก้ของเสีย + auth ใหม่ | test เขียวทั้งหมด, `BEHAVIOR-CHANGES.md` บันทึกครบ | เสร็จ — auth (#10, #11) ของเสียแก้ไปพร้อม test ตาม D9 #20 กับ #21 ลง main แล้ว และตั๋วที่ตั้งไว้ระหว่างทางปิดครบ (#25–#54) |
-| 5 | Deploy ขึ้น server จริง | (ไม่มีผลลัพธ์ที่ spec นี้รับผิดชอบ — ขอบเขตจบที่ `docker compose up` บนเครื่อง local ซึ่งเฟส 2 ส่งมอบไปแล้ว) | อยู่นอกขอบเขต ตามหัวข้อ Out of Scope — แยกไปที่ [#59](https://github.com/khthana/Deep-Portfolio/issues/59) |
+| 5 | Deploy ขึ้น server จริง | (ไม่มีผลลัพธ์ที่ spec นี้รับผิดชอบ — ขอบเขตจบที่ `docker compose up` บนเครื่อง local ซึ่งเฟส 2 ส่งมอบไปแล้ว) | อยู่นอกขอบเขต ตามหัวข้อ Out of Scope — แยกไปที่ [#59](https://github.com/khthana/Deep-Portfolio/issues/59) ซึ่งส่งครึ่ง CI แล้วปิดไป ส่วนครึ่ง CD ต่อที่ [#65](https://github.com/khthana/Deep-Portfolio/issues/65) |
 
 ---
 
@@ -654,10 +654,10 @@ import ฟังก์ชันมาเรียกตรงๆ ไม่มี
 ### ประเด็นที่ยังค้างและต้องตัดสินใจภายหลัง
 
 1. ~~**กติกาการแปลงอีเมล Google เป็น `users.user_id`**~~ — ตอบแล้วใน #23 หลังเห็นข้อมูลจริง: รหัสอาจารย์คือ `[คณะ 2][ภาควิชา 2][ลำดับ 4]` อยู่ในพื้นที่รหัสเดียวกับรหัสนักศึกษาโดยไม่ชนกัน และอีเมลที่รับคือ `[ชื่อ].[สองตัวอักษรแรกของนามสกุล]@kmitl.ac.th` เท่านั้น ทั้งสองกติกาอยู่ใน [`importer.md`](./importer.md) ส่วน #11 ยังคงไม่สร้างผู้ใช้ใหม่อัตโนมัติ: อีเมลที่ไม่มีในตาราง `users` เข้าระบบไม่ได้
-2. **Google OAuth client ID** — ยังต้องได้จากเจ้าของโครงงาน (flow นี้ไม่มี client secret ตั้งแต่ #11 เพราะเบราว์เซอร์ขอ ID token เอง แล้ว API verify อย่างเดียว) — ค่าของ build จริงอยู่ใน [#59](https://github.com/khthana/Deep-Portfolio/issues/59)
+2. **Google OAuth client ID** — ยังต้องได้จากเจ้าของโครงงาน (flow นี้ไม่มี client secret ตั้งแต่ #11 เพราะเบราว์เซอร์ขอ ID token เอง แล้ว API verify อย่างเดียว) — ค่าของ build จริงอยู่ใน [#65](https://github.com/khthana/Deep-Portfolio/issues/65)
 3. ~~**รูปแบบไฟล์ข้อมูลตั้งต้น**~~ — กำหนดแล้วใน #23 หลังเห็นข้อมูลจริง: ไฟล์ CSV หนึ่งไฟล์ต่อหนึ่งตาราง ชื่อไฟล์คือชื่อตาราง คอลัมน์อ่านจาก `schema.prisma` โดยตรง รายละเอียดและข้อควรระวังอยู่ใน [`importer.md`](./importer.md)
 4. **ค่าของ enum `learning_activity_enum` และ `cognitive_level_enum`** — ยังเป็น enum ว่างตั้งแต่ migration แรก ตาราง `subject_clo_measurable_behavior` จึงยัง insert ไม่ได้ — แยกเป็น [#58](https://github.com/khthana/Deep-Portfolio/issues/58)
-5. **Server ปลายทางและ CI/CD** — ยังไม่มีทั้งคู่ (repo ไม่มี `.github/workflows` เลย) — *ส่วนที่เคยเขียนไว้ว่าสาขา production ใน `apps/web/src/utils/get-file.ts` รอ server อยู่นั้นหมดอายุแล้ว: #36 ลบสาขานั้นทิ้งตอนย้ายไฟล์แนบไปอยู่หลัง URL ที่ API เซ็น ไฟล์เหลือ `${env.BACKEND_URL}${src}` บรรทัดเดียว สิ่งที่ยังต้องตัดสินคือ `VITE_BACKEND_URL` ของ build จริงชี้ไปที่ไหน ซึ่งเป็นค่า build-time ไม่ใช่โค้ด* — แยกเป็น [#59](https://github.com/khthana/Deep-Portfolio/issues/59)
+5. **Server ปลายทางและ CI/CD** — CI มีแล้วตั้งแต่ 13 สิงหาคม 2569 (`.github/workflows/ci.yml` รัน typecheck กับ test ทุก push และทุก PR ดู [ADR-0026](adr/0026-ci-runs-what-a-developer-runs.md)) ส่วน server ปลายทางกับ CD ยังไม่มี — *ส่วนที่เคยเขียนไว้ว่าสาขา production ใน `apps/web/src/utils/get-file.ts` รอ server อยู่นั้นหมดอายุแล้ว: #36 ลบสาขานั้นทิ้งตอนย้ายไฟล์แนบไปอยู่หลัง URL ที่ API เซ็น ไฟล์เหลือ `${env.BACKEND_URL}${src}` บรรทัดเดียว สิ่งที่ยังต้องตัดสินคือ `VITE_BACKEND_URL` ของ build จริงชี้ไปที่ไหน ซึ่งเป็นค่า build-time ไม่ใช่โค้ด* — แยกเป็น [#59](https://github.com/khthana/Deep-Portfolio/issues/59)
 6. ~~**git remote**~~ — เรียบร้อยแล้ว: [`khthana/Deep-Portfolio`](https://github.com/khthana/Deep-Portfolio) เป็น repo สาธารณะ ค่าลับทุกตัวถูกถอดออกก่อน push
 
 ### ความผิดปกติในโค้ดที่บันทึกไว้แต่ไม่แก้

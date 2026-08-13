@@ -73,7 +73,11 @@ who handed it in, so read it before adding a `status` filter to anything that
 answers a teacher, and `0025-invitation-can-be-issued-again.md`, which says
 inviting a member again is an endpoint of its own rather than a side effect of
 editing the group, and that it reaches only a member who has not answered yet,
-so read it before making a write mint or copy an invite token.
+so read it before making a write mint or copy an invite token, and
+`0026-ci-runs-what-a-developer-runs.md`, which says the CI workflow calls the
+repo's own npm scripts and brings its services up from
+`docker-compose.test.yml`, so read it before adding a check to `.github/` that
+a developer cannot run the same way.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same
