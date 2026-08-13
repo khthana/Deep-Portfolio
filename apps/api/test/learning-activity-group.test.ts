@@ -906,15 +906,20 @@ describe("POST /student-learning-activity-group/resend-invite", () => {
   });
 
   it("puts the old link out of use", async () => {
+    // The old link here has not run out — the factory dates it a week ahead —
+    // which is also the case that a leader may ask again before the seven days
+    // are up, and get a 200 for it.
     const group = await createLearningActivityGroup({
       members: [{}, { invite_token: "learning-superseded" }],
     });
     const [leader, invited] = group.student_learning_activity_group_member;
 
-    await request(app)
+    const resent = await request(app)
       .post("/student-learning-activity-group/resend-invite")
       .set("Cookie", sessionCookie({ userId: leader.student_id }))
       .send({ group_id: group.id, student_id: invited.student_id });
+
+    expect(resent.status).toBe(200);
 
     const response = await request(app)
       .post("/group/accept-invite")

@@ -251,12 +251,14 @@ interface Invitation {
 }
 
 /**
- * The one place `resendInvite` has to know which pair of tables it is in.
+ * Where the read of `resendInvite` learns which pair of tables it is in.
  *
  * Written as a lookup that answers in the same shape either way rather than as
- * a branch around the whole method: what follows — the refusals, the new token,
- * the email — is the same work on both sides, and the two are worth reading as
- * one thing.
+ * a branch around the whole method: the refusals, the new token and the email
+ * are the same work on both sides, and the two are worth reading as one thing.
+ * The write is the one other place that has to know, and it stays inline —
+ * folding it in here too would take a helper that picks a Prisma delegate, and
+ * the two delegates only unify with a cast.
  */
 async function findInvitation(
   group_id: number,

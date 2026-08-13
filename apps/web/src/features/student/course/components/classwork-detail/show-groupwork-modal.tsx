@@ -150,11 +150,12 @@ const ShowGroupworkModal = (props: Props) => {
   /**
    * A fresh invitation for one member who has not answered yet (#57).
    *
-   * Nothing on the screen changes on success — the member's row still says
-   * "รออนุมัติ", because it does — so the toast is the whole of the answer. The
-   * API's own sentence is shown when it sent one: it is the only thing that
-   * distinguishes a member who accepted between the page load and the click
-   * from one who is simply not in the group.
+   * Nothing on the screen changes on success — the endpoint only ever succeeds
+   * on a PENDING member and leaves them PENDING, so the row still says
+   * "รออนุมัติ" and the group is not re-read: the toast is the whole of the
+   * answer. The API's own sentence is shown when it sent one, and it is the
+   * only thing that distinguishes a member who accepted between the page load
+   * and the click from one who is simply not in the group.
    */
   const handleOnResend = async (studentId: string) => {
     try {
@@ -170,7 +171,6 @@ const ShowGroupworkModal = (props: Props) => {
 
       if (resp.success) {
         messageApi.success("ส่งคำเชิญอีกครั้งแล้ว");
-        props.handleFetchStudentGroup();
       }
     } catch (err) {
       messageApi.error(messageToShow(err, "เกิดข้อผิดพลาดในการส่งคำเชิญ"));
@@ -201,6 +201,14 @@ const ShowGroupworkModal = (props: Props) => {
       );
     }
   };
+
+  // One modal is one piece of work, so only its own category's resend can be in
+  // flight; watching both flags would grey the rows for a request this screen
+  // never sent.
+  const resendLoading =
+    props.classworkDetail.category === "activity"
+      ? courseSlice.postResendActivityGroupInviteLoading
+      : courseSlice.postResendLearningActivityGroupInviteLoading;
 
   const filterOptions = memberOptions.filter(
     (option) =>
@@ -288,10 +296,7 @@ const ShowGroupworkModal = (props: Props) => {
                   member.status === "PENDING" &&
                   props.classworkDetail.status !== "GRADED"
                 }
-                resendLoading={
-                  courseSlice.postResendActivityGroupInviteLoading ||
-                  courseSlice.postResendLearningActivityGroupInviteLoading
-                }
+                resendLoading={resendLoading}
                 handleOnResend={handleOnResend}
               />
             ))}

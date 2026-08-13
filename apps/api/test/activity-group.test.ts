@@ -943,7 +943,8 @@ describe("POST /student-activity-group/resend-invite", () => {
    * there was no way to make a new one: the group's only other write copies the
    * old token forward, so a member who let the week run out was stuck PENDING
    * with a link that answers 400 forever. The leader owns the membership
-   * (ADR-0004), so the leader is who may do it; see docs/adr/0025-resend-invite.md.
+   * (ADR-0004), so the leader is who may do it; see
+   * docs/adr/0025-invitation-can-be-issued-again.md.
    */
 
   it("issues a link that works to a member whose seven days ran out", async () => {
@@ -993,15 +994,20 @@ describe("POST /student-activity-group/resend-invite", () => {
   it("puts the old link out of use", async () => {
     // One token column per member row, so re-issuing overwrites: a link that
     // was mailed out and then re-sent cannot still be answered afterwards.
+    // The old link here has not run out — the factory dates it a week ahead —
+    // which is also the case that a leader may ask again before the seven days
+    // are up, and get a 200 for it.
     const group = await createActivityGroup({
       members: [{}, { invite_token: "superseded" }],
     });
     const [leader, invited] = group.student_activity_group_member;
 
-    await request(app)
+    const resent = await request(app)
       .post("/student-activity-group/resend-invite")
       .set("Cookie", sessionCookie({ userId: leader.student_id }))
       .send({ group_id: group.id, student_id: invited.student_id });
+
+    expect(resent.status).toBe(200);
 
     const response = await request(app)
       .post("/group/accept-invite")

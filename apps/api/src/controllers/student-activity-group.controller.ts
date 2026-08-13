@@ -17,7 +17,8 @@ import {
 export default class StudentActivityGroupController {
   private readonly studentActivityGroupService: StudentActivityGroupService;
   /** Re-inviting a member is the same work on both kinds of group, so it lives
-   *  once in GroupService and the router says which kind asked (#57). */
+   *  once in GroupService, and this controller is what says which kind asked
+   *  (#57). */
   private readonly groupService: GroupService;
 
   constructor() {
