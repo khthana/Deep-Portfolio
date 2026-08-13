@@ -15,6 +15,7 @@ FROM base AS deps
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
+COPY packages/api-types/package.json packages/api-types/
 RUN npm ci --workspace @deep-portfolio/web --include-workspace-root
 
 # --- build ------------------------------------------------------------------
@@ -34,6 +35,9 @@ ARG VITE_GOOGLE_CLIENT_ID
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
 COPY apps/web apps/web
+# @deep-portfolio/api-types has no build step and ships its .ts, so tsc and
+# Vite read those files directly — the manifest copied into deps is not enough.
+COPY packages/api-types packages/api-types
 RUN npm run build --workspace @deep-portfolio/web
 
 # --- runtime ----------------------------------------------------------------

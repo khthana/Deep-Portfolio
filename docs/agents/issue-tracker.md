@@ -118,8 +118,8 @@ Run `gh issue view <number> --comments`.
   counted every web warning, not the `any` ones — those are 141, plus 2 in
   `apps/api`. `#67` and `#68` came out of `#61` on 2026-08-13, which piloted
   one feature into `@deep-portfolio/api-types` and left the rest on purpose:
-  `#68` (`ready-for-agent`) is the 38 web files that still mirror a response by
-  hand, moved one feature at a time, and `#67` (`needs-info`) is
+  `#68` (`ready-for-agent`) is the 38 web type files that still hold copies of
+  what the API answers, moved one feature at a time, and `#67` (`needs-info`) is
   `ResponseWrapper`, read in 277 places and disagreeing with the envelope the
   API actually answers in.
 

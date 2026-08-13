@@ -23,9 +23,20 @@ export type DataType = {
   id?: number;
   clo: number;
   desc: string;
-  plo: number;
+  // Null when the CLO maps onto no PLO, which `subject_clo.plo_id` allows. It
+  // has to stay null rather than becoming a number that stands for "none": the
+  // Select is a required field, and antd reads null as empty and 0 as a real
+  // answer, so a 0 here would let a row with no PLO be saved as if it had one.
+  plo: number | null;
   isNew?: boolean;
 };
+
+/**
+ * A row that came back from `form.validateFields()`. Every editable cell is
+ * required, so its PLO is no longer null — which is what lets the two request
+ * bodies below, neither of which can say "no PLO", take it.
+ */
+type ValidatedRow = DataType & { plo: number };
 
 type ColumnTypes = Exclude<TableProps<DataType>["columns"], undefined>;
 
@@ -52,16 +63,15 @@ const CLOTable = () => {
     ).unwrap();
 
     // All three columns are nullable in the database and the API answers what
-    // it finds, which the shared type now says out loud. None of the fallbacks
+    // it finds, which the shared type now says out loud. Neither fallback
     // changes what the teacher sees: parseInt read a missing number as NaN
-    // before the type admitted it could be missing, a missing detail rendered
-    // as nothing either way, and 0 is already what a row with no PLO carries —
-    // handleAdd below opens every new row with it.
+    // before the type admitted it could be missing, and a missing detail
+    // rendered as nothing either way. `plo_id` gets no fallback — see DataType.
     const mappedData = result.data.map((clo) => ({
       key: clo.clo_id.toString(),
       clo: parseInt(clo.clo_number ?? ""),
       desc: clo.clo_detail ?? "",
-      plo: clo.plo_id ?? 0,
+      plo: clo.plo_id,
       id: clo.clo_id,
     }));
 
@@ -141,7 +151,7 @@ const CLOTable = () => {
 
   const handleSaveCLO = async (key: React.Key) => {
     try {
-      const row = (await form.validateFields()) as DataType;
+      const row = (await form.validateFields()) as ValidatedRow;
       const oldData = data.find((clo) => clo.key === key);
       if (!homeSlice.selectedCourse) return;
 
@@ -158,7 +168,7 @@ const CLOTable = () => {
     }
   };
 
-  const handleCreateNewCLO = async (row: DataType) => {
+  const handleCreateNewCLO = async (row: ValidatedRow) => {
     try {
       // The author of a CLO is the section's teacher, and a section can now
       // come back without one (#48). Not reachable from a teacher's own course
@@ -186,7 +196,7 @@ const CLOTable = () => {
     }
   };
 
-  const handleUpdateCLO = async (row: DataType, id: number) => {
+  const handleUpdateCLO = async (row: ValidatedRow, id: number) => {
     try {
       if (!homeSlice.selectedCourse) return;
 

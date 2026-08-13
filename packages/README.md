@@ -16,8 +16,9 @@ service ไว้กับมัน คอมไพเลอร์จึงเ�
 `apps/api/src/validation/` ซึ่งเป็นสิ่งที่ปฏิเสธ request จริง ๆ ตอน runtime
 
 ตอนนี้ถือ envelope (`ApiResponse`, `ApiError`, `FieldError`, `FieldLocation`)
-กับ response ของ course เท่านั้น ฝั่ง web ยังเหลือ type ที่เขียนมิเรอร์ response
-ไว้เองอีก 38 ไฟล์ 2,161 บรรทัด (นับ 13 สิงหาคม 2569) ซึ่งไล่ย้ายทีละ feature ที่
+กับ response ของ course เท่านั้น ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 38
+ไฟล์ 2,172 บรรทัด (นับ 13 สิงหาคม 2569 — ในนั้นมี type ของ request ปนอยู่ด้วย
+ซึ่งไม่ต้องย้าย) ซึ่งไล่ย้ายทีละ feature ที่
 [#68](https://github.com/khthana/Deep-Portfolio/issues/68) ส่วน envelope ฝั่ง web
 (`ResponseWrapper`) อยู่ที่ [#67](https://github.com/khthana/Deep-Portfolio/issues/67)
 

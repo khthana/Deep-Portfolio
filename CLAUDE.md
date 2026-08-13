@@ -115,8 +115,8 @@ loop — so #60 left every one of them where it was and #66 owns the reading
 each site needs. #63 was corrected while filing it: the 215 it counted was
 every web warning, not the `any` ones, which are 141 (plus 2 in `apps/api`).
 **#67 and #68** are the fourth and fifth, both out of #61, which piloted one
-feature on purpose: #68 carries the 38 web files that still mirror a response
-by hand, one feature at a time, and #67 carries `ResponseWrapper`, the web's
+feature on purpose: #68 carries the 38 web type files that still hold copies of
+what the API answers, one feature at a time, and #67 carries `ResponseWrapper`, the web's
 own envelope, which disagrees with the `ApiResponse`/`ApiError` the API
 actually answers and is read in 277 places.
 

@@ -20,10 +20,11 @@ ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 # than on every source edit.
 FROM base AS deps
 COPY package.json package-lock.json ./
-# npm resolves every workspace in the root package.json's globs, so both
+# npm resolves every workspace in the root package.json's globs, so all three
 # manifests must be present even though only the API's tree is installed.
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
+COPY packages/api-types/package.json packages/api-types/
 # apps/api has a postinstall that runs `prisma generate`, so the schema must be
 # in place before the install, not after it.
 COPY apps/api/prisma apps/api/prisma
@@ -32,6 +33,9 @@ RUN npm ci --workspace @deep-portfolio/api --include-workspace-root
 # --- build ------------------------------------------------------------------
 FROM deps AS build
 COPY apps/api apps/api
+# @deep-portfolio/api-types has no build step and ships its .ts, so tsc reads
+# those files directly — the manifest copied into deps is not enough.
+COPY packages/api-types packages/api-types
 RUN npm run build --workspace @deep-portfolio/api
 
 # --- runtime ----------------------------------------------------------------
@@ -45,6 +49,11 @@ FROM base AS runtime
 COPY --from=deps /repo/node_modules ./node_modules
 COPY --from=build /repo/package.json ./
 COPY --from=build /repo/apps/api/package.json apps/api/
+# Nothing at run time reads these — every import of them is a type import, and
+# tsc erased all of them — but npm left a symlink to the folder in
+# node_modules, and a symlink to nothing is a worse thing to leave behind than
+# three small files.
+COPY --from=build /repo/packages/api-types packages/api-types
 COPY --from=build /repo/apps/api/prisma apps/api/prisma
 COPY --from=build /repo/apps/api/dist apps/api/dist
 

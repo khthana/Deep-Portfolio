@@ -12,8 +12,9 @@ const TeacherMappingPage = () => {
   const cloSlice = useSelector((state: RootState) => state.teacherCourse);
 
   // Both columns are nullable in the database and the API answers what it
-  // finds, which the shared type now says out loud. MappingSection prints them
-  // as they arrive, and an empty string prints the same as a missing one did.
+  // finds, which the shared type now says out loud. Nothing renders either of
+  // them: MappingSection declares both in its props and reads neither, so the
+  // fallbacks only satisfy that declaration.
   const cloData = cloSlice.cloData.map((clo) => {
     return {
       cloNumber: clo.clo_number ?? "",
