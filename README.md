@@ -6,8 +6,9 @@
 แผนงานหลักอยู่ที่ [`docs/spec-refactor-redeploy.md`](docs/spec-refactor-redeploy.md)
 ซึ่งส่งมอบครบทุกข้อแล้วเมื่อ 12 สิงหาคม 2026 — [issue #1](https://github.com/khthana/Deep-Portfolio/issues/1)
 ที่ใช้ติดตามมันจึงปิดไปแล้ว แต่ตัวเอกสารยังเป็นแผนอ้างอิงว่าทำไมระบบถึงเป็นรูปนี้
-งานที่เหลืออยู่ตอนนี้คือ [#55–#63](https://github.com/khthana/Deep-Portfolio/issues)
-ทั้งของค้างที่ตั้งใจเลื่อนและสิ่งที่ spec ระบุว่าอยู่นอกขอบเขต
+งานที่เหลืออยู่ตอนนี้คือ [#55–#66](https://github.com/khthana/Deep-Portfolio/issues)
+ทั้งของค้างที่ตั้งใจเลื่อน สิ่งที่ spec ระบุว่าอยู่นอกขอบเขต และใบที่แตกออกมาจากงาน
+ระหว่างทาง
 
 ถ้ากำลังหาว่า API ตอบไม่เหมือนเดิมตรงไหนบ้างหลัง refactor ดูที่
 [`BEHAVIOR-CHANGES.md`](BEHAVIOR-CHANGES.md)
@@ -180,17 +181,22 @@ compose เปิดออกมา) แต่**ค่าที่ต้อง�
 | `npm run import -w @deep-portfolio/api -- <โฟลเดอร์>` | นำเข้า master data จากไฟล์ CSV ([`docs/importer.md`](docs/importer.md)) |
 | `npm run build`     | build ทุก workspace                             |
 | `npm run typecheck` | ตรวจ type ทุก workspace                         |
-| `npm run lint`      | รัน lint ทุก workspace                          |
+| `npm run lint`      | รัน ESLint ทุก workspace                        |
+| `npm run format`    | จัดรูปแบบทั้ง repo ด้วย Prettier                |
+| `npm run format:check` | ตรวจว่ามีไฟล์ไหนยังไม่ได้จัดรูปแบบ (ไม่แก้ไฟล์) |
 | `npm test`          | รัน test ทุก workspace (ยก container ของ test ให้เอง — ดูหัวข้อถัดไป) |
 | `npm run test:down` | ปิดคอนเทนเนอร์ของ test แล้วลบ volume ทิ้ง       |
 
 `build` / `typecheck` / `lint` / `test` ใช้ `--workspaces --if-present` ทั้งหมด
-workspace ที่ยังไม่มี script นั้นจะถูกข้ามไปเงียบ ๆ ไม่ทำให้คำสั่งล้ม
+workspace ที่ยังไม่มี script นั้นจะถูกข้ามไปเงียบ ๆ ไม่ทำให้คำสั่งล้ม ส่วน `format`
+กับ `format:check` รัน Prettier ที่ root ทีเดียวทั้ง repo ไม่ผ่าน workspace
 
-> **`npm run lint` ยังล้มอยู่ตอนนี้** และ `apps/api` ก็ยังไม่มี script `lint` ของ
-> ตัวเอง (จึงถูกข้ามไปตามกฎ `--if-present` ข้างบน) คำสั่งที่ต้องผ่านก่อนบอกว่างานเขียว
-> คือ `npm test` กับ `npm run typecheck` ดู
-> [#60](https://github.com/khthana/Deep-Portfolio/issues/60)
+> **สี่คำสั่งที่ต้องผ่านก่อนบอกว่างานเขียว** คือ `npm run typecheck`, `npm run lint`,
+> `npm run format:check` และ `npm test` — ชุดเดียวกับที่ CI รัน `lint` วันนี้ออก 0
+> โดยยังมี warning ค้างอยู่ 217 ข้อ ซึ่งเป็นเนื้อของ
+> [#63](https://github.com/khthana/Deep-Portfolio/issues/63) กับ
+> [#66](https://github.com/khthana/Deep-Portfolio/issues/66) —
+> [ADR-0027](docs/adr/0027-lint-and-format.md) เขียนไว้ว่าทำไม CI ถึงไม่นับจำนวนมัน
 
 สั่งงานเฉพาะ workspace เดียวได้ด้วย `-w`
 
@@ -260,15 +266,17 @@ npm run test:down
 
 ## CI
 
-`.github/workflows/ci.yml` รัน `npm ci` → `npm run typecheck` → `npm test` บนทุก push
-เข้า `main` และทุก pull request ไม่มีอะไรใน workflow ที่ต่างจากคำสั่งที่รันบนเครื่อง
-ตัวเองได้ — บริการฐานข้อมูลกับ MinIO ก็มาจาก `docker-compose.test.yml` ตัวเดียวกัน
-ที่ชุด test ยกขึ้นให้เองอยู่แล้ว จึงไม่ต้องตั้ง secret ใด ๆ ให้ repo
+`.github/workflows/ci.yml` รัน `npm ci` → `npm run typecheck` → `npm run lint` →
+`npm run format:check` → `npm test` บนทุก push เข้า `main` และทุก pull request
+ไม่มีอะไรใน workflow ที่ต่างจากคำสั่งที่รันบนเครื่องตัวเองได้ — บริการฐานข้อมูลกับ
+MinIO ก็มาจาก `docker-compose.test.yml` ตัวเดียวกันที่ชุด test ยกขึ้นให้เองอยู่แล้ว
+จึงไม่ต้องตั้ง secret ใด ๆ ให้ repo เหตุผลเต็มอยู่ใน
+[ADR-0026](docs/adr/0026-ci-runs-what-a-developer-runs.md) และ
+[ADR-0027](docs/adr/0027-lint-and-format.md)
 
-**`npm run lint` ยังไม่อยู่ใน workflow** เพราะตอนนี้มันล้ม
-([#60](https://github.com/khthana/Deep-Portfolio/issues/60)) — step นี้จะเข้ามาพร้อม
-กับใบที่แก้มัน เหตุผลเต็มอยู่ใน
-[ADR-0026](docs/adr/0026-ci-runs-what-a-developer-runs.md)
+**ยังไม่มี git hook** และไม่ได้ตั้งใจจะมี — `main` มีประตูอยู่แล้วคือ CI ส่วนใครอยาก
+ให้เครื่องตัวเองรัน `npm run lint` หรือ `npm run format` ก่อน commit ตั้งเองได้
+(ADR-0027 ข้อ 4)
 
 ส่วน **CD ยังไม่มี** ระบบยังไม่ได้ deploy ที่ไหนเลย และตัดสินไม่ได้จนกว่าจะรู้ว่า
 server ปลายทางคืออะไร — คำถามที่ต้องตอบก่อนอยู่ครบใน

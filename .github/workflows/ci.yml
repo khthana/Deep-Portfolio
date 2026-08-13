@@ -1,11 +1,9 @@
-# Runs the checks that were manual until now — typecheck and both test suites —
-# on every push to main and every pull request. See docs/adr/0026-ci-runs-what-a-
-# developer-runs.md for why this is one job that shells out to the repo's own
-# npm scripts rather than a workflow that reimplements them.
-#
-# `npm run lint` is deliberately absent: it exits non-zero today, which is #60.
-# The step goes in with the fix, not before it — a check that is red on arrival
-# teaches everyone to ignore the red.
+# Runs the checks that were manual until now — typecheck, lint, formatting and
+# both test suites — on every push to main and every pull request. See
+# docs/adr/0026-ci-runs-what-a-developer-runs.md for why this is one job that
+# shells out to the repo's own npm scripts rather than a workflow that
+# reimplements them, and docs/adr/0027-lint-and-format.md for the two steps
+# #60 added.
 
 name: CI
 
@@ -53,6 +51,17 @@ jobs:
       # Before the tests, because it costs seconds and a type error is the
       # cheapest failure to read.
       - run: npm run typecheck
+
+      # Fails on an error, not on a warning. The 217 warnings the repo carries
+      # today are the subject of #63 and #66; the ceiling that holds is a rule
+      # turned up to error once its warnings are cleared, not a --max-warnings
+      # number in this file that goes stale on the next honest edit. ADR-0027
+      # has the reasoning.
+      - run: npm run lint
+
+      # Reads the tree, writes nothing. A red here means someone has not run
+      # `npm run format`, and that is the whole of what it means.
+      - run: npm run format:check
 
       # Brings up PostgreSQL and MinIO itself, from docker-compose.test.yml, the
       # same way it does on a developer's machine — the runner already has

@@ -24,11 +24,18 @@ mostly correctness work on top of it.
   deployed to a server yet — that half of phase 5 is #65, and it was out of the
   spec's scope on purpose, not skipped.
 - **CI runs the same commands you do**: `.github/workflows/ci.yml` runs
-  `npm ci`, `npm run typecheck` and `npm test` on every push to `main` and every
-  pull request, bringing its services up from `docker-compose.test.yml` — no
-  secret is configured on the repo, and nothing in the workflow is a step you
-  cannot run yourself. `npm run lint` is not in it yet because it fails today
-  (#60); the step lands with the fix. ADR-0026 has the reasoning.
+  `npm ci`, `npm run typecheck`, `npm run lint`, `npm run format:check` and
+  `npm test` on every push to `main` and every pull request, bringing its
+  services up from `docker-compose.test.yml` — no secret is configured on the
+  repo, and nothing in the workflow is a step you cannot run yourself.
+  ADR-0026 and ADR-0027 have the reasoning.
+- **Lint and formatting**: both workspaces have an ESLint flat config, and
+  Prettier runs from the root with its defaults over everything but `*.md`
+  (`.prettierignore` says why). Run `npm run format` before committing —
+  `format:check` is a CI step. `npm run lint` exits 0 and still carries 217
+  warnings: `no-explicit-any` (#63) and `react-hooks/exhaustive-deps` (#66).
+  CI does not cap that number; the ceiling is a rule turned up to `error` once
+  its ticket clears it. There is no git hook, on purpose — ADR-0027 §4.
 - **Auth is Google sign-in**, not the DEEP Core SSO cookie the hand-over
   assumed. There is no connection back to DEEP Core at all.
 - **The database is standalone** — 72 tables from one baseline migration.
@@ -79,9 +86,10 @@ that shouldn't); **#56** groups still holding `NOT_SUBMITTED` never appear to
 the teacher at all, so their unanswered invitations do not either; **#57** an
 invitation cannot be sent again once its seven days run out, and editing the
 group carries the old token over rather than issuing a new one; **#60**
-`npm run lint` fails today, `apps/api` has no `lint` script, and no formatter
-is configured anywhere — and since the CI half of #59 shipped without one,
-whether a git hook should run any of it is #60's question too. The other five are the work the spec put out of scope
+`npm run lint` failed, `apps/api` had no `lint` script, and no formatter was
+configured anywhere — it now passes, `apps/api` has a flat config of its own,
+Prettier runs from the root, both checks are CI steps, and the git-hook
+question ADR-0026 handed it is answered "no, on purpose" in ADR-0027. The other five are the work the spec put out of scope
 on purpose: **#58** the two empty enums, **#59** phase 5 — a real server and
 CI/CD, **#61** the shared types package `packages/` is reserved for, **#62**
 component and E2E tests, **#63** the `any` sweep and the long files.
@@ -96,6 +104,12 @@ bare `Error` used to reach the caller as `500`) and left the question to #64.
 **#65** is the second: #59 said itself that its CI half could be done without
 knowing anything about a server and its CD half could not, so the CI half is
 what shipped under #59, and #65 carries the five decisions CD still waits on.
+**#66** is the third: 74 of the warnings `npm run lint` reports are
+`react-hooks/exhaustive-deps` in `apps/web`, and none of them can be silenced
+by adding the name ESLint asks for — several would turn into an endless fetch
+loop — so #60 left every one of them where it was and #66 owns the reading
+each site needs. #63 was corrected while filing it: the 215 it counted was
+every web warning, not the `any` ones, which are 141 (plus 2 in `apps/api`).
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

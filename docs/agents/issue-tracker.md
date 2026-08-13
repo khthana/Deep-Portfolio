@@ -105,7 +105,17 @@ Run `gh issue view <number> --comments`.
   `/auth/refresh`, `#56` invisible `NOT_SUBMITTED` groups, `#57` no way to
   re-send an invitation, `#60` lint failing with nothing to catch it).
   Most carry `needs-info`: the decision named in the body has to be answered
-  before the ticket can be picked up. **#55 and #60 are `ready-for-agent`.**
+  before the ticket can be picked up. **#55 is `ready-for-agent`**, and so was
+  #60 until the work landed.
+
+- **#64–#66 came out of that batch, one each.** `#64` (from #56) asks whether a
+  student in no group may be marked at all; `#65` (from #59) carries the five
+  decisions CD waits on; `#66` (from #60) owns the 74
+  `react-hooks/exhaustive-deps` warnings #60 deliberately left alone, because
+  each one needs its screen read rather than the missing name pasted in. All
+  three carry `needs-info`. `#63` was corrected while `#66` was filed: its 215
+  counted every web warning, not the `any` ones — those are 141, plus 2 in
+  `apps/api`.
 
   A new defect gets a new issue on the same terms: say what has to be decided,
   and record the caller's view of it in `BEHAVIOR-CHANGES.md`.

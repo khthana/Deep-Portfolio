@@ -31,7 +31,7 @@ belong to any teacher, and why the rule is not narrowed to the caller's own
 programme) and `0020-mapping-names-own-submission.md` (an id that arrives in a
 `POST` body and names a row with an owner: ask before writing, `400` when the
 row is not there and `403` when it belongs to someone else). Read all eleven
-before adding an authorisation check anywhere. Twelve
+before adding an authorisation check anywhere. Sixteen
 more are about when or what rather than who: `0005-announcement-date.md` — a
 piece of work with no announcement date counts as announced, on every
 student-facing read — `0008-attachment-lifecycle.md`, which says an attachment
@@ -77,7 +77,12 @@ so read it before making a write mint or copy an invite token, and
 `0026-ci-runs-what-a-developer-runs.md`, which says the CI workflow calls the
 repo's own npm scripts and brings its services up from
 `docker-compose.test.yml`, so read it before adding a check to `.github/` that
-a developer cannot run the same way.
+a developer cannot run the same way, and its follow-up
+`0027-lint-and-format.md`, which says every workspace lints under its own flat
+config, Prettier runs from the root with its defaults over everything but
+`*.md`, CI fails on an ESLint error and never on a count of warnings, and no
+git hook runs any of it — read it before adding a rule, a formatter option or a
+`--max-warnings` anywhere.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same
