@@ -143,6 +143,19 @@ export async function createLearningActivity(
   return learningActivity;
 }
 
+/**
+ * When the work was handed in, for a row that does not say.
+ *
+ * `NOT_SUBMITTED` gets null, because nothing writes the two columns apart: a
+ * submission sets the status and the timestamp in the same statement, and the
+ * placeholder row the activity opens with has neither. A factory that dated
+ * work nobody handed in produced a row the API cannot, and a case reading it
+ * would believe the wrong thing.
+ */
+function submittedAtFor(status: SubmissionOptions["status"]): Date | null {
+  return status === "NOT_SUBMITTED" ? null : new Date();
+}
+
 export interface SubmissionOptions {
   student_id?: string;
   activity_id?: number;
@@ -172,7 +185,7 @@ export async function createSubmission(options: SubmissionOptions = {}) {
       status: options.status ?? "SUBMITTED",
       score: options.score,
       feedback: options.feedback,
-      submitted_at: options.submitted_at ?? new Date(),
+      submitted_at: options.submitted_at ?? submittedAtFor(options.status),
       graded_at: options.graded_at,
       graded_by: options.graded_by,
       is_bookmark: options.is_bookmark ?? false,
@@ -226,7 +239,7 @@ export async function createLearningSubmission(
       learning_activity_id,
       status: options.status ?? "SUBMITTED",
       feedback: options.feedback,
-      submitted_at: options.submitted_at ?? new Date(),
+      submitted_at: options.submitted_at ?? submittedAtFor(options.status),
       graded_at: options.graded_at,
       graded_by: options.graded_by,
       is_bookmark: options.is_bookmark ?? false,

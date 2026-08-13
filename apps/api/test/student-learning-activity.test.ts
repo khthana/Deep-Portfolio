@@ -128,9 +128,9 @@ describe("POST /student-learning-activity/grade", () => {
   });
 
   it("refuses to grade a group submission that is not in a group", async () => {
-    // Still a 500 after #42, for the reason the same case gives in
-    // student-activity.test.ts: a bare `Error("Group not found")`, thrown
-    // before Prisma, so there is no P2025 to map.
+    // 400 since #56, for the reason the same case gives in
+    // student-activity.test.ts: the row of a student in no group is on the
+    // teacher's marking table now, and its only link comes here.
     const teacher = await createTeacher();
     const submission = await createLearningSubmission();
 
@@ -144,7 +144,11 @@ describe("POST /student-learning-activity/grade", () => {
         remark: "",
       });
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "นักศึกษาคนนี้ยังไม่ได้อยู่ในกลุ่มใด จึงยังให้คะแนนงานกลุ่มไม่ได้",
+    });
     expect(
       await prisma.student_learning_activity.findUniqueOrThrow({
         where: { id: submission.id },
@@ -332,6 +336,33 @@ describe("PATCH /student-learning-activity/bookmark", () => {
         select: { is_bookmark: true },
       }),
     ).toEqual([{ is_bookmark: true }, { is_bookmark: true }]);
+  });
+
+  it("refuses to bookmark group work for a student who is in no group", async () => {
+    // The other half of the same #56 row, for the reason the same case gives in
+    // student-activity.test.ts.
+    const teacher = await createTeacher();
+    const submission = await createLearningSubmission();
+
+    const response = await request(app)
+      .patch("/student-learning-activity/bookmark")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        activity_type: "GROUP",
+        student_learning_activity_id: submission.id,
+        is_bookmark: true,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "นักศึกษาคนนี้ยังไม่ได้อยู่ในกลุ่มใด จึงบันทึกงานกลุ่มไม่ได้",
+    });
+    expect(
+      await prisma.student_learning_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ is_bookmark: false });
   });
 
   it("answers 404 for a submission that does not exist", async () => {

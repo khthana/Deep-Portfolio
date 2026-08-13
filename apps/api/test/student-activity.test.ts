@@ -337,12 +337,14 @@ describe("POST /student-activity/grade", () => {
   });
 
   it("refuses to grade a group submission that is not in a group", async () => {
-    // Still a 500 after #42, which mapped Prisma's P2025 and nothing else: the
-    // service throws a bare `Error("Group not found")` before Prisma is
-    // reached. The refusal is right and its status is not, but giving it one
-    // means deciding what it is — the body asked for GROUP marking on a
-    // submission that has no group, so 400 rather than 404 — and that is a
-    // decision, not a translation.
+    // Pinned at 500 since #42, which mapped Prisma's P2025 and nothing else:
+    // the service threw a bare `Error("Group not found")` before Prisma was
+    // reached. #56 is what settled it, because it is what made this request
+    // something a teacher can send by clicking: a student in no group now has
+    // a row on the marking table, and the only link that row offers leads
+    // here. The status is the one #42 already worked out — the body asked for
+    // GROUP marking on a submission that has no group, so 400 rather than 404.
+    // Whether such a student should be markable at all is #64.
     const teacher = await createTeacher();
     const { activity, rubric, levels } = await gradableActivity();
     const student = await createStudent();
@@ -366,7 +368,11 @@ describe("POST /student-activity/grade", () => {
         }),
       );
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "นักศึกษาคนนี้ยังไม่ได้อยู่ในกลุ่มใด จึงยังให้คะแนนงานกลุ่มไม่ได้",
+    });
     expect(
       await prisma.student_activity.findUniqueOrThrow({
         where: { id: submission.id },
@@ -662,6 +668,34 @@ describe("PATCH /student-activity/bookmark", () => {
         select: { is_bookmark: true },
       }),
     ).toEqual([{ is_bookmark: true }, { is_bookmark: true }]);
+  });
+
+  it("refuses to bookmark group work for a student who is in no group", async () => {
+    // The other half of the same #56 row: the star on the marking table sends
+    // GROUP because the activity is group work, and there is no group of rows
+    // to set it on. This answered 500 until #56 made the row reachable.
+    const teacher = await createTeacher();
+    const submission = await createSubmission();
+
+    const response = await request(app)
+      .patch("/student-activity/bookmark")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        activity_type: "GROUP",
+        student_activity_id: submission.id,
+        is_bookmark: true,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: "นักศึกษาคนนี้ยังไม่ได้อยู่ในกลุ่มใด จึงบันทึกงานกลุ่มไม่ได้",
+    });
+    expect(
+      await prisma.student_activity.findUniqueOrThrow({
+        where: { id: submission.id },
+      }),
+    ).toMatchObject({ is_bookmark: false });
   });
 
   it("answers 404 for a submission that does not exist", async () => {

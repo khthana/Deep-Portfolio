@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import { formatUnacceptedMembers } from "../../../../utils/format-unaccepted-member";
 import { formatMarkedStudents } from "../../../../utils/format-marked-students";
+import { formatSubmissionStatus } from "../../../../utils/format-submission-status";
 
 export type DataType = {
   key: string;
@@ -48,10 +49,7 @@ const toRow = (classwork: Submission, dataIndex: number): DataType => {
     code: codes,
     name: names,
     unaccepted: formatUnacceptedMembers(classwork.group?.unaccepted_members),
-    status:
-      classwork.status === "GRADED"
-        ? "GRADED"
-        : ("PENDING" as SubmissionStatus),
+    status: formatSubmissionStatus(classwork.status),
     score: classwork.score,
     remark: classwork.remark ?? "",
     feedback: classwork.feedback ?? "",

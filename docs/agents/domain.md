@@ -66,7 +66,11 @@ each thunk, so read it before writing another fallback sentence into a screen,
 and `0023-unaccepted-members-have-their-own-field.md`, which says a member who
 has not accepted is reported in a field of its own rather than mixed into
 `members`, so read it alongside ADR-0017 before changing what a teacher-facing
-endpoint says about a group.
+endpoint says about a group, and
+`0024-unsubmitted-work-shares-the-roster.md`, which says a teacher's marking
+table is the roster of everyone the work was set for rather than the list of
+who handed it in, so read it before adding a `status` filter to anything that
+answers a teacher.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

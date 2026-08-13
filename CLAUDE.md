@@ -33,8 +33,8 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1023 API cases over
-  40 files, 438 web cases over 30 files. Both were written against the
+- **Tests**: `npm test` at the root runs both workspaces. 1030 API cases over
+  40 files, 442 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
 The whole breakdown of #1 is done, #20–#42 included. On top of that came
@@ -79,8 +79,13 @@ on purpose: **#58** the two empty enums, **#59** phase 5 — a real server and
 CI/CD, **#61** the shared types package `packages/` is reserved for, **#62**
 component and E2E tests, **#63** the `any` sweep and the long files.
 
-#1 closed with them filed, so the open list is exactly #55–#63 — nothing else
-is outstanding anywhere.
+#1 closed with them filed, so the open list is #55–#63 plus whatever they spin
+off — nothing else is outstanding anywhere. **#64** is the first of those: #56
+put a row on the teacher's marking table for a student who is in no group at
+all, and the only link that row offers leads to a grading page that cannot
+mark it. Whether such a student should be markable is a course decision, not a
+code one, so #56 made the refusal legible (`400` with a Thai sentence, where a
+bare `Error` used to reach the caller as `500`) and left the question to #64.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

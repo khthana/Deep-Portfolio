@@ -1653,7 +1653,7 @@ describe("GET /activity/submitted/list", () => {
     expect(response.status).toBe(403);
   });
 
-  it("returns the students who have handed something in", async () => {
+  it("returns everyone the activity was set for, those who handed something in first", async () => {
     const teacher = await createTeacher();
     const activity = await createActivity({
       activity_name: "รายงานบทที่ 1",
@@ -1666,7 +1666,7 @@ describe("GET /activity/submitted/list", () => {
       activity_id: activity.id,
       status: "SUBMITTED",
     });
-    await createSubmission({
+    const placeholder = await createSubmission({
       student_id: silent.student_id,
       activity_id: activity.id,
       status: "NOT_SUBMITTED",
@@ -1683,8 +1683,8 @@ describe("GET /activity/submitted/list", () => {
       activity_name: "รายงานบทที่ 1",
       score: 20,
     });
-    // Only the one who handed something in: a NOT_SUBMITTED row is a placeholder,
-    // not a submission.
+    // The one who has not handed anything in is here too, and last: the work
+    // waiting to be marked stays at the top, where it was before #56.
     expect(response.body.data.submissions).toEqual([
       expect.objectContaining({
         id: submission.id,
@@ -1696,7 +1696,145 @@ describe("GET /activity/submitted/list", () => {
           first_name_th: "สมชาย",
         }),
       }),
+      expect.objectContaining({
+        id: placeholder.id,
+        submission_type: "INDIVIDUAL",
+        status: "NOT_SUBMITTED",
+        score: null,
+        student: expect.objectContaining({
+          student_id: silent.student_id,
+          first_name_th: "สมหญิง",
+        }),
+      }),
     ]);
+  });
+
+  it("lists a group that has handed nothing in, and who it is waiting on", async () => {
+    const teacher = await createTeacher();
+    const activity = await createActivity({ activity_type: "group" });
+    const leader = await createStudent({ first_name_th: "สมชาย" });
+    const pending = await createStudent({ first_name_th: "สมหญิง" });
+    const group = await createActivityGroup({
+      activity_id: activity.id,
+      status: "NOT_SUBMITTED",
+      members: [
+        { student_id: leader.student_id },
+        { student_id: pending.student_id, status: "PENDING" },
+      ],
+    });
+
+    const response = await request(app)
+      .get("/activity/submitted/list")
+      .query({ activity_id: activity.id })
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(200);
+    // The case #56 is about: nobody in this group handed anything in, so the
+    // whole row used to be missing — and with it the fact that the group is one
+    // member short because that member never answered.
+    expect(response.body.data.submissions).toHaveLength(1);
+    const [submission] = response.body.data.submissions;
+    expect(submission).toMatchObject({
+      submission_type: "GROUP",
+      status: "NOT_SUBMITTED",
+      submitted_at: null,
+      score: null,
+    });
+    expect(submission.group.group_id).toBe(group.id);
+    expect(submission.group.members).toEqual([
+      expect.objectContaining({ student_id: leader.student_id }),
+    ]);
+    expect(submission.group.unaccepted_members).toEqual([
+      expect.objectContaining({
+        student_id: pending.student_id,
+        first_name_th: "สมหญิง",
+        status: "PENDING",
+      }),
+    ]);
+  });
+
+  it("lists a student who is in no group at all as a row of their own", async () => {
+    const teacher = await createTeacher();
+    const activity = await createActivity({ activity_type: "group" });
+    const grouped = await createStudent();
+    await createActivityGroup({
+      activity_id: activity.id,
+      members: [{ student_id: grouped.student_id }],
+    });
+    const alone = await createStudent({ first_name_th: "สมศรี" });
+    const placeholder = await createSubmission({
+      student_id: alone.student_id,
+      activity_id: activity.id,
+      status: "NOT_SUBMITTED",
+    });
+
+    const response = await request(app)
+      .get("/activity/submitted/list")
+      .query({ activity_id: activity.id })
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(200);
+    // Nobody invited them and they invited nobody, so there is no group to read
+    // them off — but the activity was set for them, and a teacher who cannot see
+    // that is as blind as the one #56 started with.
+    const alones = response.body.data.submissions.filter(
+      (submission: { id: number }) => submission.id === placeholder.id,
+    );
+    expect(alones).toEqual([
+      expect.objectContaining({
+        submission_type: "INDIVIDUAL",
+        status: "NOT_SUBMITTED",
+        submitted_at: null,
+        score: null,
+        student: expect.objectContaining({
+          student_id: alone.student_id,
+          first_name_th: "สมศรี",
+        }),
+      }),
+    ]);
+    // No group to name, so the row does not pretend to have one — the two
+    // columns naming who is marked read it as the single student it is.
+    expect(alones[0]).not.toHaveProperty("group");
+  });
+
+  it("puts a group that handed something in ahead of one that did not", async () => {
+    const teacher = await createTeacher();
+    const activity = await createActivity({ activity_type: "group" });
+    const idle = await createActivityGroup({
+      activity_id: activity.id,
+      members: [{}],
+    });
+    const busy = await createActivityGroup({
+      activity_id: activity.id,
+      members: [{}],
+    });
+    // The group row and its members' rows are written together whenever work is
+    // handed in, so the status the table shows is the member's (#56 comment).
+    await prisma.student_activity.updateMany({
+      where: {
+        id: {
+          in: busy.student_activity_group_member.map(
+            (member) => member.student_activity_id,
+          ),
+        },
+      },
+      data: { status: "SUBMITTED", submitted_at: new Date() },
+    });
+
+    const response = await request(app)
+      .get("/activity/submitted/list")
+      .query({ activity_id: activity.id })
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(200);
+    // Created idle-first, so this is the sort talking and not the insertion
+    // order coming back unchanged.
+    expect(
+      response.body.data.submissions.map(
+        (submission: { group: { group_id: number } }) =>
+          submission.group.group_id,
+      ),
+    ).toEqual([busy.id, idle.id]);
   });
 
   it("names the group members who never answered the invitation", async () => {

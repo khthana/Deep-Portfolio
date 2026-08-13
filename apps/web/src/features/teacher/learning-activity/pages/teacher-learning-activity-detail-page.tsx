@@ -11,6 +11,7 @@ import type { Submission } from "../types/learning-activity-type.type";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import { formatUnacceptedMembers } from "../../../../utils/format-unaccepted-member";
 import { formatMarkedStudents } from "../../../../utils/format-marked-students";
+import { formatSubmissionStatus } from "../../../../utils/format-submission-status";
 import StudentWorkTable from "../components/student-work-table";
 
 export type DataType = {
@@ -43,10 +44,7 @@ const toRow = (classwork: Submission, dataIndex: number): DataType => {
     code: codes,
     name: names,
     unaccepted: formatUnacceptedMembers(classwork.group?.unaccepted_members),
-    status:
-      classwork.status === "GRADED"
-        ? "GRADED"
-        : ("PENDING" as SubmissionStatus),
+    status: formatSubmissionStatus(classwork.status),
     remark: classwork.remark ?? "",
     feedback: classwork.feedback ?? "",
     id: classwork.id,

@@ -24,21 +24,30 @@ export const activityTypeOptions = Object.keys(activityType).map((key) => ({
 
 export type activityType = keyof typeof activityType;
 
-export type SubmissionStatus = "GRADED" | "PENDING";
+/**
+ * What a row of a marking table can say about itself. Narrower than the API's
+ * four statuses on purpose — see formatSubmissionStatus, which is the only thing
+ * that should produce one of these.
+ */
+export type SubmissionStatus = "GRADED" | "PENDING" | "NOT_SUBMITTED";
 
 export const submissionStatusLabel: Record<SubmissionStatus, string> = {
   GRADED: "ตรวจแล้ว",
   PENDING: "ยังไม่ตรวจ",
+  NOT_SUBMITTED: "ยังไม่ส่ง",
 };
 
 export const submissionStatusBGColor: Record<SubmissionStatus, string> = {
   GRADED: "rgb(59,139,92,0.2)", // เขียว
   PENDING: "rgb(241,188,65,0.2)", // เหลือง
+  // เทา — งานที่ไม่มีอยู่ ไม่ใช่งานที่รออาจารย์ สีจึงไม่เรียกร้องความสนใจแบบเหลือง
+  NOT_SUBMITTED: "rgb(107,114,128,0.15)",
 };
 
 export const submissionStatusTextColor: Record<SubmissionStatus, string> = {
   GRADED: "#3B8B5C", // เขียว
   PENDING: "#C39939", // เหลือง
+  NOT_SUBMITTED: "#6B7280", // เทา
 };
 
 export type FileData = {

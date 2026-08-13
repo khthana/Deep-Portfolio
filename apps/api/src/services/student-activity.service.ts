@@ -11,7 +11,9 @@ import {
   Submission,
 } from "../models/student-activity.model";
 import { splitByAcceptance } from "../utils/group-members";
+import { HttpError } from "../utils/http-error";
 import { isAnnounced } from "../utils/is-announced";
+import { byUnsubmittedLast } from "../utils/submission-order";
 import ActivityService from "./activity.service";
 import AttachmentsService from "./attachments.service";
 
@@ -59,14 +61,19 @@ export default class StudentActivityService {
   // =========================
   // INDIVIDUAL SUBMISSION
   // =========================
+  /**
+   * Every student the work was set for, not only the ones who handed it in.
+   *
+   * A `student_activity` row is opened for each of them the moment the activity
+   * is created, and this used to skip the ones still sitting at
+   * `NOT_SUBMITTED` — so the only teacher-facing list of a piece of work never
+   * mentioned who had not done it (#56).
+   */
   private async getIndividualSubmissions(
     activity_id: number,
   ): Promise<Submission[]> {
     const activities = await prisma.student_activity.findMany({
-      where: {
-        activity_id,
-        status: { not: "NOT_SUBMITTED" },
-      },
+      where: { activity_id },
       select: {
         status: true,
         score: true,
@@ -84,35 +91,41 @@ export default class StudentActivityService {
           },
         },
       },
-      orderBy: {
-        submitted_at: "desc",
-      },
+      orderBy: { id: "asc" },
     });
 
-    return activities.map((a) => ({
-      id: a.id,
-      submission_type: "INDIVIDUAL",
-      status: a.status,
-      submitted_at: a.submitted_at,
-      score: a.score ? Number(a.score) : null,
-      feedback: a.feedback,
-      is_bookmark: a.is_bookmark,
-      remark: a.remark,
-      student: a.student,
-    }));
+    return activities
+      .map((a) => ({
+        id: a.id,
+        submission_type: "INDIVIDUAL" as const,
+        status: a.status,
+        submitted_at: a.submitted_at,
+        score: a.score ? Number(a.score) : null,
+        feedback: a.feedback,
+        is_bookmark: a.is_bookmark,
+        remark: a.remark,
+        student: a.student,
+      }))
+      .sort(byUnsubmittedLast);
   }
 
   // =========================
   // GROUP SUBMISSION
   // =========================
+  /**
+   * Every group the work was set for, and everyone who is in none of them.
+   *
+   * This used to take only the groups past `NOT_SUBMITTED`, which cost the
+   * teacher exactly the rows they most needed: a group nobody handed in for is
+   * often a group still waiting on someone to answer their invitation, and the
+   * unanswered list #53 added was invisible for precisely those (#56).
+   */
   private async getGroupSubmissions(
     activity_id: number,
   ): Promise<Submission[]> {
     const groups = await prisma.student_activity_group.findMany({
-      where: {
-        activity_id,
-        status: { not: "NOT_SUBMITTED" },
-      },
+      where: { activity_id },
+      orderBy: { id: "asc" },
       select: {
         // Every member, not only the ACCEPT ones: the split happens below,
         // because the teacher is shown both lists (#53).
@@ -142,18 +155,17 @@ export default class StudentActivityService {
       },
     });
 
-    if (groups.length <= 0) return [];
-    return groups
+    const groupSubmissions = groups
       .map((g) => splitByAcceptance(g.student_activity_group_member))
-      // A group with nobody accepted has no submission to show and no score to
-      // attach a row to; the leader is ACCEPT from creation, so this stands as
-      // a guard rather than a case that happens.
+      // A group with nobody accepted has no submission to read the row off; the
+      // leader is ACCEPT from creation, so this stands as a guard rather than a
+      // case that happens.
       .filter((g) => g.accepted.length > 0)
       .map(({ accepted, unaccepted }) => {
         const activity = accepted[0].student_activity!;
 
         return {
-          submission_type: "GROUP",
+          submission_type: "GROUP" as const,
           status: activity.status,
           submitted_at: activity.submitted_at,
           score: activity.score ? Number(activity.score) : null,
@@ -168,6 +180,59 @@ export default class StudentActivityService {
           },
         };
       });
+
+    const ungrouped = await this.getUngroupedSubmissions(activity_id);
+
+    return [...groupSubmissions, ...ungrouped].sort(byUnsubmittedLast);
+  }
+
+  /**
+   * The students group work was set for who are in no group at all.
+   *
+   * Their `student_activity` row is opened with everyone else's and simply never
+   * gets pointed at by a member row, so no query over groups can reach them.
+   * They are the teacher's most urgent problem on a group activity — nobody has
+   * invited them and they have invited nobody — and the roster is the one screen
+   * that could say so, which is the same blindness #56 is about, one step
+   * earlier. They come back as their own rows, so the two columns naming who is
+   * being marked read a single student the way they do on individual work.
+   */
+  private async getUngroupedSubmissions(
+    activity_id: number,
+  ): Promise<Submission[]> {
+    const loners = await prisma.student_activity.findMany({
+      where: { activity_id, student_activity_group_member: null },
+      select: {
+        id: true,
+        status: true,
+        score: true,
+        feedback: true,
+        submitted_at: true,
+        is_bookmark: true,
+        remark: true,
+
+        student: {
+          select: {
+            student_id: true,
+            first_name_th: true,
+            last_name_th: true,
+          },
+        },
+      },
+      orderBy: { id: "asc" },
+    });
+
+    return loners.map((a) => ({
+      id: a.id,
+      submission_type: "INDIVIDUAL" as const,
+      status: a.status,
+      submitted_at: a.submitted_at,
+      score: a.score ? Number(a.score) : null,
+      feedback: a.feedback,
+      is_bookmark: a.is_bookmark,
+      remark: a.remark,
+      student: a.student,
+    }));
   }
 
   async getStudentActivityDetail(
@@ -431,8 +496,15 @@ export default class StudentActivityService {
         select: { group_id: true },
       });
 
+      // A student on a group activity who is in no group at all. Their row only
+      // reached the teacher's screen with #56, and this used to answer it 500
+      // with a sentence written for nobody. Whether such a student should be
+      // markable at all is a course decision, not one to take here (#64).
       if (!groupMember) {
-        throw new Error("Group not found");
+        throw new HttpError(
+          400,
+          "นักศึกษาคนนี้ยังไม่ได้อยู่ในกลุ่มใด จึงยังให้คะแนนงานกลุ่มไม่ได้",
+        );
       }
 
       // Only the members who accepted. A group is handed in on behalf of the
@@ -665,8 +737,13 @@ export default class StudentActivityService {
       },
     });
 
+    // Same student, same reason as gradeStudentGroupActivity: the bookmark star
+    // sits on a row #56 made visible, and there is no group of rows to set it on.
     if (!group) {
-      throw new Error("Group not found");
+      throw new HttpError(
+        400,
+        "นักศึกษาคนนี้ยังไม่ได้อยู่ในกลุ่มใด จึงบันทึกงานกลุ่มไม่ได้",
+      );
     }
 
     await prisma.student_activity.updateMany({

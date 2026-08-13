@@ -11,7 +11,9 @@ import {
   Submission,
 } from "../models/student-learning-activity.model";
 import { splitByAcceptance } from "../utils/group-members";
+import { HttpError } from "../utils/http-error";
 import { isAnnounced } from "../utils/is-announced";
+import { byUnsubmittedLast } from "../utils/submission-order";
 import ActivityService from "./activity.service";
 import AttachmentsService from "./attachments.service";
 import LearningActivityService from "./learning-activity.service";
@@ -60,14 +62,13 @@ export default class StudentLearningActivityService {
   // =========================
   // INDIVIDUAL SUBMISSION
   // =========================
+  /** Every student the work was set for — see the graded half in
+   *  student-activity.service.ts for why the filter went (#56). */
   private async getIndividualSubmissions(
     learning_activity_id: number,
   ): Promise<Submission[]> {
     const activities = await prisma.student_learning_activity.findMany({
-      where: {
-        learning_activity_id,
-        status: { not: "NOT_SUBMITTED" },
-      },
+      where: { learning_activity_id },
       select: {
         status: true,
         feedback: true,
@@ -83,34 +84,34 @@ export default class StudentLearningActivityService {
           },
         },
       },
-      orderBy: {
-        submitted_at: "desc",
-      },
+      orderBy: { id: "asc" },
     });
 
-    return activities.map((a) => ({
-      id: a.id,
-      submission_type: "INDIVIDUAL",
-      status: a.status,
-      submitted_at: a.submitted_at,
-      feedback: a.feedback,
-      remark: a.remark,
-      is_bookmark: a.is_bookmark,
-      student: a.student,
-    }));
+    return activities
+      .map((a) => ({
+        id: a.id,
+        submission_type: "INDIVIDUAL" as const,
+        status: a.status,
+        submitted_at: a.submitted_at,
+        feedback: a.feedback,
+        remark: a.remark,
+        is_bookmark: a.is_bookmark,
+        student: a.student,
+      }))
+      .sort(byUnsubmittedLast);
   }
 
   // =========================
   // GROUP SUBMISSION
   // =========================
+  /** Every group, and everyone in none of them — see the graded half in
+   *  student-activity.service.ts for both reasons (#56). */
   private async getGroupSubmissions(
     learning_activity_id: number,
   ): Promise<Submission[]> {
     const groups = await prisma.student_learning_activity_group.findMany({
-      where: {
-        learning_activity_id,
-        status: { not: "NOT_SUBMITTED" },
-      },
+      where: { learning_activity_id },
+      orderBy: { id: "asc" },
       select: {
         // Every member, not only the ACCEPT ones: the split happens below,
         // because the teacher is shown both lists (#53).
@@ -139,18 +140,17 @@ export default class StudentLearningActivityService {
       },
     });
 
-    if (groups.length <= 0) return [];
-    return groups
+    const groupSubmissions = groups
       .map((g) => splitByAcceptance(g.student_learning_activity_group_member))
-      // A group with nobody accepted has no submission to show and no row to
-      // attach the group to; the leader is ACCEPT from creation, so this stands
-      // as a guard rather than a case that happens.
+      // A group with nobody accepted has no submission to read the row off; the
+      // leader is ACCEPT from creation, so this stands as a guard rather than a
+      // case that happens.
       .filter((g) => g.accepted.length > 0)
       .map(({ accepted, unaccepted }) => {
         const activity = accepted[0].student_learning_activity!;
 
         return {
-          submission_type: "GROUP",
+          submission_type: "GROUP" as const,
           status: activity.status,
           submitted_at: activity.submitted_at,
           feedback: activity.feedback,
@@ -164,6 +164,51 @@ export default class StudentLearningActivityService {
           },
         };
       });
+
+    const ungrouped = await this.getUngroupedSubmissions(learning_activity_id);
+
+    return [...groupSubmissions, ...ungrouped].sort(byUnsubmittedLast);
+  }
+
+  /** The students group work was set for who are in no group at all — see the
+   *  graded half in student-activity.service.ts (#56). */
+  private async getUngroupedSubmissions(
+    learning_activity_id: number,
+  ): Promise<Submission[]> {
+    const loners = await prisma.student_learning_activity.findMany({
+      where: {
+        learning_activity_id,
+        student_learning_activity_group_member: null,
+      },
+      select: {
+        id: true,
+        status: true,
+        feedback: true,
+        submitted_at: true,
+        is_bookmark: true,
+        remark: true,
+
+        student: {
+          select: {
+            student_id: true,
+            first_name_th: true,
+            last_name_th: true,
+          },
+        },
+      },
+      orderBy: { id: "asc" },
+    });
+
+    return loners.map((a) => ({
+      id: a.id,
+      submission_type: "INDIVIDUAL" as const,
+      status: a.status,
+      submitted_at: a.submitted_at,
+      feedback: a.feedback,
+      remark: a.remark,
+      is_bookmark: a.is_bookmark,
+      student: a.student,
+    }));
   }
 
   async getAllStudentLearningActivity(
@@ -399,8 +444,13 @@ export default class StudentLearningActivityService {
           select: { group_id: true },
         });
 
+      // A student in no group at all, for the reason the activity side gives at
+      // gradeStudentGroupActivity (#56, and #64 for the decision it defers).
       if (!groupMember) {
-        throw new Error("Group not found");
+        throw new HttpError(
+          400,
+          "นักศึกษาคนนี้ยังไม่ได้อยู่ในกลุ่มใด จึงยังให้คะแนนงานกลุ่มไม่ได้",
+        );
       }
 
       // Only the members who accepted, for the reason the activity side gives
@@ -464,7 +514,10 @@ export default class StudentLearningActivityService {
     );
 
     if (!group) {
-      throw new Error("Group not found");
+      throw new HttpError(
+        400,
+        "นักศึกษาคนนี้ยังไม่ได้อยู่ในกลุ่มใด จึงบันทึกงานกลุ่มไม่ได้",
+      );
     }
 
     await prisma.student_learning_activity.updateMany({

@@ -779,7 +779,7 @@ describe("GET /learning-activity/submitted/list", () => {
     expect(response.status).toBe(403);
   });
 
-  it("returns the students who have handed something in", async () => {
+  it("returns everyone the activity was set for, those who handed something in first", async () => {
     const teacher = await createTeacher();
     const activity = await createLearningActivity({
       learning_activity_name: "ใบงานที่ 1",
@@ -791,7 +791,7 @@ describe("GET /learning-activity/submitted/list", () => {
       learning_activity_id: activity.id,
       status: "SUBMITTED",
     });
-    await createLearningSubmission({
+    const placeholder = await createLearningSubmission({
       student_id: silent.student_id,
       learning_activity_id: activity.id,
       status: "NOT_SUBMITTED",
@@ -807,6 +807,7 @@ describe("GET /learning-activity/submitted/list", () => {
       learning_activity_id: activity.id,
       learning_activity_name: "ใบงานที่ 1",
     });
+    // Same order as the graded half, for the same reason (#56).
     expect(response.body.data.submissions).toEqual([
       expect.objectContaining({
         id: submission.id,
@@ -817,9 +818,96 @@ describe("GET /learning-activity/submitted/list", () => {
           first_name_th: "สมชาย",
         }),
       }),
+      expect.objectContaining({
+        id: placeholder.id,
+        submission_type: "INDIVIDUAL",
+        status: "NOT_SUBMITTED",
+        student: expect.objectContaining({
+          student_id: silent.student_id,
+          first_name_th: "สมหญิง",
+        }),
+      }),
     ]);
     // No score anywhere in the payload: this work is done or not done.
     expect(response.body.data.submissions[0]).not.toHaveProperty("score");
+  });
+
+  it("lists a group that has handed nothing in, and who it is waiting on", async () => {
+    const teacher = await createTeacher();
+    const activity = await createLearningActivity({
+      learning_activity_type: "group",
+    });
+    const leader = await createStudent({ first_name_th: "สมชาย" });
+    const pending = await createStudent({ first_name_th: "สมหญิง" });
+    const group = await createLearningActivityGroup({
+      learning_activity_id: activity.id,
+      status: "NOT_SUBMITTED",
+      members: [
+        { student_id: leader.student_id },
+        { student_id: pending.student_id, status: "PENDING" },
+      ],
+    });
+
+    const response = await request(app)
+      .get("/learning-activity/submitted/list")
+      .query({ learning_activity_id: activity.id })
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.submissions).toHaveLength(1);
+    const [submission] = response.body.data.submissions;
+    expect(submission).toMatchObject({
+      submission_type: "GROUP",
+      status: "NOT_SUBMITTED",
+      submitted_at: null,
+    });
+    expect(submission.group.group_id).toBe(group.id);
+    expect(submission.group.unaccepted_members).toEqual([
+      expect.objectContaining({
+        student_id: pending.student_id,
+        status: "PENDING",
+      }),
+    ]);
+  });
+
+  it("lists a student who is in no group at all as a row of their own", async () => {
+    const teacher = await createTeacher();
+    const activity = await createLearningActivity({
+      learning_activity_type: "group",
+    });
+    const grouped = await createStudent();
+    await createLearningActivityGroup({
+      learning_activity_id: activity.id,
+      members: [{ student_id: grouped.student_id }],
+    });
+    const alone = await createStudent({ first_name_th: "สมศรี" });
+    const placeholder = await createLearningSubmission({
+      student_id: alone.student_id,
+      learning_activity_id: activity.id,
+      status: "NOT_SUBMITTED",
+    });
+
+    const response = await request(app)
+      .get("/learning-activity/submitted/list")
+      .query({ learning_activity_id: activity.id })
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(200);
+    const alones = response.body.data.submissions.filter(
+      (submission: { id: number }) => submission.id === placeholder.id,
+    );
+    expect(alones).toEqual([
+      expect.objectContaining({
+        submission_type: "INDIVIDUAL",
+        status: "NOT_SUBMITTED",
+        submitted_at: null,
+        student: expect.objectContaining({
+          student_id: alone.student_id,
+          first_name_th: "สมศรี",
+        }),
+      }),
+    ]);
+    expect(alones[0]).not.toHaveProperty("group");
   });
 
   it("names the group members who never answered the invitation", async () => {
