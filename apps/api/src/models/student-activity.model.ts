@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import type { StudentActivityStatusDB } from "@deep-portfolio/api-types";
 import { AttachmentDetailResp } from "./announcement.model";
 import { ClassworkType } from "./student.model";
 import { GetActivityDetailResp } from "./activity.model";
@@ -39,11 +40,10 @@ type StudentActivityBrief = {
   received_point: number | null;
 };
 
+/** Not the column: `LATE` is a reading of the dates, which is why the one that
+ *  is on the wire lives in @deep-portfolio/api-types and this one does not. */
 export type StudentActivityStatus =
   "NOT_SUBMITTED" | "SUBMITTED" | "GRADED" | "LATE";
-
-export type StudentActivityStatusDB =
-  "NOT_SUBMITTED" | "SUBMITTED" | "GRADED" | "GRADING";
 
 //-----------------------------------
 

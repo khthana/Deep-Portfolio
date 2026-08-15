@@ -400,6 +400,32 @@ describe("GET /gradebook/per-activity", () => {
     ]);
   });
 
+  it("sends the deadline as the string a caller parses, not a Date", async () => {
+    // The service writes this one out with toISOString() rather than handing
+    // res.json() the Date, so that @deep-portfolio/api-types can say `string`
+    // and the compiler can hold the service to it (#68). The bytes are the
+    // same either way — JSON.stringify calls the same method — and this case
+    // is what says so. The expected string names UTC because the value written
+    // did: the column is `timestamp` without a zone, so what goes in comes back
+    // as the same instant whatever zone the machine running this is in.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    await createActivity({
+      section_id: course.section_id,
+      score_number: 20,
+      deadline_date: new Date("2026-03-01T09:00:00Z"),
+    });
+
+    const response = await request(app)
+      .get("/gradebook/per-activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    const [row] = response.body.data.activities;
+    expect(row.deadline_date).toBe("2026-03-01T09:00:00.000Z");
+  });
+
   it("averages over the marked submissions only, not the whole class", async () => {
     // A student who has handed in but not been marked has no score to average,
     // so they raise submitted_count without moving the mean.

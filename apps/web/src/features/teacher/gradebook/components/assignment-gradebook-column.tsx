@@ -35,7 +35,7 @@ const AssignmentGradebookColumn = () => [
     title: "กำหนดส่ง",
     dataIndex: "deadline",
     key: "deadline",
-    render: (text: Date | null) => (
+    render: (text: string | null) => (
       <div className="text-left">
         {text ? convertDateToThaiFormat(text) : "-"}
       </div>

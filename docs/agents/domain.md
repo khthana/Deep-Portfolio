@@ -31,7 +31,7 @@ belong to any teacher, and why the rule is not narrowed to the caller's own
 programme) and `0020-mapping-names-own-submission.md` (an id that arrives in a
 `POST` body and names a row with an owner: ask before writing, `400` when the
 row is not there and `403` when it belongs to someone else). Read all eleven
-before adding an authorisation check anywhere. Seventeen
+before adding an authorisation check anywhere. Eighteen
 more are about when or what rather than who: `0005-announcement-date.md` — a
 piece of work with no announcement date counts as announced, on every
 student-facing read — `0008-attachment-lifecycle.md`, which says an attachment
@@ -86,7 +86,14 @@ git hook runs any of it — read it before adding a rule, a formatter option or 
 of a response is declared once in `@deep-portfolio/api-types`, written by hand
 to what the JSON actually carries rather than to what Prisma holds, and
 imported by the API as well as the web — read it before writing a type that
-mirrors a response, or before putting a `Date` in one.
+mirrors a response, or before putting a `Date` in one, and its follow-up
+`0029-api-types-per-feature.md`, which answers the five questions the second
+feature's move ran into and the first one did not: names in the package carry
+the feature, a type used across features lives in its own feature's file, an
+emptied model file is deleted rather than left re-exporting, a feature that
+has not moved yet but borrows a moved shape is corrected in the same pass, and
+a shared web helper is widened rather than narrowed — read it before starting
+another pass of #68.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

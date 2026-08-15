@@ -19,7 +19,8 @@ mostly correctness work on top of it.
 - **Monorepo**: npm workspaces — `apps/api` (Express 5 + Prisma + PostgreSQL),
   `apps/web` (React 19 + Vite + Ant Design), and `packages/api-types`
   (`@deep-portfolio/api-types`, the shapes the API answers in, imported by both
-  sides — ADR-0028; no build step, both apps read its `.ts` directly).
+  sides — ADR-0028 for why it exists, ADR-0029 for what each pass that moves a
+  feature into it has to do; no build step, both apps read its `.ts` directly).
   One lockfile at the root; never run `npm install` in a subfolder.
 - **Runs locally in one command**: `docker compose up --build` brings up web,
   API, PostgreSQL and MinIO, and applies migrations on the way. Nothing is
@@ -48,8 +49,8 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1055 API cases over
-  40 files, 450 web cases over 31 files. Both were written against the
+- **Tests**: `npm test` at the root runs both workspaces. 1056 API cases over
+  40 files, 451 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
 The whole breakdown of #1 is done, #20–#42 included. On top of that came
@@ -98,9 +99,9 @@ five are the work the spec put out of scope on purpose: **#58** the two empty
 enums; **#59** phase 5 — a real server and CI/CD, whose CI half shipped and
 whose CD half is now #65; **#61** the shared types package `packages/` was
 reserved for, which now exists, holding the response envelope and the course
-feature, with both apps importing it and the API's own services bound to it
-(ADR-0028); **#62** component and E2E tests; and **#63** the `any` sweep and
-the long files.
+feature — and the gradebook since, under #68 — with both apps importing it and
+the API's own services bound to it (ADR-0028); **#62** component and E2E tests;
+and **#63** the `any` sweep and the long files.
 
 #1 closed with them filed, so the open list is what is left of #55–#63 plus
 whatever they spun off: **#58, #62, #63 and #64–#68**, and nothing else is
@@ -123,7 +124,11 @@ every web warning, not the `any` ones, which are 141 (plus 2 in `apps/api`).
 feature on purpose: #68 carries the 38 web type files that still hold copies of
 what the API answers, one feature at a time, and #67 carries `ResponseWrapper`, the web's
 own envelope, which disagrees with the `ApiResponse`/`ApiError` the API
-actually answers and is read in 277 places.
+actually answers and is read in 277 places. **#68 is open and being worked
+through**: the gradebook moved on 2026-08-15, which is where ADR-0029 came
+from — read it before starting the next pass, because the five things it
+decides are the ones a second feature runs into and the first one did not.
+38 files and 2,136 lines are still web-side.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

@@ -87,5 +87,6 @@ export type UnacceptedMember = {
   status: "PENDING" | "REJECTED";
 };
 
-export type StudentActivityStatusDB =
-  "NOT_SUBMITTED" | "SUBMITTED" | "GRADED" | "GRADING";
+// StudentActivityStatusDB used to be declared here. It is the column every
+// endpoint that reports a submission sends, so it belongs to both sides now
+// — import it from @deep-portfolio/api-types (#68).

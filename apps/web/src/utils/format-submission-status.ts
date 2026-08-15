@@ -1,4 +1,4 @@
-import type { StudentActivityStatusDB } from "../types/activity-type.type";
+import type { StudentActivityStatusDB } from "@deep-portfolio/api-types";
 import type { SubmissionStatus } from "../features/teacher/activity/types/activity-type.type";
 
 /**

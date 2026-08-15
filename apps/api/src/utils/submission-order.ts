@@ -1,4 +1,4 @@
-import type { StudentActivityStatusDB } from "../models/student-activity.model";
+import type { StudentActivityStatusDB } from "@deep-portfolio/api-types";
 
 /**
  * As much of a submission as the order needs. Both roster endpoints have their

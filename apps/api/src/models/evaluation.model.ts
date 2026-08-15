@@ -21,7 +21,11 @@ export type StudentEvaluationData = {
   type: ClassworkCategory;
   status: string;
 
-  deadline_date?: Date | null;
+  // A string, not a Date: an activity row is the gradebook's own row spread
+  // whole, and that one has moved to @deep-portfolio/api-types, where a date
+  // is written as the caller reads it. The rest of this type follows when the
+  // evaluation feature has its own pass (#68).
+  deadline_date?: string | null;
   full_score?: number | null;
   /** null once the row is an activity's and nobody in the section has been
    *  marked yet — no marks, no highest, lowest or average (#28). */

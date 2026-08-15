@@ -7,8 +7,10 @@
  * are not here — they belong to the zod schemas in apps/api/src/validation,
  * which are what actually refuses a bad one.
  *
- * Only the course feature has moved so far. docs/adr/0028-shared-api-types.md
- * says why, and what has to be true before the next one follows.
+ * The course feature moved first and the gradebook followed;
+ * docs/adr/0028-shared-api-types.md says why the package is shaped this way
+ * and docs/adr/0029-api-types-per-feature.md what each pass after the first
+ * has to do. The rest are still written twice, one feature at a time (#68).
  */
 export type {
   ApiError,
@@ -26,3 +28,13 @@ export type {
   TeacherCourseListResp,
   Weekday,
 } from "./course";
+
+export type {
+  GradebookActivity,
+  GradebookPerActivityResp,
+  GradebookPerStudentResp,
+  GradebookStudent,
+  GradebookStudentActivity,
+} from "./gradebook";
+
+export type { StudentActivityStatusDB } from "./student-activity";

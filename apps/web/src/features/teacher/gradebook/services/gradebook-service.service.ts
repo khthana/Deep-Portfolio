@@ -1,10 +1,10 @@
 import { endpoints } from "../../../../configs/endpoints.config";
 import { axiosInstance } from "../../../../lib/axios";
-import type { ResponseWrapper } from "../../../../types/global-type";
 import type {
-  GradebookPerStudentResp,
   GradebookPerActivityResp,
-} from "../types/gradebook-type.type";
+  GradebookPerStudentResp,
+} from "@deep-portfolio/api-types";
+import type { ResponseWrapper } from "../../../../types/global-type";
 
 export const getGradebookPerStudent = async (params: {
   section_id: number;

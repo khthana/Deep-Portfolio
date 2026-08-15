@@ -1,9 +1,9 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import type { ResponseWrapper } from "../../../../types/global-type";
 import type {
-  GradebookPerStudentResp,
   GradebookPerActivityResp,
-} from "../types/gradebook-type.type";
+  GradebookPerStudentResp,
+} from "@deep-portfolio/api-types";
+import type { ResponseWrapper } from "../../../../types/global-type";
 import {
   getGradebookPerStudent,
   getGradebookPerActivity,

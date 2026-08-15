@@ -288,7 +288,9 @@ export type StudentEvaluationData = {
   type: ClassworkCategory;
   status: string;
 
-  deadline_date?: Date | null;
+  // A string, like the gradebook row it is spread from — the API's own copy of
+  // this type was corrected in the same pass (#68, ADR-0029 §4).
+  deadline_date?: string | null;
   full_score?: number | null;
   max_score?: number | null;
   mean_score?: number | null;

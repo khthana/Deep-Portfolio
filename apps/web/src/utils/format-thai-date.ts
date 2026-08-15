@@ -17,7 +17,16 @@ export const getShortDate = (dateStr: string) => {
   return `${dayOfWeek}`;
 };
 
-export const convertDateToThaiFormat = (dateString: Date | null) => {
+/**
+ * Every date this renders arrived over JSON, which makes it a string — and
+ * `new Date()` has been reading it as one all along, whatever the type said.
+ * Twenty of the 22 call sites hand that string straight over; the two calendar
+ * popups wrap it in `new Date()` first, which is why the union keeps `Date`
+ * rather than narrowing to `string | null`. Narrowing also has to wait for the
+ * features whose types still claim `Date`, so the union goes when the last of
+ * them moves to `@deep-portfolio/api-types` (#68).
+ */
+export const convertDateToThaiFormat = (dateString: Date | string | null) => {
   if (!dateString) return;
 
   const date = new Date(dateString);

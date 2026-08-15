@@ -80,6 +80,18 @@ describe("convertDateToThaiFormat", () => {
     // nothing — so the missing return is the empty cell.
     expect(convertDateToThaiFormat(null)).toBeUndefined();
   });
+
+  it("reads the ISO string the API sends as the same instant as a Date", () => {
+    // Every caller here is rendering a date that arrived over JSON, which
+    // makes it a string however the type used to be written — see #68. Naming
+    // the instant rather than the printed text keeps the case true in every
+    // zone, which is what the suite's own rule asks for.
+    const instant = new Date(Date.UTC(2024, 0, 5, 13, 45));
+
+    expect(convertDateToThaiFormat(instant.toISOString())).toBe(
+      convertDateToThaiFormat(instant),
+    );
+  });
 });
 
 describe("isSameDay", () => {

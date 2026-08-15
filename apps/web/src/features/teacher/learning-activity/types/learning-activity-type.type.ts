@@ -1,9 +1,7 @@
 import type { JSONContent } from "@tiptap/react";
 import type { AttachmentDetailItem } from "../../announcement/types/announement-type";
-import type {
-  StudentActivityStatusDB,
-  UnacceptedMember,
-} from "../../../../types/activity-type.type";
+import type { StudentActivityStatusDB } from "@deep-portfolio/api-types";
+import type { UnacceptedMember } from "../../../../types/activity-type.type";
 import type { ClassworkType } from "../../../student/course/types/course-type";
 
 export type CreateLearningActivityFormType = {

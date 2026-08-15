@@ -1,9 +1,9 @@
-import {
-  GradebookPerStudentResp,
+import type {
+  GradebookActivity,
   GradebookPerActivityResp,
-  ActivityData,
-  StudentSubmittionData,
-} from "../models/gradebook.model";
+  GradebookPerStudentResp,
+  GradebookStudent,
+} from "@deep-portfolio/api-types";
 import prisma from "../config/prisma";
 
 /**
@@ -67,7 +67,7 @@ export class GradebookService {
       }),
     ]);
 
-    const studentMap = new Map<string, StudentSubmittionData>();
+    const studentMap = new Map<string, GradebookStudent>();
 
     students.forEach((s) => {
       studentMap.set(s.student_id, {
@@ -155,7 +155,7 @@ export class GradebookService {
       },
     });
 
-    const activityDataList: ActivityData[] = activities.map((activity) => {
+    const activityDataList: GradebookActivity[] = activities.map((activity) => {
       const scores = activity.student_activity
         .map((sa) => (sa.score !== null ? Number(sa.score) : null))
         .filter((score): score is number => score !== null);
@@ -192,7 +192,11 @@ export class GradebookService {
       return {
         activity_id: activity.id,
         activity_name: activity.activity_name,
-        deadline_date: activity.deadline_date,
+        // Written out here rather than left to res.json(): the same bytes
+        // JSON.stringify was already producing from the Date, and what lets
+        // the compiler hold this against the shared type, which says string
+        // because that is what a caller parses.
+        deadline_date: activity.deadline_date?.toISOString() ?? null,
         full_score: fullScore,
         max_score: maxScore,
         min_score: minScore,

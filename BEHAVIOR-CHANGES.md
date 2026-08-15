@@ -1086,7 +1086,7 @@ ticket นี้แยกสองอย่างนั้นออกจาก�
 | **ของใหม่** | ทั้งสามค่าเป็น `null` เมื่อยังไม่มีคะแนนสักคน และเป็นตัวเลขตามเดิมเมื่อมีคะแนนแล้ว — รวมถึง `0` เมื่อคะแนนที่ตรวจแล้วเป็น 0 |
 | **เหตุผล** | ค่าสูงสุด ต่ำสุด และเฉลี่ยของ "ไม่มีคะแนน" ไม่ใช่ 0 แต่คือไม่มี ส่วน 0 เป็นคะแนนที่ได้จริงได้ ผู้เรียกเคยแยกสองกรณีนี้ได้ทางเดียวคือดู `graded_count` ประกอบ ซึ่งหน้าเว็บไม่ได้ดู |
 | **ขอบเขต** | `submitted_count` `not_submitted_count` `graded_count` `full_score` ไม่เปลี่ยน — งานที่ส่งมารอตรวจเป็นข้อเท็จจริงอยู่แล้วไม่ว่าจะตรวจหรือยัง |
-| **frontend** | type `ActivityData` ใน `gradebook-type.type.ts` และแถวตาราง `GradebookPerActivityDataType` เป็น `number \| null` แล้ว และคอลัมน์ Max/Min/Mean ของสมุดคะแนนอาจารย์แสดง `-` |
+| **frontend** | type `ActivityData` ใน `gradebook-type.type.ts` และแถวตาราง `GradebookPerActivityDataType` เป็น `number \| null` แล้ว และคอลัมน์ Max/Min/Mean ของสมุดคะแนนอาจารย์แสดง `-` (ตัวแรกย้ายไป `@deep-portfolio/api-types` ในชื่อ `GradebookActivity` แล้วเมื่อ 15 ส.ค. 2569 ตาม #68) |
 
 ### 2. `GET /evaluation/list` ส่งต่อค่าชุดเดียวกัน
 
