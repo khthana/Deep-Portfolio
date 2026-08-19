@@ -7,6 +7,7 @@ import prisma from "../config/prisma";
 import { transporter } from "../config/mailer";
 import { env } from "../config/env";
 import { HttpError } from "../utils/http-error";
+import type { ValidateInviteResp } from "@deep-portfolio/api-types";
 
 /**
  * A token that names no invitation, or one whose seven days have run out. Both
@@ -149,7 +150,10 @@ export default class GroupService {
         });
   }
 
-  async validateInvite(token: string, type: "learning-activity" | "activity") {
+  async validateInvite(
+    token: string,
+    type: "learning-activity" | "activity",
+  ): Promise<ValidateInviteResp> {
     const invite =
       type === "activity"
         ? await prisma.student_activity_group_member.findFirst({

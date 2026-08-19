@@ -30,19 +30,18 @@ import {
   mapActivityDetail,
   mapLearningActivityDetail,
   type ClassworkDetailResp,
-  type GetStudentActivityGroupResp,
-  type GetStudentWithoutGroupResp,
 } from "../types/course-type";
 import type {
   CourseDetail,
+  GroupDetailResp,
   StudentActivityDetailResp,
   StudentLearningActivityDetailResp,
+  StudentWithoutGroup,
 } from "@deep-portfolio/api-types";
 import type {
   AnnouncementDetailResp,
   ScoreWeightResp,
 } from "../../../../types/course-type.type";
-import type { StudentDetailResp } from "../../../../types/student-type.type";
 import {
   failed,
   initialStateOf,
@@ -112,7 +111,7 @@ const learningActivityDetail = {
   submitted_at: "2024-01-08T09:00:00.000Z",
 } as unknown as StudentLearningActivityDetailResp;
 
-const group: GetStudentActivityGroupResp = {
+const group: GroupDetailResp = {
   group_id: 3,
   members: [
     {
@@ -214,7 +213,7 @@ describe("studentCourseSlice", () => {
         field: "studentList",
         data: [
           { student_id: "65000002", full_name_th: "สอง ระบบดี" },
-        ] as unknown as StudentDetailResp[],
+        ] satisfies StudentWithoutGroup[],
       },
       // The learning-activity dialogs are a second copy of the three above,
       // writing into the very same fields — so a page that opened both would
@@ -237,7 +236,7 @@ describe("studentCourseSlice", () => {
         field: "studentList",
         data: [
           { student_id: "65000003", full_name_th: "สาม ระบบดี" },
-        ] as unknown as GetStudentWithoutGroupResp[],
+        ] satisfies StudentWithoutGroup[],
       },
     ]);
   });

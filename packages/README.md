@@ -19,10 +19,11 @@ service ไว้กับมัน คอมไพเลอร์จึงเ�
 response ของ course, response ของ gradebook, response ของรายการผลการประเมิน,
 response ของ activity พร้อม rubric กับหมวดคะแนน, response ของ
 learning-activity, response ของสองเส้นส่งงานพร้อมรูปกลุ่มกับชื่อนักศึกษา,
+response ของหน้ากลุ่มฝั่งนักศึกษาทั้งสิบเส้นพร้อมเส้นตรวจคำเชิญ,
 รูปของไฟล์แนบ (`AttachmentDetailResp`, `FileDetail`, `URLDetail`) และ
 `StudentActivityStatusDB`
 ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 35 ไฟล์
-1,858 บรรทัด (นับ 19 สิงหาคม 2569 — ในนั้นมี type ของ request ปนอยู่ด้วย
+1,851 บรรทัด (นับ 19 สิงหาคม 2569 — ในนั้นมี type ของ request ปนอยู่ด้วย
 ซึ่งไม่ต้องย้าย) ซึ่งไล่ย้ายทีละ
 feature ที่ [#68](https://github.com/khthana/Deep-Portfolio/issues/68) ส่วน
 envelope ฝั่ง web (`ResponseWrapper`) อยู่ที่
@@ -40,7 +41,10 @@ evaluation ซึ่งตัดสินว่า response ที่ถือ�
 [ADR-0033](../docs/adr/0033-learning-activity-and-the-absent-key.md) คือรอบ
 learning-activity ซึ่งแยกคีย์ที่ไม่มีอยู่ออกจากคีย์ที่เป็น `null` และ
 [ADR-0034](../docs/adr/0034-submissions-move-as-a-pair.md) คือรอบส่งงาน ซึ่งอธิบาย
-ว่าทำไมสอง feature ที่ใช้รูปเดียวกันจริง ๆ ถึงย้ายรอบเดียวกัน
+ว่าทำไมสอง feature ที่ใช้รูปเดียวกันจริง ๆ ถึงย้ายรอบเดียวกัน และ
+[ADR-0035](../docs/adr/0035-one-group-shape-for-both-halves.md) คือรอบกลุ่ม ซึ่ง
+ตัดสินว่าสองครึ่งที่ตอบเหมือนกันทุกฟิลด์ใช้ประกาศชุดเดียว ไม่ทำคู่แฝดตามชื่อ route
+และรอบหนึ่งกินทั้งเส้นอ่านและเส้นเขียนของ feature นั้น
 
 ## เพิ่ม package ใหม่
 

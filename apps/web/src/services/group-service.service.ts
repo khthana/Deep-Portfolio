@@ -5,6 +5,7 @@ import type {
   AcceptInviteBody,
   ValidateInvite,
 } from "../types/group-type.type";
+import type { ValidateInviteResp } from "@deep-portfolio/api-types";
 
 export const acceptInvite = async (body: AcceptInviteBody) => {
   const resp = await axiosInstance.post<ResponseWrapper<any>>(
@@ -16,9 +17,10 @@ export const acceptInvite = async (body: AcceptInviteBody) => {
 };
 
 export const validateInvite = async (body: ValidateInvite) => {
-  const resp = await axiosInstance.post<
-    ResponseWrapper<{ status: "ACCEPTED" | "REJECTED" | "PENDING" }>
-  >(endpoints.group.validateInvite, body);
+  const resp = await axiosInstance.post<ResponseWrapper<ValidateInviteResp>>(
+    endpoints.group.validateInvite,
+    body,
+  );
 
   return resp.data;
 };

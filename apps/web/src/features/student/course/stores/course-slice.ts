@@ -30,8 +30,10 @@ import {
 import type {
   ActivityDetailResp,
   CourseDetail,
+  GroupDetailResp,
   LearningActivityDetailResp,
   StudentActivityDetailResp,
+  StudentWithoutGroup,
 } from "@deep-portfolio/api-types";
 import type {
   AnnouncementDetailResp,
@@ -42,10 +44,7 @@ import {
   mapLearningActivityDetail,
   type ClassworkDetailFull,
   type ClassworkDetailResp,
-  type GetStudentActivityGroupResp,
-  type GetStudentWithoutGroupResp,
 } from "../types/course-type";
-import type { StudentDetailResp } from "../../../../types/student-type.type";
 
 type StudentCourseSlice = {
   courseList: CourseDetail[];
@@ -57,10 +56,15 @@ type StudentCourseSlice = {
   learningActivities: LearningActivityDetailResp[];
   allClasswork: ClassworkDetailResp | null;
   scoreWeight: ScoreWeightResp[];
-  studentList: StudentDetailResp[];
-  studentGroup: GetStudentActivityGroupResp | null;
-  studentGroupInSec: GetStudentActivityGroupResp[];
-  studentOptions: GetStudentWithoutGroupResp[];
+  // The without-group list and nothing else: the only two reducers that write
+  // this field are the two without-group thunks, so the row it holds is the row
+  // that endpoint sends (#68). It used to say `StudentDetailResp`, whose every
+  // field is optional — which is why nothing complained, and why both readers
+  // guarded a `student_id` that is always there. Those guards came out with the
+  // retype; the ones around `full_name_th` stayed, because that one is nullable.
+  studentList: StudentWithoutGroup[];
+  studentGroup: GroupDetailResp | null;
+  studentGroupInSec: GroupDetailResp[];
 
   fetchStudentCourseListLoading: boolean;
   fetchCourseDetailLoading: boolean;
@@ -107,7 +111,6 @@ const initialState: StudentCourseSlice = {
   studentList: [],
   studentGroup: null,
   studentGroupInSec: [],
-  studentOptions: [],
 
   fetchStudentCourseListLoading: false,
   fetchCourseDetailLoading: false,

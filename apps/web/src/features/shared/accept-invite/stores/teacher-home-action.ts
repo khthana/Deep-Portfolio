@@ -8,6 +8,7 @@ import type {
   AcceptInviteBody,
   ValidateInvite,
 } from "../../../../types/group-type.type";
+import type { ValidateInviteResp } from "@deep-portfolio/api-types";
 
 export const postAcceptInvite = createAsyncThunk<
   ResponseWrapper<any>,
@@ -15,7 +16,7 @@ export const postAcceptInvite = createAsyncThunk<
 >("group/accept-invite", acceptInvite);
 
 export const postValidateInvite = createAsyncThunk<
-  ResponseWrapper<any>,
+  ResponseWrapper<ValidateInviteResp>,
   ValidateInvite
 >("group/validate-invite", validateInvite);
 

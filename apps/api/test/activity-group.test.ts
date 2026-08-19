@@ -69,7 +69,9 @@ describe("POST /student-activity-group", () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.data.group_id).toEqual(expect.any(Number));
+    // Every key, not just this one: the write answers the id and nothing
+    // else, which is what `GroupIdResp` says (#68).
+    expect(response.body.data).toEqual({ group_id: expect.any(Number) });
 
     const group = await prisma.student_activity_group.findUniqueOrThrow({
       where: { id: response.body.data.group_id },
@@ -1306,6 +1308,53 @@ describe("GET /student-activity-group/all", () => {
     expect(
       response.body.data.map((group: { group_id: number }) => group.group_id),
     ).toEqual(groups.map((group) => group.id));
+  });
+
+  it("answers with exactly the keys a group row has", async () => {
+    // The one read of the three whose row shape was never named in full. The
+    // type in @deep-portfolio/api-types was written from this (#68): a group
+    // is its id and its member list, and a member is those four fields — the
+    // name already flattened out of the joined student row, and the status the
+    // caller needs to tell a member from an invitation.
+    const { course, students } = await classWithStudents(2);
+    const [leader, member] = students;
+    const activity = await createActivity({
+      section_id: course.section_id,
+      activity_type: "group",
+    });
+    const group = await createActivityGroup({
+      activity_id: activity.id,
+      members: [
+        { student_id: leader.student_id },
+        { student_id: member.student_id },
+      ],
+    });
+
+    const response = await request(app)
+      .get("/student-activity-group/all")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([
+      {
+        group_id: group.id,
+        members: [
+          {
+            student_id: leader.student_id,
+            role: "LEADER",
+            student_name: leader.full_name_th,
+            status: "ACCEPT",
+          },
+          {
+            student_id: member.student_id,
+            role: "MEMBER",
+            student_name: member.full_name_th,
+            status: "PENDING",
+          },
+        ],
+      },
+    ]);
   });
 
   it("offers a member list once, however many activities used it", async () => {

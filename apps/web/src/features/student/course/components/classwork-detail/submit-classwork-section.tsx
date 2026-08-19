@@ -14,9 +14,9 @@ import {
 } from "../../stores/course-action";
 import type {
   GetStudentActivityGroupParams,
-  GetStudentActivityGroupResp,
   GetStudentLearningActivityGroupParams,
 } from "../../types/course-type";
+import type { GroupDetailResp } from "@deep-portfolio/api-types";
 import {
   checkIsOverSubmittionDeadline,
   convertDateToThaiFormat,
@@ -43,7 +43,7 @@ const SubmitClassworkSection = (props: Props) => {
   const [resubmitted, setResubmitted] = useState<boolean>(false);
   const [showGroupModal, setShowGroupModal] = useState<boolean>(false);
   const [studentGroupWork, setStudentGroupWork] =
-    useState<GetStudentActivityGroupResp | null>(null);
+    useState<GroupDetailResp | null>(null);
   const [isFileEmpty, setIsFileEmpty] = useState<boolean>(false);
 
   const classworkDetail = useMemo(() => {

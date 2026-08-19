@@ -6,15 +6,14 @@ import type { AppDispatch, RootState } from "../../../../../stores/stores";
 import type { Options } from "../../../../../types/global-type";
 import type {
   ClassworkDetailFull,
-  GetStudentActivityGroupResp,
   GetStudentLearningActivityWithoutGroupParams,
   GetStudentWithoutGroupParams,
-  GroupRole,
   MemberDetail,
   MemberStatus,
   ResendInviteBody,
   UpdateStudentActivityGroupBody,
 } from "../../types/course-type";
+import type { GroupDetailResp, GroupRole } from "@deep-portfolio/api-types";
 import Button from "../../../../../components/button/button";
 import {
   fetchStudentLearningActivityWithoutGroup,
@@ -38,7 +37,7 @@ type Props = {
   openModal: boolean;
   setOpenModal: Dispatch<SetStateAction<boolean>>;
   handleFetchStudentGroup: () => void;
-  studentGroupWork: GetStudentActivityGroupResp;
+  studentGroupWork: GroupDetailResp;
   classworkDetail: ClassworkDetailFull;
 };
 
@@ -64,8 +63,9 @@ const ShowGroupworkModal = (props: Props) => {
     if (courseSlice.studentList.length > 0) {
       const members: Options[] = courseSlice.studentList.map((student) => {
         return {
-          label: `${student.student_id} ${student.full_name_th}`,
-          value: student.student_id ?? 0,
+          // `full_name_th` is nullable (ADR-0035); unguarded it reads "null".
+          label: `${student.student_id} ${student.full_name_th ?? ""}`,
+          value: student.student_id,
         };
       });
 
@@ -100,7 +100,7 @@ const ShowGroupworkModal = (props: Props) => {
     setSelectedMembers((prev) => [
       ...prev,
       {
-        studentId: studentOptions.student_id ?? "",
+        studentId: studentOptions.student_id,
         studentName: studentOptions.full_name_th ?? "",
         role: role,
       },

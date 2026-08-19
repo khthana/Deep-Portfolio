@@ -118,7 +118,12 @@ tables stay two unions, each guarded by its own schema, and
 shape outright move in one pass rather than one dragging the other along
 behind it, that a row carrying two mutually exclusive halves is a union on the
 discriminant it already has, and that where the type can only be written
-honestly by admitting a shape nobody designed, the shape is what gets fixed.
+honestly by admitting a shape nobody designed, the shape is what gets fixed,
+and `0035-one-group-shape-for-both-halves.md`, which says two endpoints
+answering the same shape field for field get one declaration rather than a
+twin named after each route, that names in the package say what a shape is
+rather than which read fetched it, and that a pass covers a feature's writes as
+well as its reads — the scope is what the API answers, not which method asked.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

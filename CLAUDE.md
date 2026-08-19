@@ -35,7 +35,7 @@ mostly correctness work on top of it.
 - **Lint and formatting**: both workspaces have an ESLint flat config, and
   Prettier runs from the root with its defaults over everything but `*.md`
   (`.prettierignore` says why). Run `npm run format` before committing —
-  `format:check` is a CI step. `npm run lint` exits 0 and still carries 217
+  `format:check` is a CI step. `npm run lint` exits 0 and still carries 216
   warnings: `no-explicit-any` (#63) and `react-hooks/exhaustive-deps` (#66).
   CI does not cap that number; the ceiling is a rule turned up to `error` once
   its ticket clears it. There is no git hook, on purpose — ADR-0027 §4.
@@ -49,8 +49,8 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1061 API cases over
-  40 files, 451 web cases over 31 files. Both were written against the
+- **Tests**: `npm test` at the root runs both workspaces. 1070 API cases over
+  40 files, 448 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
 The whole breakdown of #1 is done, #20–#42 included. On top of that came
@@ -119,7 +119,7 @@ what shipped under #59, and #65 carries the five decisions CD still waits on.
 by adding the name ESLint asks for — several would turn into an endless fetch
 loop — so #60 left every one of them where it was and #66 owns the reading
 each site needs. #63 was corrected while filing it: the 215 it counted was
-every web warning, not the `any` ones, which are 141 (plus 2 in `apps/api`).
+every web warning, not the `any` ones, which are 140 (plus 2 in `apps/api`).
 **#67 and #68** are the fourth and fifth, both out of #61, which piloted one
 feature on purpose: #68 carries the 38 web type files that still hold copies of
 what the API answers, one feature at a time, and #67 carries `ResponseWrapper`, the web's
@@ -147,7 +147,11 @@ than two — the two submission features share the group a roster reports, so
 splitting them would have been one pass under two names (ADR-0034) — and it is
 the only pass of #68 that changes what a caller sees: a detail endpoint asked
 for an id matching no row used to answer a body holding one key, and now
-answers no data at all. 35 files and 1,858 lines are still web-side.
+answers no data at all. The group half of those same two features followed, and
+ADR-0035 is the other side of ADR-0034's coin: where the submissions genuinely
+answer different shapes and got a file each, every group endpoint and its twin
+answer the same shape field for field, so one declaration serves both halves and
+the API's second copy is what collapsed. 35 files and 1,851 lines are still web-side.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

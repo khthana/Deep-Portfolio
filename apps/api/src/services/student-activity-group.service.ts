@@ -1,10 +1,12 @@
 import prisma from "../config/prisma";
+import type {
+  GroupDetailResp,
+  GroupIdResp,
+  GroupMemberDetail,
+  StudentWithoutGroup,
+} from "@deep-portfolio/api-types";
 import {
   CreateStudentActivityGroupBody,
-  GetStudentActivityGroupResp,
-  GetStudentsWithoutGroupResp,
-  GroupRole,
-  MemberDetailResp,
   UpdateStudentActivityGroupBody,
 } from "../models/student-activity-group.model";
 import GroupService, {
@@ -21,7 +23,7 @@ export default class StudentActivityGroupService {
   async createStudentActivityGroup(
     data: CreateStudentActivityGroupBody,
     created_by: string,
-  ) {
+  ): Promise<GroupIdResp> {
     const emailsToSend: { email: string; token: string; name: string }[] = [];
     let inviterName = "";
 
@@ -127,7 +129,9 @@ export default class StudentActivityGroupService {
     return result;
   }
 
-  async updateStudentActivityGroup(data: UpdateStudentActivityGroupBody) {
+  async updateStudentActivityGroup(
+    data: UpdateStudentActivityGroupBody,
+  ): Promise<GroupIdResp> {
     const emailsToSend: { email: string; token: string; name: string }[] = [];
     let inviterName = "";
 
@@ -274,7 +278,7 @@ export default class StudentActivityGroupService {
   async getStudentsWithoutGroup(
     section_id: number,
     activity_id: number,
-  ): Promise<GetStudentsWithoutGroupResp[]> {
+  ): Promise<StudentWithoutGroup[]> {
     const studentsInSec = await prisma.student_course.findMany({
       where: {
         section_id: section_id,
@@ -303,13 +307,13 @@ export default class StudentActivityGroupService {
       },
     });
 
-    return studentsWithoutGroup as GetStudentsWithoutGroupResp[];
+    return studentsWithoutGroup;
   }
 
   async getStudentActivityGroup(
     student_id: string,
     activity_id: number,
-  ): Promise<GetStudentActivityGroupResp | null> {
+  ): Promise<GroupDetailResp | null> {
     const group = await prisma.student_activity_group.findFirst({
       where: {
         activity_id: activity_id,
@@ -338,14 +342,13 @@ export default class StudentActivityGroupService {
 
     if (group === null) return null;
 
-    const members: MemberDetailResp[] = group.student_activity_group_member.map(
-      (member) => ({
+    const members: GroupMemberDetail[] =
+      group.student_activity_group_member.map((member) => ({
         student_id: member.student_id,
         role: member.role,
         student_name: member.student.full_name_th ?? "",
         status: member.status,
-      }),
-    );
+      }));
 
     return {
       group_id: group.id,
@@ -363,7 +366,7 @@ export default class StudentActivityGroupService {
   async getStudentActivityGroupInSec(
     section_id: number,
     student_id: string,
-  ): Promise<GetStudentActivityGroupResp[]> {
+  ): Promise<GroupDetailResp[]> {
     const groups = await prisma.student_activity_group.findMany({
       where: {
         activities: {
@@ -401,14 +404,14 @@ export default class StudentActivityGroupService {
       },
     });
 
-    const uniqueGroups: GetStudentActivityGroupResp[] = [];
+    const uniqueGroups: GroupDetailResp[] = [];
     const seenSignatures = new Set<string>();
 
     for (const group of groups) {
-      const members: MemberDetailResp[] =
+      const members: GroupMemberDetail[] =
         group.student_activity_group_member.map((m) => ({
           student_id: m.student_id,
-          role: m.role as GroupRole,
+          role: m.role,
           student_name: m.student?.full_name_th || "",
           status: m.status,
         }));

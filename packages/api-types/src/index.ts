@@ -17,7 +17,10 @@
  * (docs/adr/0033-learning-activity-and-the-absent-key.md), and then what the
  * students hand in against both — the two submission features, moved together
  * because they share the group a roster reports
- * (docs/adr/0034-submissions-move-as-a-pair.md).
+ * (docs/adr/0034-submissions-move-as-a-pair.md) — and then the group half of
+ * those same two, whose six reads answer the same shape field for field and so
+ * got one declaration between them
+ * (docs/adr/0035-one-group-shape-for-both-halves.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -64,9 +67,15 @@ export type {
 } from "./gradebook";
 
 export type {
+  GroupDetailResp,
+  GroupIdResp,
+  GroupMemberDetail,
+  GroupRole,
   MemberStatus,
+  StudentWithoutGroup,
   SubmissionGroup,
   UnacceptedGroupMember,
+  ValidateInviteResp,
 } from "./group";
 
 export type {

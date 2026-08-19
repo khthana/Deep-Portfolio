@@ -1,20 +1,106 @@
 import type { StudentNameBrief } from "./student";
 
 /**
- * Group work, as the teacher's two roster endpoints report it.
+ * Group work — the students who are in one, and the students who are not.
  *
- * Both halves of the marking screen — `GET /activity/submitted/list` and
- * `GET /learning-activity/submitted/list` — send the same shape, and the API
- * had one declaration the learning half imported from the activity half. It is
- * neither feature's, so it has a file of its own (ADR-0029 §2).
+ * Two audiences read this table and they read it differently. A teacher's
+ * roster asks who a mark lands on, and gets `SubmissionGroup`; a student's own
+ * screen asks who is in their group and who has yet to answer, and gets
+ * `GroupDetailResp`. Neither belongs to the activity feature or the
+ * learning-activity one, which is why they are here (ADR-0029 §2).
  *
- * The group feature proper — inviting, accepting, leaving — has endpoints of
- * its own under /student-activity-group and has not moved yet (#68). What is
- * here is the part a roster sends.
+ * Everything here serves **both** halves of the system unchanged: the two group
+ * tables are mirror images, and their endpoints answer the same shape field for
+ * field (ADR-0035).
  */
 
 /** `student_activity_group_member.status`. */
 export type MemberStatus = "PENDING" | "ACCEPT" | "REJECTED";
+
+/** `student_activity_group_member.role`. Exactly one member of a group is the
+ *  leader — the one who created it — and the invitation flow treats them
+ *  differently: a leader has nothing to accept, so their token columns stay
+ *  null. */
+export type GroupRole = "LEADER" | "MEMBER";
+
+/**
+ * One member of a group, as the student's own screen sees them.
+ *
+ * `student_name` is `student.full_name_th` already flattened out of the joined
+ * row, and never null here: the service coalesces it to an empty string. Its
+ * neighbour `StudentWithoutGroup` does not, which is the difference the two
+ * declarations used to hide from each other.
+ */
+export type GroupMemberDetail = {
+  student_id: string;
+  role: GroupRole;
+  student_name: string;
+  status: MemberStatus;
+};
+
+/**
+ * `GET /student-activity-group` and `/all`, and their learning-activity twins —
+ * the group a student is in, or every member list they have worked in across a
+ * section.
+ *
+ * The single read answers `null` when the student is in no group for that
+ * activity, which is not the same as an empty group and is why the service's
+ * return type says so.
+ */
+export type GroupDetailResp = {
+  group_id: number;
+  members: GroupMemberDetail[];
+};
+
+/**
+ * `GET /student-activity-group/without-group` and its twin — a classmate the
+ * work has not grouped yet, offered to whoever is building a group.
+ *
+ * `full_name_th` is the raw column here. It is generated from the two name
+ * columns by default and is a string for every row the system writes, but the
+ * column takes null and this endpoint hands it over untouched — unlike
+ * `GroupMemberDetail.student_name`, which is coalesced. Written down rather
+ * than assumed away (#68).
+ */
+export type StudentWithoutGroup = {
+  student_id: string;
+  full_name_th: string | null;
+};
+
+/**
+ * What `POST` and `PATCH` on both group routes answer — the id of the group
+ * that was written, and nothing else. The services return this literal rather
+ * than the row.
+ *
+ * Nothing reads the id today: both modals check `success`, close, and let the
+ * screen fetch the group again through `GroupDetailResp`. It is declared
+ * because it is what goes over the wire, not because a caller needs it.
+ *
+ * `DELETE` answers `null` in `data` and so has no type here, for the same
+ * reason `accept-invite` does not (ADR-0035).
+ */
+export type GroupIdResp = {
+  group_id: number;
+};
+
+/**
+ * `POST /group/validate-invite` — what the student behind an invitation link is
+ * being asked to answer, before the page offers them the two buttons.
+ *
+ * One field, and it is the member's own status: accept-invite-page.tsx shows
+ * the two buttons only under PENDING, and under ACCEPT or REJECTED shows the
+ * answer that was already given instead. An expired or unknown token is not a
+ * status here — it is a 400 with a Thai sentence, which is why nothing in this
+ * type stands for "invalid".
+ *
+ * Its neighbour `POST /group/accept-invite` has no type here on purpose: it
+ * answers `{ success, message }` with no `data` key at all, so what a caller
+ * would import is the absence of a body. That is a question about the envelope,
+ * and the envelope is #67.
+ */
+export type ValidateInviteResp = {
+  status: MemberStatus;
+};
 
 /**
  * The group behind a group submission.

@@ -1,11 +1,11 @@
 import type {
-  GetStudentActivityGroupResp,
-  MemberDetailResp,
-} from "../../types/course-type";
+  GroupDetailResp,
+  GroupMemberDetail,
+} from "@deep-portfolio/api-types";
 
 type Props = {
-  group: GetStudentActivityGroupResp;
-  handleOnSelectedGroup: (members: MemberDetailResp[]) => void;
+  group: GroupDetailResp;
+  handleOnSelectedGroup: (members: GroupMemberDetail[]) => void;
 };
 
 const GroupItem = (props: Props) => {

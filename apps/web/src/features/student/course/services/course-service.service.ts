@@ -2,9 +2,12 @@ import { endpoints } from "../../../../configs/endpoints.config";
 import { axiosInstance } from "../../../../lib/axios";
 import type {
   CourseDetail,
+  GroupDetailResp,
+  GroupIdResp,
   StudentActivityDetailResp,
   StudentEvaluationListResp,
   StudentLearningActivityDetailResp,
+  StudentWithoutGroup,
 } from "@deep-portfolio/api-types";
 import type { ResponseWrapper } from "../../../../types/global-type";
 import type {
@@ -12,10 +15,8 @@ import type {
   CreateStudentActivityGroupBody,
   GetStudentActivityGroupInSecParams,
   GetStudentActivityGroupParams,
-  GetStudentActivityGroupResp,
   GetStudentClassworkListParams,
   GetStudentCourseListParams,
-  GetStudentWithoutGroupResp,
   GetStudentWithoutGroupParams,
   UpdateStudentActivityGroupBody,
   CreateStudentLearningActivityGroupBody,
@@ -76,7 +77,7 @@ export const submitLearningActivity = async (formData: FormData) => {
 export const createStudentActivityGroup = async (
   body: CreateStudentActivityGroupBody,
 ) => {
-  const resp = await axiosInstance.post<ResponseWrapper<{ group_id: number }>>(
+  const resp = await axiosInstance.post<ResponseWrapper<GroupIdResp>>(
     endpoints.student_activity_group.root,
     body,
   );
@@ -87,7 +88,7 @@ export const createStudentActivityGroup = async (
 export const updateStudentActivityGroup = async (
   body: UpdateStudentActivityGroupBody,
 ) => {
-  const resp = await axiosInstance.patch<ResponseWrapper<{ group_id: number }>>(
+  const resp = await axiosInstance.patch<ResponseWrapper<GroupIdResp>>(
     endpoints.student_activity_group.root,
     body,
   );
@@ -111,11 +112,12 @@ export const resendStudentActivityGroupInvite = async (
 export const getStudentActivityGroup = async (
   params: GetStudentActivityGroupParams,
 ) => {
-  const resp = await axiosInstance.get<
-    ResponseWrapper<GetStudentActivityGroupResp | null>
-  >(endpoints.student_activity_group.root, {
-    params: params,
-  });
+  const resp = await axiosInstance.get<ResponseWrapper<GroupDetailResp | null>>(
+    endpoints.student_activity_group.root,
+    {
+      params: params,
+    },
+  );
 
   return resp.data;
 };
@@ -123,11 +125,12 @@ export const getStudentActivityGroup = async (
 export const getStudentActivityGroupInSec = async (
   params: GetStudentActivityGroupInSecParams,
 ) => {
-  const resp = await axiosInstance.get<
-    ResponseWrapper<GetStudentActivityGroupResp[]>
-  >(endpoints.student_activity_group.all, {
-    params: params,
-  });
+  const resp = await axiosInstance.get<ResponseWrapper<GroupDetailResp[]>>(
+    endpoints.student_activity_group.all,
+    {
+      params: params,
+    },
+  );
 
   return resp.data;
 };
@@ -135,11 +138,12 @@ export const getStudentActivityGroupInSec = async (
 export const getStudentWithoutGroup = async (
   params: GetStudentWithoutGroupParams,
 ) => {
-  const resp = await axiosInstance.get<
-    ResponseWrapper<GetStudentWithoutGroupResp[]>
-  >(endpoints.student_activity_group.without_group, {
-    params: params,
-  });
+  const resp = await axiosInstance.get<ResponseWrapper<StudentWithoutGroup[]>>(
+    endpoints.student_activity_group.without_group,
+    {
+      params: params,
+    },
+  );
 
   return resp.data;
 };
@@ -149,7 +153,7 @@ export const getStudentWithoutGroup = async (
 export const createStudentLearningActivityGroup = async (
   body: CreateStudentLearningActivityGroupBody,
 ) => {
-  const resp = await axiosInstance.post<ResponseWrapper<{ group_id: number }>>(
+  const resp = await axiosInstance.post<ResponseWrapper<GroupIdResp>>(
     endpoints.student_learning_activity_group.root,
     body,
   );
@@ -160,7 +164,7 @@ export const createStudentLearningActivityGroup = async (
 export const updateStudentLearningActivityGroup = async (
   body: UpdateStudentLearningActivityGroupBody,
 ) => {
-  const resp = await axiosInstance.patch<ResponseWrapper<{ group_id: number }>>(
+  const resp = await axiosInstance.patch<ResponseWrapper<GroupIdResp>>(
     endpoints.student_learning_activity_group.root,
     body,
   );
@@ -182,11 +186,12 @@ export const resendStudentLearningActivityGroupInvite = async (
 export const getStudentLearningActivityGroup = async (
   params: GetStudentLearningActivityGroupParams,
 ) => {
-  const resp = await axiosInstance.get<
-    ResponseWrapper<GetStudentActivityGroupResp | null>
-  >(endpoints.student_learning_activity_group.root, {
-    params: params,
-  });
+  const resp = await axiosInstance.get<ResponseWrapper<GroupDetailResp | null>>(
+    endpoints.student_learning_activity_group.root,
+    {
+      params: params,
+    },
+  );
 
   return resp.data;
 };
@@ -194,11 +199,12 @@ export const getStudentLearningActivityGroup = async (
 export const getStudentLearningActivityGroupInSec = async (
   params: GetStudentActivityGroupInSecParams,
 ) => {
-  const resp = await axiosInstance.get<
-    ResponseWrapper<GetStudentActivityGroupResp[]>
-  >(endpoints.student_learning_activity_group.all, {
-    params: params,
-  });
+  const resp = await axiosInstance.get<ResponseWrapper<GroupDetailResp[]>>(
+    endpoints.student_learning_activity_group.all,
+    {
+      params: params,
+    },
+  );
 
   return resp.data;
 };
@@ -206,11 +212,12 @@ export const getStudentLearningActivityGroupInSec = async (
 export const getStudentLearningActivityWithoutGroup = async (
   params: GetStudentLearningActivityWithoutGroupParams,
 ) => {
-  const resp = await axiosInstance.get<
-    ResponseWrapper<GetStudentWithoutGroupResp[]>
-  >(endpoints.student_learning_activity_group.without_group, {
-    params: params,
-  });
+  const resp = await axiosInstance.get<ResponseWrapper<StudentWithoutGroup[]>>(
+    endpoints.student_learning_activity_group.without_group,
+    {
+      params: params,
+    },
+  );
 
   return resp.data;
 };

@@ -21,10 +21,8 @@ import type {
   CreateStudentActivityGroupBody,
   GetStudentActivityGroupInSecParams,
   GetStudentActivityGroupParams,
-  GetStudentActivityGroupResp,
   GetStudentClassworkListParams,
   GetStudentCourseListParams,
-  GetStudentWithoutGroupResp,
   GetStudentWithoutGroupParams,
   UpdateStudentActivityGroupBody,
   CreateStudentLearningActivityGroupBody,
@@ -38,9 +36,12 @@ import type {
 import type {
   CLOResp,
   CourseDetail,
+  GroupDetailResp,
+  GroupIdResp,
   StudentActivityDetailResp,
   StudentEvaluationListResp,
   StudentLearningActivityDetailResp,
+  StudentWithoutGroup,
 } from "@deep-portfolio/api-types";
 import type {
   AnnouncementDetailResp,
@@ -127,12 +128,12 @@ export const postSubmitLearningActivity = createAsyncThunk<
 //---------------------------------------------------------
 
 export const postStudentActivityGroup = createAsyncThunk<
-  ResponseWrapper<{ group_id: number }>,
+  ResponseWrapper<GroupIdResp>,
   CreateStudentActivityGroupBody
 >("student/group/create", createStudentActivityGroup);
 
 export const patchStudentActivityGroup = createAsyncThunk<
-  ResponseWrapper<{ group_id: number }>,
+  ResponseWrapper<GroupIdResp>,
   UpdateStudentActivityGroupBody
 >("student/group/update", updateStudentActivityGroup);
 
@@ -142,29 +143,29 @@ export const postResendActivityGroupInvite = createAsyncThunk<
 >("student/group/resend-invite", resendStudentActivityGroupInvite);
 
 export const fetchStudentActivityGroup = createAsyncThunk<
-  ResponseWrapper<GetStudentActivityGroupResp | null>,
+  ResponseWrapper<GroupDetailResp | null>,
   GetStudentActivityGroupParams
 >("student/group", getStudentActivityGroup);
 
 export const fetchStudentActivityGroupInSec = createAsyncThunk<
-  ResponseWrapper<GetStudentActivityGroupResp[]>,
+  ResponseWrapper<GroupDetailResp[]>,
   GetStudentActivityGroupInSecParams
 >("student/group/all", getStudentActivityGroupInSec);
 
 export const fetchStudentWithoutGroup = createAsyncThunk<
-  ResponseWrapper<GetStudentWithoutGroupResp[]>,
+  ResponseWrapper<StudentWithoutGroup[]>,
   GetStudentWithoutGroupParams
 >("student/without-group", getStudentWithoutGroup);
 
 //---------------------------------------------------------
 
 export const postStudentLearningActivityGroup = createAsyncThunk<
-  ResponseWrapper<{ group_id: number }>,
+  ResponseWrapper<GroupIdResp>,
   CreateStudentLearningActivityGroupBody
 >("student/learning-activity-group/create", createStudentLearningActivityGroup);
 
 export const patchStudentLearningActivityGroup = createAsyncThunk<
-  ResponseWrapper<{ group_id: number }>,
+  ResponseWrapper<GroupIdResp>,
   UpdateStudentLearningActivityGroupBody
 >("student/learning-activity-group/update", updateStudentLearningActivityGroup);
 
@@ -177,17 +178,17 @@ export const postResendLearningActivityGroupInvite = createAsyncThunk<
 );
 
 export const fetchStudentLearningActivityGroup = createAsyncThunk<
-  ResponseWrapper<GetStudentActivityGroupResp | null>,
+  ResponseWrapper<GroupDetailResp | null>,
   GetStudentLearningActivityGroupParams
 >("student/learning-activity-group", getStudentLearningActivityGroup);
 
 export const fetchStudentLearningActivityGroupInSec = createAsyncThunk<
-  ResponseWrapper<GetStudentActivityGroupResp[]>,
+  ResponseWrapper<GroupDetailResp[]>,
   GetStudentActivityGroupInSecParams
 >("student/learning-activity-group/all", getStudentLearningActivityGroupInSec);
 
 export const fetchStudentLearningActivityWithoutGroup = createAsyncThunk<
-  ResponseWrapper<GetStudentWithoutGroupResp[]>,
+  ResponseWrapper<StudentWithoutGroup[]>,
   GetStudentLearningActivityWithoutGroupParams
 >(
   "student/learning-activity-group/without-group",

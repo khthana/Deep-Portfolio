@@ -1,6 +1,7 @@
 import type { JSONContent } from "@tiptap/react";
 import type {
   AttachmentDetailResp,
+  GroupRole,
   RubricDetail,
   StudentActivityDetailResp,
   StudentActivityStatusDB,
@@ -189,7 +190,8 @@ export type ResendInviteBody = {
   student_id: string;
 };
 
-export type GroupRole = "LEADER" | "MEMBER";
+// GroupRole used to be declared here. It moved to @deep-portfolio/api-types
+// (#68) along with the rest of the group's response shapes; see ADR-0035.
 
 export const memberStatus = {
   PENDING: "PENDING",
@@ -223,17 +225,12 @@ export type GetStudentActivityGroupParams = {
   activity_id: number;
 };
 
-export type GetStudentActivityGroupResp = {
-  group_id: number;
-  members: MemberDetailResp[];
-};
-
-export type MemberDetailResp = {
-  student_id: string;
-  role: GroupRole;
-  student_name: string;
-  status: MemberStatus;
-};
+// GetStudentActivityGroupResp and MemberDetailResp used to be declared here.
+// They moved to @deep-portfolio/api-types (#68) — import GroupDetailResp and
+// GroupMemberDetail from there. This file only ever held one copy, and the
+// learning-activity half read it too: the two group tables are mirror images,
+// so one declaration always served both. The API had a second copy, and that
+// is the one the move collapsed. See ADR-0035.
 
 export type GetStudentActivityGroupInSecParams = {
   section_id: number;
@@ -244,10 +241,11 @@ export type GetStudentWithoutGroupParams = {
   activity_id: number;
 };
 
-export type GetStudentWithoutGroupResp = {
-  student_id: string;
-  full_name_th: string;
-};
+// GetStudentWithoutGroupResp used to be declared here — twice, once for each
+// half, with the same two fields. It moved to @deep-portfolio/api-types as
+// StudentWithoutGroup (#68), and its `full_name_th` says `string | null` there,
+// which is what the column is and what the endpoint sends untouched.
+
 //-----------------------------------
 
 export type CreateStudentLearningActivityGroupBody = {
@@ -258,11 +256,6 @@ export type CreateStudentLearningActivityGroupBody = {
 export type UpdateStudentLearningActivityGroupBody = {
   group_id: number;
   members: MemberDetail[];
-};
-
-export type GetStudentsWithoutGroupResp = {
-  student_id: string;
-  full_name_th: string;
 };
 
 export type GetStudentLearningActivityGroupParams = {

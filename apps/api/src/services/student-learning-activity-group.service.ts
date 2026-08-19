@@ -1,13 +1,12 @@
 import prisma from "../config/prisma";
-import {
-  GetStudentActivityGroupResp,
-  GetStudentsWithoutGroupResp,
-  GroupRole,
-  MemberDetailResp,
-} from "../models/student-activity-group.model";
+import type {
+  GroupDetailResp,
+  GroupIdResp,
+  GroupMemberDetail,
+  StudentWithoutGroup,
+} from "@deep-portfolio/api-types";
 import {
   CreateStudentLearningActivityGroupBody,
-  GetStudentLearningActivityGroupResp,
   UpdateStudentLearningActivityGroupBody,
 } from "../models/student-learning-activity-group.model";
 import GroupService, {
@@ -25,7 +24,7 @@ export default class StudentLearningActivityGroupService {
   async createStudentLearningActivityGroup(
     data: CreateStudentLearningActivityGroupBody,
     created_by: string,
-  ) {
+  ): Promise<GroupIdResp> {
     // 1. เตรียม Array ไว้เก็บข้อมูลคนที่จะต้องส่งอีเมลหา และตัวแปรเก็บชื่อคนเชิญ
     const emailsToSend: { email: string; token: string; name: string }[] = [];
     let inviterName = "";
@@ -143,7 +142,7 @@ export default class StudentLearningActivityGroupService {
 
   async updateStudentLearningActivityGroup(
     data: UpdateStudentLearningActivityGroupBody,
-  ) {
+  ): Promise<GroupIdResp> {
     const emailsToSend: { email: string; token: string; name: string }[] = [];
     let inviterName = "";
 
@@ -291,7 +290,7 @@ export default class StudentLearningActivityGroupService {
   async getStudentsWithoutGroup(
     section_id: number,
     learning_activity_id: number,
-  ): Promise<GetStudentsWithoutGroupResp[]> {
+  ): Promise<StudentWithoutGroup[]> {
     const studentsInSec = await prisma.student_course.findMany({
       where: {
         section_id: section_id,
@@ -320,13 +319,13 @@ export default class StudentLearningActivityGroupService {
       },
     });
 
-    return studentsWithoutGroup as GetStudentsWithoutGroupResp[];
+    return studentsWithoutGroup;
   }
 
   async getStudentLearningActivityGroup(
     student_id: string,
     learning_activity_id: number,
-  ): Promise<GetStudentLearningActivityGroupResp | null> {
+  ): Promise<GroupDetailResp | null> {
     const group = await prisma.student_learning_activity_group.findFirst({
       where: {
         learning_activity_id,
@@ -355,7 +354,7 @@ export default class StudentLearningActivityGroupService {
 
     if (group === null) return null;
 
-    const members: MemberDetailResp[] =
+    const members: GroupMemberDetail[] =
       group.student_learning_activity_group_member.map((member) => ({
         student_id: member.student_id,
         role: member.role,
@@ -375,7 +374,7 @@ export default class StudentLearningActivityGroupService {
   async getStudentLearningActivityGroupInSec(
     section_id: number,
     student_id: string,
-  ): Promise<GetStudentLearningActivityGroupResp[]> {
+  ): Promise<GroupDetailResp[]> {
     const groups = await prisma.student_learning_activity_group.findMany({
       where: {
         learning_activities: {
@@ -409,14 +408,14 @@ export default class StudentLearningActivityGroupService {
       },
     });
 
-    const uniqueGroups: GetStudentActivityGroupResp[] = [];
+    const uniqueGroups: GroupDetailResp[] = [];
     const seenSignatures = new Set<string>();
 
     for (const group of groups) {
-      const members: MemberDetailResp[] =
+      const members: GroupMemberDetail[] =
         group.student_learning_activity_group_member.map((m) => ({
           student_id: m.student_id,
-          role: m.role as GroupRole,
+          role: m.role,
           student_name: m.student?.full_name_th || "",
           status: m.status,
         }));

@@ -8,10 +8,9 @@ import type {
   ClassworkDetailFull,
   CreateStudentActivityGroupBody,
   CreateStudentLearningActivityGroupBody,
-  GroupRole,
   MemberDetail,
-  MemberDetailResp,
 } from "../../types/course-type";
+import type { GroupMemberDetail, GroupRole } from "@deep-portfolio/api-types";
 import Button from "../../../../../components/button/button";
 import {
   postStudentActivityGroup,
@@ -26,7 +25,7 @@ type Props = {
   classworkDetail: ClassworkDetailFull;
 
   // for edit flow
-  membersData?: MemberDetailResp[];
+  membersData?: GroupMemberDetail[];
 };
 
 const CreateGroupworkModal = (props: Props) => {
@@ -46,8 +45,9 @@ const CreateGroupworkModal = (props: Props) => {
     if (courseSlice.studentList.length > 0) {
       const members: Options[] = courseSlice.studentList.map((student) => {
         return {
-          label: `${student.student_id} ${student.full_name_th}`,
-          value: student.student_id ?? 0,
+          // `full_name_th` is nullable (ADR-0035); unguarded it reads "null".
+          label: `${student.student_id} ${student.full_name_th ?? ""}`,
+          value: student.student_id,
         };
       });
 
@@ -70,7 +70,7 @@ const CreateGroupworkModal = (props: Props) => {
       return [
         ...prev,
         {
-          studentId: studentOptions.student_id ?? "",
+          studentId: studentOptions.student_id,
           studentName: studentOptions.full_name_th ?? "",
           role: role,
         },
@@ -84,7 +84,7 @@ const CreateGroupworkModal = (props: Props) => {
     );
   };
 
-  const handleOnSelectedGroup = (members: MemberDetailResp[]) => {
+  const handleOnSelectedGroup = (members: GroupMemberDetail[]) => {
     const mapMembers = members
       .map((member) => ({
         studentId: member.student_id,

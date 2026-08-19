@@ -66,7 +66,9 @@ describe("POST /student-learning-activity-group", () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.data.group_id).toEqual(expect.any(Number));
+    // Every key, not just this one: the write answers the id and nothing
+    // else, which is what `GroupIdResp` says (#68).
+    expect(response.body.data).toEqual({ group_id: expect.any(Number) });
 
     const group =
       await prisma.student_learning_activity_group.findUniqueOrThrow({
@@ -1212,6 +1214,51 @@ describe("GET /student-learning-activity-group/all", () => {
     expect(
       response.body.data.map((group: { group_id: number }) => group.group_id),
     ).toEqual(groups.map((group) => group.id));
+  });
+
+  it("answers with exactly the keys a group row has", async () => {
+    // The twin of the same case on /student-activity-group/all, and the same
+    // shape down to the field: the two group tables are mirror images, which is
+    // why one type in @deep-portfolio/api-types serves both (#68, ADR-0035).
+    const { course, students } = await classWithStudents(2);
+    const [leader, member] = students;
+    const learningActivity = await createLearningActivity({
+      section_id: course.section_id,
+      learning_activity_type: "group",
+    });
+    const group = await createLearningActivityGroup({
+      learning_activity_id: learningActivity.id,
+      members: [
+        { student_id: leader.student_id },
+        { student_id: member.student_id },
+      ],
+    });
+
+    const response = await request(app)
+      .get("/student-learning-activity-group/all")
+      .set("Cookie", sessionCookie({ userId: leader.student_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([
+      {
+        group_id: group.id,
+        members: [
+          {
+            student_id: leader.student_id,
+            role: "LEADER",
+            student_name: leader.full_name_th,
+            status: "ACCEPT",
+          },
+          {
+            student_id: member.student_id,
+            role: "MEMBER",
+            student_name: member.full_name_th,
+            status: "PENDING",
+          },
+        ],
+      },
+    ]);
   });
 
   it("offers a member list once, however many activities used it", async () => {
