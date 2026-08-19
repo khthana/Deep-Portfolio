@@ -133,6 +133,35 @@ describe("GET /course-material", () => {
     ]);
   });
 
+  it("answers a null title for a week that has none", async () => {
+    // `course_syllabus.title` is nullable and this endpoint hands it over
+    // untouched, which both declarations of this response denied until #68 —
+    // the service's `as` over the whole array was what let them (ADR-0038).
+    const course = await createCourse();
+    const week = await createLessonPlan({
+      section_id: course.section_id,
+      week_no: 1,
+      title: null,
+    });
+
+    const response = await request(app)
+      .get("/course-material")
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([
+      {
+        course_syllabus_id: week.id,
+        week_no: 1,
+        title: null,
+        course_materials: {
+          lecture: { file: [], url: [] },
+          record: { file: [], url: [] },
+        },
+      },
+    ]);
+  });
+
   it("returns only this section's weeks", async () => {
     const course = await createCourse();
     const otherCourse = await createCourse();
@@ -232,6 +261,10 @@ describe("POST /course-material", () => {
       .attach("lecture_files", PDF, "week-1.pdf");
 
     expect(response.status).toBe(200);
+    // No `data` key at all, not a `data` of null: the service returns nothing
+    // and `JSON.stringify` drops the key rather than sending it (ADR-0033).
+    // This is why neither write has a type in @deep-portfolio/api-types (#68).
+    expect(response.body).not.toHaveProperty("data");
 
     const material = await prisma.course_material.findMany({
       where: { course_syllabus_id: week.id },
@@ -566,6 +599,8 @@ describe("DELETE /course-material", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
     expect(response.status).toBe(200);
+    // As on the POST above: nothing under `data`, so nothing to declare (#68).
+    expect(response.body).not.toHaveProperty("data");
 
     const material = await prisma.course_material.findMany({
       where: { course_syllabus_id: week.id },

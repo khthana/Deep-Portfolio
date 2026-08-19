@@ -15,7 +15,10 @@ export interface LessonPlanOptions {
   /** course_sections.section_id. No foreign key on this column. */
   section_id: number;
   week_no?: number;
-  title?: string;
+  /** The column is nullable, so this takes null as well as a string — a case
+   *  about a week with no title has to be able to say so. Leaving it out still
+   *  gives the default. */
+  title?: string | null;
   description?: string;
   remark?: string;
   /** users.user_id of the teacher who wrote it. Also has no foreign key. */
@@ -27,7 +30,7 @@ export function createLessonPlan(options: LessonPlanOptions) {
     data: {
       section_id: options.section_id,
       week_no: options.week_no ?? 1,
-      title: options.title ?? "หัวข้อประจำสัปดาห์",
+      title: options.title === undefined ? "หัวข้อประจำสัปดาห์" : options.title,
       description: options.description ?? "รายละเอียดหัวข้อประจำสัปดาห์",
       remark: options.remark ?? "หมายเหตุ",
       created_by: options.created_by,

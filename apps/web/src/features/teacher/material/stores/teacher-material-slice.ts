@@ -5,7 +5,7 @@ import {
   postCourseMaterial,
   removeCourseMaterial,
 } from "./teacher-material-action";
-import type { GetCourseMaterialDetailResp } from "../types/course-material-type";
+import type { CourseMaterialWeek } from "@deep-portfolio/api-types";
 
 type TeacherCourseMaterialSlice = {
   postCourseMaterialLoading: boolean;
@@ -14,7 +14,7 @@ type TeacherCourseMaterialSlice = {
   removeCourseMaterialLoading: boolean;
   fetchCourseMaterialOptionsLoading: boolean;
 
-  courseMaterialData: GetCourseMaterialDetailResp[] | null;
+  courseMaterialData: CourseMaterialWeek[] | null;
 
   error: string | null;
 };

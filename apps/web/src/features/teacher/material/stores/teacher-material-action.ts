@@ -5,10 +5,10 @@ import {
   deleteCourseMaterial,
   getCourseMaterial,
 } from "../services/teacher-material.service";
-import type { GetCourseMaterialDetailResp } from "../types/course-material-type";
+import type { CourseMaterialWeek } from "@deep-portfolio/api-types";
 
 export const fetchCourseMaterial = createAsyncThunk<
-  ResponseWrapper<GetCourseMaterialDetailResp[]>,
+  ResponseWrapper<CourseMaterialWeek[]>,
   number
 >("course-material", getCourseMaterial);
 

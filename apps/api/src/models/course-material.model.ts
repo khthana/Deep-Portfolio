@@ -1,17 +1,11 @@
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import { UploadURLDetail } from "./attachments.model";
 
-export type GetCourseMaterialDetailResp = {
-  course_syllabus_id: number;
-  week_no: number;
-  title: string;
-  course_materials: CourseMaterialDetail;
-};
-
-export type CourseMaterialDetail = {
-  lecture: AttachmentDetailResp;
-  record: AttachmentDetailResp;
-};
+// GetCourseMaterialDetailResp and CourseMaterialDetail used to be declared
+// here. They moved to @deep-portfolio/api-types (#68) as `CourseMaterialWeek`
+// and `CourseMaterialDetail` — the first was renamed because its old name said
+// which endpoint fetched it rather than what it is (ADR-0035 §2), and because
+// `title` on it is nullable, which the `as` in the service was covering. See
+// ADR-0038.
 
 //------------------------------------
 

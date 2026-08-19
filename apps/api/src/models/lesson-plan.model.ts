@@ -1,4 +1,8 @@
-import { CourseMaterialDetail } from "./course-material.model";
+// `CourseMaterialDetail` is borrowed, not owned: the lesson plan embeds what
+// the material feature answers. That feature moved in #68 and this file
+// follows it here rather than waiting for its own pass (ADR-0029 §4). The
+// rest of this type is still the lesson plan's own, and still written twice.
+import type { CourseMaterialDetail } from "@deep-portfolio/api-types";
 
 /** Stated once, by the schemas that check it. */
 export type {

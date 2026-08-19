@@ -1,13 +1,13 @@
 import type { JSONContent } from "@tiptap/react";
 import type {
   AttachmentDetailResp,
+  CourseMaterialDetail,
   GroupRole,
   RubricDetail,
   StudentActivityDetailResp,
   StudentActivityStatusDB,
   StudentLearningActivityDetailResp,
 } from "@deep-portfolio/api-types";
-import type { CourseMaterialDetail } from "../../../teacher/material/types/course-material-type";
 
 export type CourseDetailSummary = {
   name: string;

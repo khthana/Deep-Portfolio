@@ -24,7 +24,9 @@
  * categories, which added nothing here at all because the activity pass had
  * already written the row (docs/adr/0036-a-bare-scalar-gets-no-name.md), and
  * then the noticeboard
- * (docs/adr/0037-the-package-says-what-the-wire-says.md).
+ * (docs/adr/0037-the-package-says-what-the-wire-says.md), and then the material
+ * hung off a section's weekly plan
+ * (docs/adr/0038-a-factory-must-be-able-to-say-null.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -60,6 +62,11 @@ export type {
   TeacherCourseListResp,
   Weekday,
 } from "./course";
+
+export type {
+  CourseMaterialDetail,
+  CourseMaterialWeek,
+} from "./course-material";
 
 export type {
   StudentEvaluationActivityRow,

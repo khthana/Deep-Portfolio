@@ -130,7 +130,10 @@ tells a reader something the value does not, and
 `0037-the-package-says-what-the-wire-says.md`, which says an enum in the shared
 package is spelled the way it leaves the API rather than normalised — where two
 endpoints disagree on casing, the package records the disagreement instead of
-hiding it.
+hiding it, and `0038-a-factory-must-be-able-to-say-null.md`, which says a test
+factory has to be able to express a nullable column as null: an option written
+`options.x ?? default` collapses "not given" and "given as null" into one, and
+the case that proves the type cannot then be written at all.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

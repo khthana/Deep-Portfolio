@@ -1,7 +1,7 @@
 import { endpoints } from "../../../../configs/endpoints.config";
 import { axiosInstance } from "../../../../lib/axios";
 import type { ResponseWrapper } from "../../../../types/global-type";
-import type { GetCourseMaterialDetailResp } from "../types/course-material-type";
+import type { CourseMaterialWeek } from "@deep-portfolio/api-types";
 
 export const createCourseMaterial = async (formData: FormData) => {
   const resp = await axiosInstance.post<ResponseWrapper<any>>(
@@ -16,9 +16,10 @@ export const createCourseMaterial = async (formData: FormData) => {
 };
 
 export const getCourseMaterial = async (section_id: number) => {
-  const resp = await axiosInstance.get<
-    ResponseWrapper<GetCourseMaterialDetailResp[]>
-  >(endpoints.course_material.root, { params: { section_id } });
+  const resp = await axiosInstance.get<ResponseWrapper<CourseMaterialWeek[]>>(
+    endpoints.course_material.root,
+    { params: { section_id } },
+  );
 
   return resp.data;
 };

@@ -5,7 +5,7 @@ import {
   postCourseMaterial,
   removeCourseMaterial,
 } from "./teacher-material-action";
-import type { GetCourseMaterialDetailResp } from "../types/course-material-type";
+import type { CourseMaterialWeek } from "@deep-portfolio/api-types";
 import {
   initialStateOf,
   itOnlyTracksLoading,
@@ -24,7 +24,7 @@ const reducer = teacherCourseMaterialSlice.reducer;
 
 const materials = [
   { id: 1, title: "สไลด์สัปดาห์ที่หนึ่ง" },
-] as unknown as GetCourseMaterialDetailResp[];
+] as unknown as CourseMaterialWeek[];
 
 describe("teacherCourseMaterialSlice", () => {
   itStoresTheResponse(reducer, [

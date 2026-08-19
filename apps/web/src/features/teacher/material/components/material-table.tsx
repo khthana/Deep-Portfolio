@@ -53,7 +53,12 @@ const MaterialTable = () => {
     const mappedData = result.data.map((material) => ({
       key: material.course_syllabus_id.toString(),
       week: material.week_no,
-      title: material.title,
+      // The column takes null and `CourseMaterialWeek` says so (#68). No write
+      // path can put one there — `title` is required on both the add and the
+      // update, the renumbering write touches only `week_no`, and the importer
+      // does not write this table — so this is the UI type agreeing with the
+      // API type, not a cell anyone will see empty.
+      title: material.title ?? "",
       lecture: material.course_materials.lecture,
       record: material.course_materials.record,
       id: material.course_syllabus_id,

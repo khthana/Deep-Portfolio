@@ -49,7 +49,7 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1072 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 1073 API cases over
   40 files, 448 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
@@ -159,8 +159,11 @@ name, because `ResponseWrapper<number>` already says everything a name would.
 The noticeboard followed, and ADR-0037 came out of it: an enum in the package is
 spelled the way it leaves the API, so `AnnouncementStatus` is lower case where
 `ActivityType` is upper — one service upper-cases before answering and the other
-does not, and the package's job is to say which. 35 files and 1,837 lines are
-still web-side.
+does not, and the package's job is to say which. Course material followed, and
+ADR-0038 came out of it: a factory whose option collapses "not given" and "given
+as null" into one `??` makes the case that proves a nullable column
+unwriteable, so it is widened rather than worked around. 34 files and 1,814
+lines are still web-side.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

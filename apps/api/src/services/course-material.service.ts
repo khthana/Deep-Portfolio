@@ -1,8 +1,6 @@
 import prisma from "../config/prisma";
-import {
-  CreateCourseMaterialReqBody,
-  GetCourseMaterialDetailResp,
-} from "../models/course-material.model";
+import type { CourseMaterialWeek } from "@deep-portfolio/api-types";
+import { CreateCourseMaterialReqBody } from "../models/course-material.model";
 import AttachmentsService, {
   transactionWithUploads,
 } from "./attachments.service";
@@ -63,9 +61,7 @@ export default class CourseMaterialService {
     });
   }
 
-  async getCourseMaterial(
-    section_id: number,
-  ): Promise<GetCourseMaterialDetailResp[] | null> {
+  async getCourseMaterial(section_id: number): Promise<CourseMaterialWeek[]> {
     const courseSyllabus = await prisma.course_syllabus.findMany({
       where: { section_id: section_id },
       orderBy: { week_no: "asc" },
@@ -93,7 +89,7 @@ export default class CourseMaterialService {
     const allAttachments =
       await this.attachmentsService.getAttachments(allAttachmentIds);
 
-    const result = courseSyllabus.map((syllabus) => {
+    return courseSyllabus.map((syllabus) => {
       const lectureIds = syllabus.course_material
         .filter((m) => m.type === "LECTURE")
         .map((m) => m.attachment_id);
@@ -129,9 +125,7 @@ export default class CourseMaterialService {
           record: recordAttachments,
         },
       };
-    }) as GetCourseMaterialDetailResp[];
-
-    return result;
+    });
   }
 
   async deleteCourseMaterial(attachment_id: number) {

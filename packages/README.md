@@ -21,12 +21,12 @@ response ของ activity พร้อม rubric กับหมวดคะ�
 learning-activity, response ของสองเส้นส่งงานพร้อมรูปกลุ่มกับชื่อนักศึกษา,
 response ของหน้ากลุ่มฝั่งนักศึกษาทั้งสิบเส้นพร้อมเส้นตรวจคำเชิญ,
 response ของสัดส่วนคะแนน (ซึ่งรอบ activity เขียนไว้ให้ล่วงหน้าแล้ว),
-response ของประกาศ,
+response ของประกาศ, response ของเอกสารประกอบการสอน,
 รูปของไฟล์แนบ (`AttachmentDetailResp`, `FileDetail`, `URLDetail`) และ
 `StudentActivityStatusDB`
-ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 35 ไฟล์
-1,851 บรรทัด (นับ 19 สิงหาคม 2569 — ในนั้นมี type ของ request ปนอยู่ด้วย
-ซึ่งไม่ต้องย้าย) ซึ่งไล่ย้ายทีละ
+ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 34 ไฟล์ 1,814 บรรทัด (นับหลังรอบ
+course-material 19 สิงหาคม 2569 ด้วย glob ที่ ADR-0028 ประกาศไว้ — ในนั้นมี type
+ของ request ปนอยู่ด้วย ซึ่งไม่ต้องย้าย) ซึ่งไล่ย้ายทีละ
 feature ที่ [#68](https://github.com/khthana/Deep-Portfolio/issues/68) ส่วน
 envelope ฝั่ง web (`ResponseWrapper`) อยู่ที่
 [#67](https://github.com/khthana/Deep-Portfolio/issues/67)
@@ -50,7 +50,9 @@ learning-activity ซึ่งแยกคีย์ที่ไม่มีอ�
 [ADR-0036](../docs/adr/0036-a-bare-scalar-gets-no-name.md) คือรอบสัดส่วนคะแนน
 ซึ่งตัดสินว่า response ที่เป็นค่าเดี่ยวไม่ต้องตั้งชื่อให้ และ
 [ADR-0037](../docs/adr/0037-the-package-says-what-the-wire-says.md) คือรอบประกาศ
-ซึ่งตัดสินว่า enum ในนี้สะกดตามที่ออกสายจริง ไม่ใช่ตามธรรมเนียมของ package
+ซึ่งตัดสินว่า enum ในนี้สะกดตามที่ออกสายจริง ไม่ใช่ตามธรรมเนียมของ package และ
+[ADR-0038](../docs/adr/0038-a-factory-must-be-able-to-say-null.md) คือรอบเอกสาร
+ประกอบการสอน ซึ่งตัดสินว่า factory ต้องแยก "ไม่ส่ง" ออกจาก "ส่ง null" ให้ได้
 
 ## เพิ่ม package ใหม่
 
