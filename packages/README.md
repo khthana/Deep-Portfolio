@@ -20,6 +20,7 @@ response ของ course, response ของ gradebook, response ของร�
 response ของ activity พร้อม rubric กับหมวดคะแนน, response ของ
 learning-activity, response ของสองเส้นส่งงานพร้อมรูปกลุ่มกับชื่อนักศึกษา,
 response ของหน้ากลุ่มฝั่งนักศึกษาทั้งสิบเส้นพร้อมเส้นตรวจคำเชิญ,
+response ของสัดส่วนคะแนน (ซึ่งรอบ activity เขียนไว้ให้ล่วงหน้าแล้ว),
 รูปของไฟล์แนบ (`AttachmentDetailResp`, `FileDetail`, `URLDetail`) และ
 `StudentActivityStatusDB`
 ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 35 ไฟล์
@@ -44,7 +45,9 @@ learning-activity ซึ่งแยกคีย์ที่ไม่มีอ�
 ว่าทำไมสอง feature ที่ใช้รูปเดียวกันจริง ๆ ถึงย้ายรอบเดียวกัน และ
 [ADR-0035](../docs/adr/0035-one-group-shape-for-both-halves.md) คือรอบกลุ่ม ซึ่ง
 ตัดสินว่าสองครึ่งที่ตอบเหมือนกันทุกฟิลด์ใช้ประกาศชุดเดียว ไม่ทำคู่แฝดตามชื่อ route
-และรอบหนึ่งกินทั้งเส้นอ่านและเส้นเขียนของ feature นั้น
+และรอบหนึ่งกินทั้งเส้นอ่านและเส้นเขียนของ feature นั้น ส่วน
+[ADR-0036](../docs/adr/0036-a-bare-scalar-gets-no-name.md) คือรอบสัดส่วนคะแนน
+ซึ่งตัดสินว่า response ที่เป็นค่าเดี่ยวไม่ต้องตั้งชื่อให้
 
 ## เพิ่ม package ใหม่
 

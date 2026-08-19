@@ -34,14 +34,12 @@ import {
 import type {
   CourseDetail,
   GroupDetailResp,
+  ScoreWeightDetail,
   StudentActivityDetailResp,
   StudentLearningActivityDetailResp,
   StudentWithoutGroup,
 } from "@deep-portfolio/api-types";
-import type {
-  AnnouncementDetailResp,
-  ScoreWeightResp,
-} from "../../../../types/course-type.type";
+import type { AnnouncementDetailResp } from "../../../../types/course-type.type";
 import {
   failed,
   initialStateOf,
@@ -179,7 +177,7 @@ describe("studentCourseSlice", () => {
         thunk: fetchScoreWeight,
         flag: "fetchScoreWeightLoading",
         field: "scoreWeight",
-        data: [{ id: 1, name: "Midterm" }] as unknown as ScoreWeightResp[],
+        data: [{ id: 1, name: "Midterm" }] as unknown as ScoreWeightDetail[],
       },
       {
         thunk: fetchAllAnnouncement,

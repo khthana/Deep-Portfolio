@@ -1,10 +1,12 @@
 import { endpoints } from "../configs/endpoints.config";
 import { axiosInstance } from "../lib/axios";
-import type { CLOResp, CourseDetail, PLOResp } from "@deep-portfolio/api-types";
 import type {
-  LessonPlanResp,
-  ScoreWeightResp,
-} from "../types/course-type.type";
+  CLOResp,
+  CourseDetail,
+  PLOResp,
+  ScoreWeightDetail,
+} from "@deep-portfolio/api-types";
+import type { LessonPlanResp } from "../types/course-type.type";
 import type { ResponseWrapper } from "../types/global-type";
 
 export const getCourseById = async (section_id: number) => {
@@ -19,7 +21,7 @@ export const getCourseById = async (section_id: number) => {
 };
 
 export const getScoreWeight = async (section_id: number) => {
-  const resp = await axiosInstance.get<ResponseWrapper<ScoreWeightResp[]>>(
+  const resp = await axiosInstance.get<ResponseWrapper<ScoreWeightDetail[]>>(
     endpoints["score_weight"].root,
     { params: { section_id } },
   );

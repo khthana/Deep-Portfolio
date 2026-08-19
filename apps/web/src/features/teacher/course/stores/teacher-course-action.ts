@@ -19,27 +19,27 @@ import {
   getPLOList,
   getScoreWeight,
 } from "../../../../services/course-service.service";
-import type { ScoreWeightResp } from "../../../../types/course-type.type";
+import type { ScoreWeightDetail } from "@deep-portfolio/api-types";
 import type { CreateCourseSectionScheduleReq } from "../types/course-type.type";
 import { createCourseSectionSchedule } from "../services/course-service.service";
 
 export const fetchScoreWeight = createAsyncThunk<
-  ResponseWrapper<ScoreWeightResp[]>,
+  ResponseWrapper<ScoreWeightDetail[]>,
   number
 >("score-weight", getScoreWeight);
 
 export const postScoreWeight = createAsyncThunk<
-  ResponseWrapper<{ score_weight_id: number }>,
+  ResponseWrapper<number>,
   AddScoreWeightBody
 >("score-weight/add", addScoreWeight);
 
 export const editScoreWeight = createAsyncThunk<
-  ResponseWrapper<ScoreWeightResp>,
+  ResponseWrapper<ScoreWeightDetail>,
   UpdateScoreWeightBody
 >("score-weight/update", updateScoreWeight);
 
 export const removeScoreWeight = createAsyncThunk<
-  ResponseWrapper<ScoreWeightResp>,
+  ResponseWrapper<ScoreWeightDetail>,
   number
 >("score-weight/delete", deleteScoreWeight);
 

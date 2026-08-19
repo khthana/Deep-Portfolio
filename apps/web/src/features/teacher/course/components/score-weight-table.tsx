@@ -52,7 +52,11 @@ const ScoreWeightTable = () => {
     const mappedData = result.data.map((score) => ({
       key: score.score_ratio_id.toString(),
       title: score.score_category,
-      weight: score.weight,
+      // The column takes null and `ScoreWeightDetail` says so (#68). No write
+      // path can put one there — both schemas make `weight` required and these
+      // are the only two writers — so this is the UI type agreeing with the API
+      // type, not a value anyone will see. Zero is the column's own default.
+      weight: score.weight ?? 0,
       id: score.score_ratio_id,
     }));
 

@@ -32,13 +32,11 @@ import type {
   CourseDetail,
   GroupDetailResp,
   LearningActivityDetailResp,
+  ScoreWeightDetail,
   StudentActivityDetailResp,
   StudentWithoutGroup,
 } from "@deep-portfolio/api-types";
-import type {
-  AnnouncementDetailResp,
-  ScoreWeightResp,
-} from "../../../../types/course-type.type";
+import type { AnnouncementDetailResp } from "../../../../types/course-type.type";
 import {
   mapActivityDetail,
   mapLearningActivityDetail,
@@ -55,7 +53,7 @@ type StudentCourseSlice = {
   activities: ActivityDetailResp[];
   learningActivities: LearningActivityDetailResp[];
   allClasswork: ClassworkDetailResp | null;
-  scoreWeight: ScoreWeightResp[];
+  scoreWeight: ScoreWeightDetail[];
   // The without-group list and nothing else: the only two reducers that write
   // this field are the two without-group thunks, so the row it holds is the row
   // that endpoint sends (#68). It used to say `StudentDetailResp`, whose every

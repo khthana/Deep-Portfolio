@@ -123,7 +123,10 @@ and `0035-one-group-shape-for-both-halves.md`, which says two endpoints
 answering the same shape field for field get one declaration rather than a
 twin named after each route, that names in the package say what a shape is
 rather than which read fetched it, and that a pass covers a feature's writes as
-well as its reads — the scope is what the API answers, not which method asked.
+well as its reads — the scope is what the API answers, not which method asked,
+and `0036-a-bare-scalar-gets-no-name.md`, which says a response that is a bare
+number or string gets no type of its own: a name is worth writing only when it
+tells a reader something the value does not.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

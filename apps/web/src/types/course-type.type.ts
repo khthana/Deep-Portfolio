@@ -8,17 +8,11 @@ import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
  * in this file is the responses no one has moved yet.
  */
 
-export type ScoreWeightResp = {
-  // year: string;
-  // semester: number;
-  // subject_id: string;
-  sequence_order: number;
-  score_category: string;
-  weight: number;
-  created_at: string;
-  updated_at: string;
-  score_ratio_id: number;
-};
+// ScoreWeightResp used to be declared here. It moved to
+// @deep-portfolio/api-types as `ScoreWeightDetail` (#68), which the activity
+// pass had already written from the same row — import it from there. Three
+// things it said were wrong: `section_id` was missing, `weight` refused the
+// null the column takes, and both dates refused null too.
 
 export type LessonPlanResp = {
   year: string;

@@ -38,15 +38,13 @@ import type {
   CourseDetail,
   GroupDetailResp,
   GroupIdResp,
+  ScoreWeightDetail,
   StudentActivityDetailResp,
   StudentEvaluationListResp,
   StudentLearningActivityDetailResp,
   StudentWithoutGroup,
 } from "@deep-portfolio/api-types";
-import type {
-  AnnouncementDetailResp,
-  ScoreWeightResp,
-} from "../../../../types/course-type.type";
+import type { AnnouncementDetailResp } from "../../../../types/course-type.type";
 import {
   getCourseById,
   getScoreWeight,
@@ -78,7 +76,7 @@ export const fetchCLO = createAsyncThunk<ResponseWrapper<CLOResp[]>, number>(
 );
 
 export const fetchScoreWeight = createAsyncThunk<
-  ResponseWrapper<ScoreWeightResp[]>,
+  ResponseWrapper<ScoreWeightDetail[]>,
   number
 >("student/score-weight", getScoreWeight);
 

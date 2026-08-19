@@ -49,7 +49,7 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1070 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 1071 API cases over
   40 files, 448 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
@@ -151,7 +151,12 @@ answers no data at all. The group half of those same two features followed, and
 ADR-0035 is the other side of ADR-0034's coin: where the submissions genuinely
 answer different shapes and got a file each, every group endpoint and its twin
 answer the same shape field for field, so one declaration serves both halves and
-the API's second copy is what collapsed. 35 files and 1,851 lines are still web-side.
+the API's second copy is what collapsed. The score categories followed, and ADR-0036 came
+out of it: the shape the activity pass had written ahead of time turned out to
+fit `GET /score-weight` unchanged, so that pass added no type at all — and where
+a write answers a bare number rather than an object, the package gives it no
+name, because `ResponseWrapper<number>` already says everything a name would.
+35 files and 1,845 lines are still web-side.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

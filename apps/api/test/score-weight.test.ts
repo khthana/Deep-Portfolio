@@ -59,6 +59,38 @@ describe("GET /score-weight", () => {
     ]);
   });
 
+  it("answers with exactly the keys a score category has", async () => {
+    // The row is handed over whole — `findMany` with no `select` — so the
+    // bookkeeping columns ride along with the three the table shows. Written
+    // out in full because `ScoreWeightDetail` in @deep-portfolio/api-types is
+    // written from this case (#68), and the two dates are the reason: they are
+    // Date objects inside the service and ISO strings by the time a caller
+    // reads them.
+    const course = await createCourse();
+    const category = await createScoreWeight({
+      section_id: course.section_id,
+      score_category: "สอบกลางภาค",
+      weight: 30,
+    });
+
+    const response = await request(app)
+      .get("/score-weight")
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([
+      {
+        score_ratio_id: category.score_ratio_id,
+        sequence_order: 1,
+        score_category: "สอบกลางภาค",
+        weight: 30,
+        created_at: category.created_at?.toISOString(),
+        updated_at: category.updated_at?.toISOString(),
+        section_id: course.section_id,
+      },
+    ]);
+  });
+
   it("returns only this section's categories", async () => {
     const course = await createCourse();
     const otherCourse = await createCourse();
@@ -144,6 +176,11 @@ describe("POST /score-weight", () => {
       });
 
     expect(response.status).toBe(200);
+    // The id itself, not an object holding one. The web declared
+    // `{ score_weight_id: number }` for this until #68 — a body that is not an
+    // object, under a key no endpoint here sends. (`score_weight_id` is real
+    // on the student's classwork list, which renames `score_ratio_id` to it.)
+    expect(response.body.data).toEqual(expect.any(Number));
 
     const stored = await prisma.subject_score_ratio.findUnique({
       where: { score_ratio_id: response.body.data },
@@ -324,10 +361,17 @@ describe("PUT /score-weight", () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toMatchObject({
+    // Every key: the updated row goes back whole, the same shape `GET` answers.
+    // `updated_at` is the value the row was created with — the column has a
+    // default and no `@updatedAt`, so nothing bumps it on a write (#68).
+    expect(response.body.data).toEqual({
       score_ratio_id: weight.score_ratio_id,
+      sequence_order: weight.sequence_order,
       score_category: "สอบกลางภาค",
       weight: 30,
+      created_at: weight.created_at?.toISOString(),
+      updated_at: weight.updated_at?.toISOString(),
+      section_id: course.section_id,
     });
 
     const stored = await prisma.subject_score_ratio.findUnique({
@@ -395,8 +439,15 @@ describe("DELETE /score-weight", () => {
       .set("Cookie", sessionCookie({ userId: teacher.user_id }));
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toMatchObject({
+    // The row that was removed, whole — the same shape again.
+    expect(response.body.data).toEqual({
       score_ratio_id: doomed.score_ratio_id,
+      sequence_order: doomed.sequence_order,
+      score_category: doomed.score_category,
+      weight: doomed.weight,
+      created_at: doomed.created_at?.toISOString(),
+      updated_at: doomed.updated_at?.toISOString(),
+      section_id: course.section_id,
     });
 
     const remaining = await prisma.subject_score_ratio.findMany({

@@ -20,7 +20,9 @@
  * (docs/adr/0034-submissions-move-as-a-pair.md) — and then the group half of
  * those same two, whose six reads answer the same shape field for field and so
  * got one declaration between them
- * (docs/adr/0035-one-group-shape-for-both-halves.md).
+ * (docs/adr/0035-one-group-shape-for-both-halves.md), and then the score
+ * categories, which added nothing here at all because the activity pass had
+ * already written the row (docs/adr/0036-a-bare-scalar-gets-no-name.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
