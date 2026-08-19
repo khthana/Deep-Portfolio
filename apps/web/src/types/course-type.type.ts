@@ -1,11 +1,10 @@
-import type { AttachmentType } from "./attachment-type.type";
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
-
 /**
  * `CourseDetail`, `CLOResp` and `PLOResp` used to be written out here. They now
  * come from @deep-portfolio/api-types, which apps/api is annotated against, so
  * import them from there — see docs/adr/0028-shared-api-types.md. What is left
- * in this file is the responses no one has moved yet.
+ * in this file is `LessonPlanResp` and nothing else — the lesson plan has not
+ * had its pass yet, and it is the last thing standing between this file and
+ * deletion (#68).
  */
 
 // ScoreWeightResp used to be declared here. It moved to
@@ -30,18 +29,11 @@ export type LessonPlanResp = {
   allActivities: string[];
 };
 
-export type AnnouncementDetailResp = {
-  title: string;
-  content: JSON;
-  created_by: string;
-  created_at: Date | null;
-  updated_at: Date | null;
-  published_at: Date | null;
-  status: AttachmentType | null;
-  is_pinned: boolean | null;
-  view_count: number | null;
-  announcement_id: number;
-  attachments: AttachmentDetailResp | null;
-};
+// AnnouncementDetailResp used to be declared here. It moved to
+// @deep-portfolio/api-types (#68) — import it from there. What it said that the
+// endpoint does not: `status` was `AttachmentType`, which is the enum of what a
+// file is, not the `draft | published | archived` the column holds; `content`
+// was the global `JSON` type; `section_id` was missing; `attachments` is never
+// null; and the three dates arrive as strings. See ADR-0037.
 
 //-------------------------------------------------

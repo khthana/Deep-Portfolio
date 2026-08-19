@@ -3,7 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
 import type { AnnouncmentFormType } from "../types/announement-type";
 import { fetchAllAnnouncements, postAnnouncement } from "./announcement-action";
-import type { AnnouncementDetailResp } from "../../../../types/course-type.type";
+import type { AnnouncementDetailResp } from "@deep-portfolio/api-types";
 
 type AnnouncementSlice = {
   announcementForm: AnnouncmentFormType[];

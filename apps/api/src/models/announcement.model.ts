@@ -1,5 +1,3 @@
-import { $Enums, Prisma } from "@prisma/client";
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import type { CreateAnnouncementBody } from "../validation/announcement.schema";
 
 /**
@@ -12,27 +10,11 @@ export type CreateAnnouncementReqBody = CreateAnnouncementBody & {
   created_by: string;
 };
 
-export type UploadFileDetail = {
-  title: string;
-  uploaded_by: string;
-  file_path: string;
-  original_filename: string;
-  file_size: number;
-  file_type: string;
-};
-
 //--------------------------------------
 
-export type AnnouncementDetailResp = {
-  title: string;
-  content: Prisma.JsonValue;
-  created_by: string;
-  created_at: Date | null;
-  updated_at: Date | null;
-  published_at: Date | null;
-  status: $Enums.announcement_status | null;
-  is_pinned: boolean | null;
-  view_count: number | null;
-  announcement_id: number;
-  attachments: AttachmentDetailResp | null;
-};
+// AnnouncementDetailResp used to be declared here. It moved to
+// @deep-portfolio/api-types (#68) — import it from there. Three things it said
+// were wrong, all of them hidden by an `as` over the whole object in the
+// service: `section_id` is on the wire and was not declared, `attachments` is
+// never null, and the three dates are strings by the time a caller reads them.
+// See ADR-0037.

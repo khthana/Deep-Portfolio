@@ -1,7 +1,10 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import type { ResponseWrapper } from "../../../../types/global-type";
 import { createAnnouncement } from "../services/announcement-service.service";
-import type { AnnouncementDetailResp } from "../../../../types/course-type.type";
+import type {
+  AnnouncementDetailResp,
+  AnnouncementIdResp,
+} from "@deep-portfolio/api-types";
 import { getAllAnnouncements } from "../../../../services/announcement-service.service";
 
 export const fetchAllAnnouncements = createAsyncThunk<
@@ -10,6 +13,6 @@ export const fetchAllAnnouncements = createAsyncThunk<
 >("announcement", getAllAnnouncements);
 
 export const postAnnouncement = createAsyncThunk<
-  ResponseWrapper<{ announcement_id: number }>,
+  ResponseWrapper<AnnouncementIdResp>,
   FormData
 >("announcement/create", createAnnouncement);

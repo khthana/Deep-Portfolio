@@ -36,7 +36,7 @@ import type {
   StudentActivityDetailResp,
   StudentWithoutGroup,
 } from "@deep-portfolio/api-types";
-import type { AnnouncementDetailResp } from "../../../../types/course-type.type";
+import type { AnnouncementDetailResp } from "@deep-portfolio/api-types";
 import {
   mapActivityDetail,
   mapLearningActivityDetail,

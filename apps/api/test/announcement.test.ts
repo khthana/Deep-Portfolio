@@ -69,6 +69,43 @@ describe("GET /announcement", () => {
     });
   });
 
+  it("answers with exactly the keys an announcement row has", async () => {
+    // The row goes over whole — `findMany` with no `select`, spread into the
+    // attachment list — so `section_id` rides along with the nine columns the
+    // feed shows. `AnnouncementDetailResp` in @deep-portfolio/api-types is
+    // written from this case (#68), which is why the three dates are asserted
+    // as ISO strings and `status` as the null it always is: nothing writes that
+    // column, on this route or any other.
+    const course = await createCourse();
+    const announcement = await createAnnouncement({
+      section_id: course.section_id,
+      title: "ประกาศใหม่",
+      updated_at: new Date("2026-02-01T09:00:00Z"),
+    });
+
+    const response = await request(app)
+      .get("/announcement")
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([
+      {
+        announcement_id: announcement.announcement_id,
+        title: "ประกาศใหม่",
+        content: { text: "เนื้อหาประกาศตัวอย่าง" },
+        created_by: "70000000",
+        created_at: announcement.created_at?.toISOString(),
+        updated_at: "2026-02-01T09:00:00.000Z",
+        published_at: announcement.published_at?.toISOString(),
+        status: null,
+        is_pinned: false,
+        view_count: 0,
+        section_id: course.section_id,
+        attachments: { file: [], url: [] },
+      },
+    ]);
+  });
+
   it("splits each announcement's attachments into files and links", async () => {
     const course = await createCourse();
     const slides = await createFileAttachment({

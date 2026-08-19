@@ -1,9 +1,10 @@
 import prisma from "../config/prisma";
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
-import {
+import type {
   AnnouncementDetailResp,
-  CreateAnnouncementReqBody,
-} from "../models/announcement.model";
+  AnnouncementIdResp,
+  AttachmentDetailResp,
+} from "@deep-portfolio/api-types";
+import { CreateAnnouncementReqBody } from "../models/announcement.model";
 import AttachmentsService, {
   transactionWithUploads,
 } from "./attachments.service";
@@ -20,7 +21,7 @@ export default class AnnouncementService {
 
   async createAnnouncement(
     data: CreateAnnouncementReqBody,
-  ): Promise<{ announcement_id: number }> {
+  ): Promise<AnnouncementIdResp> {
     return transactionWithUploads(async (tx, uploads) => {
       let targetSectionIds = [data.section_id];
 
@@ -105,19 +106,26 @@ export default class AnnouncementService {
       orderBy: { updated_at: "desc" },
     });
 
-    const result: AnnouncementDetailResp[] = await Promise.all(
+    return Promise.all(
       announcements.map(async (announcement) => {
         const attachments = await this.getAllAttachments(
           announcement.announcement_id,
         );
+
         return {
           ...announcement,
+          // Written out rather than left to res.json, which calls the same
+          // toJSON() on the way past — the annotation on this method says
+          // string, and that is what a caller parses (#68). The `as` that used
+          // to stand where these three lines are was covering the difference,
+          // and `section_id` as well.
+          created_at: announcement.created_at?.toISOString() ?? null,
+          updated_at: announcement.updated_at?.toISOString() ?? null,
+          published_at: announcement.published_at?.toISOString() ?? null,
           attachments,
-        } as AnnouncementDetailResp;
+        };
       }),
     );
-
-    return result;
   }
 
   async getAllAttachments(

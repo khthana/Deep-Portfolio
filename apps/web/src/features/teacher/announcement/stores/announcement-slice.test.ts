@@ -5,7 +5,7 @@ import {
 } from "./announcement-slice";
 import { fetchAllAnnouncements, postAnnouncement } from "./announcement-action";
 import type { AnnouncmentFormType } from "../types/announement-type";
-import type { AnnouncementDetailResp } from "../../../../types/course-type.type";
+import type { AnnouncementDetailResp } from "@deep-portfolio/api-types";
 import {
   initialStateOf,
   itOnlyTracksLoading,

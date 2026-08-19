@@ -1,6 +1,6 @@
 import { endpoints } from "../configs/endpoints.config";
 import { axiosInstance } from "../lib/axios";
-import type { AnnouncementDetailResp } from "../types/course-type.type";
+import type { AnnouncementDetailResp } from "@deep-portfolio/api-types";
 import type { ResponseWrapper } from "../types/global-type";
 
 export const getAllAnnouncements = async (section_id: number) => {
