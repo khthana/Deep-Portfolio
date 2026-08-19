@@ -55,10 +55,21 @@ const LessonPlanTable = () => {
     const mappedData = result.data.map((lessonPlan) => ({
       key: lessonPlan.id.toString(),
       week: lessonPlan.week_no,
-      title: lessonPlan.title,
-      detail: lessonPlan.description,
+      // All three columns are nullable and `LessonPlanWeek` says so now (#68).
+      // `title` cannot actually arrive null — it is required on both the add
+      // and the update — but `description` and `remark` can, because both are
+      // optional on the add.
+      //
+      // The cells read the same either way: the column renders `text ? text :
+      // "-"`, and null and "" are both falsy. The edit does not. `edit()` puts
+      // the whole row into the form, so an untouched field went back out as
+      // the null it came in as, and `optionalText` refuses null — every week
+      // added without a description could not be edited at all. Coalescing
+      // here is what fixes it; see BEHAVIOR-CHANGES.md and ADR-0039 §3.
+      title: lessonPlan.title ?? "",
+      detail: lessonPlan.description ?? "",
       activity: lessonPlan.allActivities,
-      remark: lessonPlan.remark,
+      remark: lessonPlan.remark ?? "",
       id: lessonPlan.id,
     }));
 

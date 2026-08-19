@@ -1,7 +1,6 @@
 import type { JSONContent } from "@tiptap/react";
 import type {
   AttachmentDetailResp,
-  CourseMaterialDetail,
   GroupRole,
   RubricDetail,
   StudentActivityDetailResp,
@@ -282,19 +281,10 @@ export type GetStudentEvaluationListParams = {
 
 //------------------------------------
 
-export type GetStudentLessonPlanWithMaterialResp = {
-  allActivities: string[];
-  course_materials: CourseMaterialDetail | null;
-  week_no: number;
-  description: string | null;
-  remark: string | null;
-  created_at: Date | null;
-  updated_at: Date | null;
-  title: string | null;
-  created_by: string | null;
-  section_id: number | null;
-  id: number;
-};
+// GetStudentLessonPlanWithMaterialResp used to be declared here. It moved to
+// @deep-portfolio/api-types (#68) as `StudentLessonPlanWeek` — import it from
+// there. The only thing it said that the endpoint does not is that the two
+// dates are `Date`; they are strings on the wire. See ADR-0039.
 
 //------------------------------------
 

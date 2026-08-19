@@ -83,6 +83,44 @@ describe("GET /lesson-plan", () => {
     ]);
   });
 
+  it("answers with exactly the keys a week has", async () => {
+    // The row goes over whole — `findMany` with no `select` — and the names of
+    // the work planned in it are hung off the side. `LessonPlanWeek` in
+    // @deep-portfolio/api-types is written from this case (#68): eight columns
+    // and a list, with `section_id` among them, which the web's copy left out
+    // while declaring three fields this table does not have.
+    const course = await createCourse();
+    const teacher = await createTeacher();
+    const week = await createLessonPlan({
+      section_id: course.section_id,
+      week_no: 1,
+      title: "แนะนำรายวิชา",
+      description: "ภาพรวมและเกณฑ์การประเมิน",
+      remark: "อ่านเอกสารก่อนเข้าเรียน",
+      created_by: teacher.user_id,
+    });
+
+    const response = await request(app)
+      .get("/lesson-plan")
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([
+      {
+        id: week.id,
+        week_no: 1,
+        title: "แนะนำรายวิชา",
+        description: "ภาพรวมและเกณฑ์การประเมิน",
+        remark: "อ่านเอกสารก่อนเข้าเรียน",
+        created_by: teacher.user_id,
+        created_at: week.created_at?.toISOString(),
+        updated_at: week.updated_at?.toISOString(),
+        section_id: course.section_id,
+        allActivities: [],
+      },
+    ]);
+  });
+
   it("returns only this section's weeks", async () => {
     const course = await createCourse();
     const otherCourse = await createCourse();
@@ -340,9 +378,19 @@ describe("PUT /lesson-plan", () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toMatchObject({
+    // Every key: the updated row and nothing else. No `allActivities` — that
+    // list is built by the two reads, not by the write, so `PUT` answers a
+    // narrower shape than `GET` does (#68).
+    expect(response.body.data).toEqual({
       id: week.id,
+      week_no: 2,
       title: "แบบจำลองข้อมูลเชิงสัมพันธ์",
+      description: "ER diagram และการทำ normalisation",
+      remark: "เตรียมโจทย์มาด้วย",
+      created_by: null,
+      created_at: week.created_at?.toISOString(),
+      updated_at: week.updated_at?.toISOString(),
+      section_id: course.section_id,
     });
 
     const stored = await prisma.course_syllabus.findUnique({
@@ -373,6 +421,36 @@ describe("PUT /lesson-plan", () => {
       success: false,
       message: "ไม่พบข้อมูลที่ต้องการ",
     });
+  });
+
+  it("answers 400 when the description is sent as null", async () => {
+    // `optionalText` means "may be left out", not "may be null":
+    // `blankToUndefined` turns `""` into undefined and passes anything that is
+    // not a string through untouched, so null reaches `z.string().optional()`
+    // and is refused. That is the reason the teacher's table coalesces at the
+    // mapping site rather than handing the null on (#68) — it used to send this
+    // exact request for any week added without a description.
+    const teacher = await createTeacher();
+    const course = await createCourse({ teacher_id: teacher.user_id });
+    const week = await createLessonPlan({ section_id: course.section_id });
+
+    const response = await request(app)
+      .put("/lesson-plan")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({
+        lesson_plan_id: week.id,
+        title: "หัวข้อใหม่",
+        description: null,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        field: "description",
+        location: "body",
+        message: "ต้องเป็นข้อความ",
+      },
+    ]);
   });
 
   it("answers 400 when no week is named", async () => {
@@ -714,6 +792,52 @@ describe("GET /lesson-plan/student", () => {
     expect(response.body.data[0].allActivities).toEqual([
       "การบ้านที่ไม่ได้ตั้งวันประกาศ",
       "กิจกรรมที่ไม่ได้ตั้งวันประกาศ",
+    ]);
+  });
+
+  it("answers with exactly the keys a student's week has", async () => {
+    // The teacher's row plus one field, the week's material.
+    // `StudentLessonPlanWeek` is written from this case (#68), and the `as`
+    // that used to sit on this object was covering the two dates.
+    //
+    // A week with nothing posted gets two empty attachment lists, not null:
+    // the material this endpoint looks the week up in is itself a row per week
+    // of the section, so the `?? null` beside it only fires if a week
+    // disappears between the two reads. Declared nullable for that reason and
+    // no other.
+    const course = await createCourse();
+    const teacher = await createTeacher();
+    const week = await createLessonPlan({
+      section_id: course.section_id,
+      week_no: 1,
+      title: "แนะนำรายวิชา",
+      description: "ภาพรวมและเกณฑ์การประเมิน",
+      remark: "อ่านเอกสารก่อนเข้าเรียน",
+      created_by: teacher.user_id,
+    });
+
+    const response = await request(app)
+      .get("/lesson-plan/student")
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([
+      {
+        id: week.id,
+        week_no: 1,
+        title: "แนะนำรายวิชา",
+        description: "ภาพรวมและเกณฑ์การประเมิน",
+        remark: "อ่านเอกสารก่อนเข้าเรียน",
+        created_by: teacher.user_id,
+        created_at: week.created_at?.toISOString(),
+        updated_at: week.updated_at?.toISOString(),
+        section_id: course.section_id,
+        allActivities: [],
+        course_materials: {
+          lecture: { file: [], url: [] },
+          record: { file: [], url: [] },
+        },
+      },
     ]);
   });
 

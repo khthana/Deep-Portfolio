@@ -3,10 +3,10 @@ import { axiosInstance } from "../lib/axios";
 import type {
   CLOResp,
   CourseDetail,
+  LessonPlanWeek,
   PLOResp,
   ScoreWeightDetail,
 } from "@deep-portfolio/api-types";
-import type { LessonPlanResp } from "../types/course-type.type";
 import type { ResponseWrapper } from "../types/global-type";
 
 export const getCourseById = async (section_id: number) => {
@@ -48,7 +48,7 @@ export const getPLOList = async (program_id: string) => {
 };
 
 export const getLessonPlan = async (section_id: number) => {
-  const resp = await axiosInstance.get<ResponseWrapper<LessonPlanResp[]>>(
+  const resp = await axiosInstance.get<ResponseWrapper<LessonPlanWeek[]>>(
     endpoints.lesson_plan.root,
     { params: { section_id } },
   );

@@ -7,6 +7,7 @@ import type {
   StudentActivityDetailResp,
   StudentEvaluationListResp,
   StudentLearningActivityDetailResp,
+  StudentLessonPlanWeek,
   StudentWithoutGroup,
 } from "@deep-portfolio/api-types";
 import type { ResponseWrapper } from "../../../../types/global-type";
@@ -24,7 +25,6 @@ import type {
   GetStudentLearningActivityGroupParams,
   GetStudentLearningActivityWithoutGroupParams,
   GetStudentEvaluationListParams,
-  GetStudentLessonPlanWithMaterialResp,
   ResendInviteBody,
 } from "../types/course-type";
 
@@ -240,7 +240,7 @@ export const getStudentEvaluationList = async (
 
 export const getStudentLessonPlanWithMaterial = async (section_id: number) => {
   const resp = await axiosInstance.get<
-    ResponseWrapper<GetStudentLessonPlanWithMaterialResp[]>
+    ResponseWrapper<StudentLessonPlanWeek[]>
   >(endpoints.lesson_plan.student, { params: { section_id } });
 
   return resp.data;

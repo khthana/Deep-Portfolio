@@ -1,13 +1,35 @@
 import prisma from "../config/prisma";
+import type {
+  LessonPlanIdResp,
+  LessonPlanRow,
+  LessonPlanWeek,
+  StudentLessonPlanWeek,
+} from "@deep-portfolio/api-types";
+import type { course_syllabus } from "@prisma/client";
 import {
   AddLessonPlanBody,
-  GetStudentLessonPlanWithMaterialResp,
   UpdateLessonPlanBody,
 } from "../models/lesson-plan.model";
 import { isAnnounced } from "../utils/is-announced";
 import AttachmentsService from "./attachments.service";
 import CourseMaterialService from "./course-material.service";
 import MinIOService from "./upload.service";
+
+/**
+ * One row of `course_syllabus` as a caller reads it.
+ *
+ * The two reads that answer the row and the one write hand it over whole, so
+ * the only thing between Prisma and the wire is the two dates. `/options` reads
+ * the same table and does not go through here, because it answers a label and a
+ * value rather than the row. `JSON.stringify` would turn
+ * them into the same strings anyway; doing it here is what lets the return
+ * types say `string | null` and be true (#68).
+ */
+const toLessonPlanRow = (row: course_syllabus): LessonPlanRow => ({
+  ...row,
+  created_at: row.created_at?.toISOString() ?? null,
+  updated_at: row.updated_at?.toISOString() ?? null,
+});
 
 export default class LessonPlanService {
   private readonly courseMaterialService: CourseMaterialService;
@@ -20,7 +42,7 @@ export default class LessonPlanService {
     this.uploadService = new MinIOService();
   }
 
-  async addLessonPlan(body: AddLessonPlanBody) {
+  async addLessonPlan(body: AddLessonPlanBody): Promise<LessonPlanIdResp> {
     const result = await prisma.course_syllabus.create({
       data: {
         created_by: body.created_by,
@@ -35,7 +57,7 @@ export default class LessonPlanService {
     return { lesson_plan_id: result.id };
   }
 
-  async getLessonPlan(section_id: number) {
+  async getLessonPlan(section_id: number): Promise<LessonPlanWeek[]> {
     const courseSyllabus = await prisma.course_syllabus.findMany({
       where: { section_id: section_id },
       orderBy: { week_no: "asc" },
@@ -59,7 +81,7 @@ export default class LessonPlanService {
         ];
 
         return {
-          ...syllabus,
+          ...toLessonPlanRow(syllabus),
           allActivities: allActivities.map((activity) => activity),
         };
       }),
@@ -70,7 +92,7 @@ export default class LessonPlanService {
 
   async getStudentLessonPlanWithMaterial(
     section_id: number,
-  ): Promise<GetStudentLessonPlanWithMaterialResp[]> {
+  ): Promise<StudentLessonPlanWeek[]> {
     const courseSyllabus = await prisma.course_syllabus.findMany({
       where: { section_id: section_id },
 
@@ -114,20 +136,20 @@ export default class LessonPlanService {
         ];
 
         return {
-          ...syllabus,
+          ...toLessonPlanRow(syllabus),
           allActivities: allActivities.map((activity) => activity),
           course_materials:
-            courseMaterial?.find(
+            courseMaterial.find(
               (material) => material.course_syllabus_id === syllabus.id,
-            )?.course_materials || null,
-        } as GetStudentLessonPlanWithMaterialResp;
+            )?.course_materials ?? null,
+        };
       }),
     );
 
     return result;
   }
 
-  async updateLessonPlan(body: UpdateLessonPlanBody) {
+  async updateLessonPlan(body: UpdateLessonPlanBody): Promise<LessonPlanRow> {
     const result = await prisma.course_syllabus.update({
       where: { id: body.lesson_plan_id },
       data: {
@@ -137,10 +159,10 @@ export default class LessonPlanService {
       },
     });
 
-    return result;
+    return toLessonPlanRow(result);
   }
 
-  async deleteLessonPlan(lesson_plan_id: number) {
+  async deleteLessonPlan(lesson_plan_id: number): Promise<LessonPlanIdResp> {
     const lessonPlan = await prisma.course_syllabus.findUnique({
       where: { id: lesson_plan_id },
     });

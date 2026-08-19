@@ -10,26 +10,30 @@ import type {
   AddLessonPlanBody,
   UpdateLessonPlanBody,
 } from "../types/lesson-plan-type.type";
-import type { LessonPlanResp } from "../../../../types/course-type.type";
+import type {
+  LessonPlanIdResp,
+  LessonPlanRow,
+  LessonPlanWeek,
+} from "@deep-portfolio/api-types";
 import { getLessonPlan } from "../../../../services/course-service.service";
 
 export const fetchLessonPlan = createAsyncThunk<
-  ResponseWrapper<LessonPlanResp[]>,
+  ResponseWrapper<LessonPlanWeek[]>,
   number
 >("lesson-plan", getLessonPlan);
 
 export const postLessonPlan = createAsyncThunk<
-  ResponseWrapper<{ lesson_plan_id: number }>,
+  ResponseWrapper<LessonPlanIdResp>,
   AddLessonPlanBody
 >("lesson-plan/add", addLessonPlan);
 
 export const editLessonPlan = createAsyncThunk<
-  ResponseWrapper<LessonPlanResp>,
+  ResponseWrapper<LessonPlanRow>,
   UpdateLessonPlanBody
 >("lesson-plan/update", updateLessonPlan);
 
 export const removeLessonPlan = createAsyncThunk<
-  ResponseWrapper<{ lesson_plan_id: number }>,
+  ResponseWrapper<LessonPlanIdResp>,
   number
 >("lesson-plan/delete", deleteLessonPlan);
 

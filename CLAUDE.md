@@ -49,7 +49,7 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1073 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 1076 API cases over
   40 files, 448 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
@@ -145,9 +145,9 @@ a key sent as `null`, so the list row's `week_no` is optional rather than
 nullable. What the students hand in against both followed, as one pass rather
 than two — the two submission features share the group a roster reports, so
 splitting them would have been one pass under two names (ADR-0034) — and it is
-the only pass of #68 that changes what a caller sees: a detail endpoint asked
-for an id matching no row used to answer a body holding one key, and now
-answers no data at all. The group half of those same two features followed, and
+the first of the two passes of #68 that change what a caller sees: a detail
+endpoint asked for an id matching no row used to answer a body holding one key,
+and now answers no data at all. The group half of those same two features followed, and
 ADR-0035 is the other side of ADR-0034's coin: where the submissions genuinely
 answer different shapes and got a file each, every group endpoint and its twin
 answer the same shape field for field, so one declaration serves both halves and
@@ -162,8 +162,15 @@ spelled the way it leaves the API, so `AnnouncementStatus` is lower case where
 does not, and the package's job is to say which. Course material followed, and
 ADR-0038 came out of it: a factory whose option collapses "not given" and "given
 as null" into one `??` makes the case that proves a nullable column
-unwriteable, so it is widened rather than worked around. 34 files and 1,814
-lines are still web-side.
+unwriteable, so it is widened rather than worked around. The weekly plan those
+materials hang off followed, and ADR-0039 came out of it: three of its four
+shapes are the same row with something added or nothing added, so the row is a
+type of its own and the other two are intersections over it, rather than nine
+columns written out three times. That pass is the second to change what a
+caller sees, and the only one so far to change it on the web rather than at the
+API: a week added without a description could not be edited at all, because the
+edit form handed the null straight back and `optionalText` refuses null.
+33 files and 1,765 lines are still web-side.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

@@ -30,7 +30,6 @@ import type {
   GetStudentLearningActivityGroupParams,
   GetStudentLearningActivityWithoutGroupParams,
   GetStudentEvaluationListParams,
-  GetStudentLessonPlanWithMaterialResp,
   ResendInviteBody,
 } from "../types/course-type";
 import type {
@@ -42,6 +41,7 @@ import type {
   StudentActivityDetailResp,
   StudentEvaluationListResp,
   StudentLearningActivityDetailResp,
+  StudentLessonPlanWeek,
   StudentWithoutGroup,
 } from "@deep-portfolio/api-types";
 import type { AnnouncementDetailResp } from "@deep-portfolio/api-types";
@@ -81,7 +81,7 @@ export const fetchScoreWeight = createAsyncThunk<
 >("student/score-weight", getScoreWeight);
 
 export const fetchStudentLessonPlanWithMaterial = createAsyncThunk<
-  ResponseWrapper<GetStudentLessonPlanWithMaterialResp[]>,
+  ResponseWrapper<StudentLessonPlanWeek[]>,
   number
 >("student/lesson-plan", getStudentLessonPlanWithMaterial);
 

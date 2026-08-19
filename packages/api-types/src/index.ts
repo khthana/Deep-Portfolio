@@ -26,7 +26,10 @@
  * then the noticeboard
  * (docs/adr/0037-the-package-says-what-the-wire-says.md), and then the material
  * hung off a section's weekly plan
- * (docs/adr/0038-a-factory-must-be-able-to-say-null.md).
+ * (docs/adr/0038-a-factory-must-be-able-to-say-null.md), and then the weekly
+ * plan itself, three of whose four shapes are the same row with something added
+ * or nothing added and so are written as intersections over it
+ * (docs/adr/0039-the-row-and-what-is-added-to-it.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -94,6 +97,13 @@ export type {
   UnacceptedGroupMember,
   ValidateInviteResp,
 } from "./group";
+
+export type {
+  LessonPlanIdResp,
+  LessonPlanRow,
+  LessonPlanWeek,
+  StudentLessonPlanWeek,
+} from "./lesson-plan";
 
 export type {
   LearningActivityDetailResp,

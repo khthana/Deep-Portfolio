@@ -22,10 +22,11 @@ learning-activity, response ของสองเส้นส่งงานพ�
 response ของหน้ากลุ่มฝั่งนักศึกษาทั้งสิบเส้นพร้อมเส้นตรวจคำเชิญ,
 response ของสัดส่วนคะแนน (ซึ่งรอบ activity เขียนไว้ให้ล่วงหน้าแล้ว),
 response ของประกาศ, response ของเอกสารประกอบการสอน,
+response ของแผนการสอนรายสัปดาห์ทั้งฝั่งอาจารย์และฝั่งนักศึกษา,
 รูปของไฟล์แนบ (`AttachmentDetailResp`, `FileDetail`, `URLDetail`) และ
 `StudentActivityStatusDB`
-ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 34 ไฟล์ 1,814 บรรทัด (นับหลังรอบ
-course-material 19 สิงหาคม 2569 ด้วย glob ที่ ADR-0028 ประกาศไว้ — ในนั้นมี type
+ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 33 ไฟล์ 1,765 บรรทัด (นับหลังรอบ
+lesson-plan 19 สิงหาคม 2569 ด้วย glob ที่ ADR-0028 ประกาศไว้ — ในนั้นมี type
 ของ request ปนอยู่ด้วย ซึ่งไม่ต้องย้าย) ซึ่งไล่ย้ายทีละ
 feature ที่ [#68](https://github.com/khthana/Deep-Portfolio/issues/68) ส่วน
 envelope ฝั่ง web (`ResponseWrapper`) อยู่ที่
@@ -52,7 +53,10 @@ learning-activity ซึ่งแยกคีย์ที่ไม่มีอ�
 [ADR-0037](../docs/adr/0037-the-package-says-what-the-wire-says.md) คือรอบประกาศ
 ซึ่งตัดสินว่า enum ในนี้สะกดตามที่ออกสายจริง ไม่ใช่ตามธรรมเนียมของ package และ
 [ADR-0038](../docs/adr/0038-a-factory-must-be-able-to-say-null.md) คือรอบเอกสาร
-ประกอบการสอน ซึ่งตัดสินว่า factory ต้องแยก "ไม่ส่ง" ออกจาก "ส่ง null" ให้ได้
+ประกอบการสอน ซึ่งตัดสินว่า factory ต้องแยก "ไม่ส่ง" ออกจาก "ส่ง null" ให้ได้ และ
+[ADR-0039](../docs/adr/0039-the-row-and-what-is-added-to-it.md) คือรอบแผนการสอน
+ซึ่งตัดสินว่าเส้นที่ตอบ "แถวเดิมบวกอะไรบางอย่าง" เขียนเป็นการต่อ type ไม่ใช่
+เขียนคอลัมน์ซ้ำใหม่ทั้งแถว
 
 ## เพิ่ม package ใหม่
 
