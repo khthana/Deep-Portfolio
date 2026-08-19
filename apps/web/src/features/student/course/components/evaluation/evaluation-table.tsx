@@ -9,6 +9,7 @@ import type {
   ClassworkCategory,
   GetStudentEvaluationListParams,
 } from "../../types/course-type";
+import type { StudentActivityStatusDB } from "@deep-portfolio/api-types";
 import { fetchStudentEvaluationList } from "../../stores/course-action";
 
 export type DataType = {
@@ -16,7 +17,11 @@ export type DataType = {
   no: number;
   title: string;
   category: ClassworkCategory;
-  status: string | null;
+  // The column's own four values, copied straight off the row (#68), where it
+  // used to say `string`. The `| null` is the table's, not the response's —
+  // the map below always fills it, and the cell draws a dash for a value that
+  // is missing.
+  status: StudentActivityStatusDB | null;
   score: number | null;
   full_score: number | null;
   max_score: number | null;
@@ -51,22 +56,28 @@ const EvaluationTable = () => {
       fetchStudentEvaluationList(params),
     ).unwrap();
 
-    const mappedData = data.evaluations.map((classwork, dataIndex) => ({
-      key: classwork.activity_id.toString(),
-      no: dataIndex + 1,
-      title: classwork.activity_name,
-      // Classroom work has no score column at all, so the API sends no such
-      // keys for it; an activity nobody has been marked for sends them as
-      // null. The table draws a dash either way, so flatten the two here.
-      score: classwork.score ?? null,
-      full_score: classwork.full_score ?? null,
-      max_score: classwork.max_score ?? null,
-      min_score: classwork.min_score ?? null,
-      mean_score: classwork.mean_score ?? null,
-      category: classwork.type,
-      status: classwork.status,
-      id: classwork.id,
-    }));
+    const mappedData = data.evaluations.map((classwork, dataIndex) => {
+      // Classroom work has no score column at all, so the response has no such
+      // keys on that kind of row — which is why reading them takes the row's
+      // own `type` first (#68). An activity nobody has been marked for does
+      // carry them, as null. The table draws a dash either way, so flatten the
+      // two here.
+      const activityRow = classwork.type === "activity" ? classwork : null;
+
+      return {
+        key: classwork.activity_id.toString(),
+        no: dataIndex + 1,
+        title: classwork.activity_name,
+        score: activityRow?.score ?? null,
+        full_score: activityRow?.full_score ?? null,
+        max_score: activityRow?.max_score ?? null,
+        min_score: activityRow?.min_score ?? null,
+        mean_score: activityRow?.mean_score ?? null,
+        category: classwork.type,
+        status: classwork.status,
+        id: classwork.id,
+      };
+    });
 
     setData(mappedData);
   };

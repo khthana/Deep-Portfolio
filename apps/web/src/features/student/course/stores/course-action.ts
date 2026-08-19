@@ -32,11 +32,14 @@ import type {
   GetStudentLearningActivityGroupParams,
   GetStudentLearningActivityWithoutGroupParams,
   GetStudentEvaluationListParams,
-  GetStudentEvaluationListResp,
   GetStudentLessonPlanWithMaterialResp,
   ResendInviteBody,
 } from "../types/course-type";
-import type { CLOResp, CourseDetail } from "@deep-portfolio/api-types";
+import type {
+  CLOResp,
+  CourseDetail,
+  StudentEvaluationListResp,
+} from "@deep-portfolio/api-types";
 import type {
   AnnouncementDetailResp,
   ScoreWeightResp,
@@ -186,6 +189,6 @@ export const fetchStudentLearningActivityWithoutGroup = createAsyncThunk<
 );
 
 export const fetchStudentEvaluationList = createAsyncThunk<
-  ResponseWrapper<GetStudentEvaluationListResp>,
+  ResponseWrapper<StudentEvaluationListResp>,
   GetStudentEvaluationListParams
 >("student/evaluation/list", getStudentEvaluationList);

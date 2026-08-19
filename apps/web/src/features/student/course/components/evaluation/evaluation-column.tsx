@@ -39,6 +39,13 @@ const EvaluationColumn = () => {
       align: "center",
       width: 200,
     },
+    // Pinned, not fixed (#69). What arrives here is the `status` column, whose
+    // four values are NOT_SUBMITTED, SUBMITTED, GRADING and GRADED — while
+    // `classworkStatusLabel` is keyed by the classwork list's four, which have
+    // LATE where the column has GRADING. So a GRADING row would draw an empty
+    // cell rather than a dash, because the string is truthy and the lookup is
+    // not. Nothing in the API writes GRADING today, and what it should read in
+    // Thai is a wording decision, so #69 owns both.
     {
       title: "สถานะ",
       dataIndex: "status",

@@ -270,36 +270,11 @@ export type GetStudentEvaluationListParams = {
   section_id: number;
 };
 
-export type GetStudentEvaluationListResp = {
-  evaluations: StudentEvaluationData[];
-};
-
-/**
- * One row of the evaluation list. An activity row carries the student's mark
- * and the class statistics; a classroom-work row carries neither, and the API
- * leaves those keys out of the response rather than sending them as null —
- * hence the `?`. A statistic that is present but `null` means something else:
- * the activity exists and nobody has been marked for it yet (#28).
- */
-export type StudentEvaluationData = {
-  id: number;
-  activity_id: number;
-  activity_name: string;
-  type: ClassworkCategory;
-  status: string;
-
-  // A string, like the gradebook row it is spread from — the API's own copy of
-  // this type was corrected in the same pass (#68, ADR-0029 §4).
-  deadline_date?: string | null;
-  full_score?: number | null;
-  max_score?: number | null;
-  mean_score?: number | null;
-  min_score?: number | null;
-  submitted_count?: number | null;
-  not_submitted_count?: number | null;
-  graded_count?: number | null;
-  score?: number | null;
-};
+// The response itself moved to @deep-portfolio/api-types (#68) — import
+// `StudentEvaluationListResp` from there. It is a union discriminated on
+// `type` now, because the two kinds of row are not the same shape and the
+// optional fields this file used to carry described a superset of what the
+// endpoint sends (ADR-0030).
 
 //------------------------------------
 

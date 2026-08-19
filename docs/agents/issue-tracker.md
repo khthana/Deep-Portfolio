@@ -122,9 +122,10 @@ Run `gh issue view <number> --comments`.
   `apps/api`. `#67` and `#68` came out of `#61` on 2026-08-13, which piloted
   one feature into `@deep-portfolio/api-types` and left the rest on purpose:
   `#68` (`ready-for-agent`) is the 38 web type files that still hold copies of
-  what the API answers, moved one feature at a time — the first of those passes,
-  the gradebook, landed on 2026-08-15 and left ADR-0029 behind it, so the ticket
-  stays open with the rest of the features on it — and `#67` (`needs-info`) is
+  what the API answers, moved one feature at a time — the gradebook landed on
+  2026-08-15 and left ADR-0029 behind it, the student's evaluation list on
+  2026-08-19 leaving ADR-0030 and `#69`, and the ticket stays open with the rest
+  of the features on it — and `#67` (`needs-info`) is
   `ResponseWrapper`, read in 277 places and disagreeing with the envelope the
   API actually answers in.
 

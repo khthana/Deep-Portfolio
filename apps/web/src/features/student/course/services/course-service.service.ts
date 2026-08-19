@@ -1,6 +1,9 @@
 import { endpoints } from "../../../../configs/endpoints.config";
 import { axiosInstance } from "../../../../lib/axios";
-import type { CourseDetail } from "@deep-portfolio/api-types";
+import type {
+  CourseDetail,
+  StudentEvaluationListResp,
+} from "@deep-portfolio/api-types";
 import type { ResponseWrapper } from "../../../../types/global-type";
 import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
 import type { GetStudentLearningActivityDetailResp } from "../../../../types/student-learning-activity-type.type";
@@ -20,7 +23,6 @@ import type {
   GetStudentLearningActivityGroupParams,
   GetStudentLearningActivityWithoutGroupParams,
   GetStudentEvaluationListParams,
-  GetStudentEvaluationListResp,
   GetStudentLessonPlanWithMaterialResp,
   ResendInviteBody,
 } from "../types/course-type";
@@ -219,7 +221,7 @@ export const getStudentEvaluationList = async (
   params: GetStudentEvaluationListParams,
 ) => {
   const resp = await axiosInstance.get<
-    ResponseWrapper<GetStudentEvaluationListResp>
+    ResponseWrapper<StudentEvaluationListResp>
   >(endpoints.evaluation.list, {
     params,
   });

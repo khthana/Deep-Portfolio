@@ -185,6 +185,35 @@ describe("GET /evaluation/list", () => {
     expect(response.body.data.evaluations).toEqual([]);
   });
 
+  it("carries the deadline as an ISO string, not a Date", async () => {
+    // The activity half of a row is the gradebook's own row spread whole, so
+    // this field is written out with toISOString() there (#68, ADR-0029). The
+    // expected string names UTC because the value written did: the column is
+    // `timestamp` without a zone, so what goes in comes back as the same
+    // instant whatever zone the machine running this is in.
+    const { course, student } = await enrolledStudent();
+    const activity = await createActivity({
+      section_id: course.section_id,
+      announcement_date: announced(),
+      deadline_date: new Date("2026-04-01T09:00:00.000Z"),
+    });
+    await createSubmission({
+      activity_id: activity.id,
+      student_id: student.student_id,
+      status: "GRADED",
+      score: 5,
+    });
+
+    const response = await request(app)
+      .get("/evaluation/list")
+      .set("Cookie", sessionCookie({ userId: student.student_id }))
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    const [row] = response.body.data.evaluations;
+    expect(row.deadline_date).toBe("2026-04-01T09:00:00.000Z");
+  });
+
   it("shows work that was never given an announcement date", async () => {
     // No date means announced, not withheld (ADR-0005). The field is optional
     // everywhere it is written, so work a teacher never dated used to be work

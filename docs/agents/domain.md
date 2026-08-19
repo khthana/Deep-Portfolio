@@ -93,7 +93,11 @@ the feature, a type used across features lives in its own feature's file, an
 emptied model file is deleted rather than left re-exporting, a feature that
 has not moved yet but borrows a moved shape is corrected in the same pass, and
 a shared web helper is widened rather than narrowed — read it before starting
-another pass of #68.
+another pass of #68, and `0030-evaluation-row-union.md`, which says a response
+holding more than one shape of row is written as a union discriminated on the
+field that already tells them apart, not as one row with every difference
+marked optional, and that a row borrowed whole from another feature is
+intersected with that feature's type rather than copied field by field.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

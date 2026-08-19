@@ -16,9 +16,10 @@ service ไว้กับมัน คอมไพเลอร์จึงเ�
 `apps/api/src/validation/` ซึ่งเป็นสิ่งที่ปฏิเสธ request จริง ๆ ตอน runtime
 
 ตอนนี้ถือ envelope (`ApiResponse`, `ApiError`, `FieldError`, `FieldLocation`),
-response ของ course, response ของ gradebook และ `StudentActivityStatusDB`
-ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 38 ไฟล์ 2,136 บรรทัด (นับ 15 สิงหาคม
-2569 — ในนั้นมี type ของ request ปนอยู่ด้วย ซึ่งไม่ต้องย้าย) ซึ่งไล่ย้ายทีละ
+response ของ course, response ของ gradebook, response ของรายการผลการประเมิน และ
+`StudentActivityStatusDB` ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 38 ไฟล์
+2,111 บรรทัด (นับ 19 สิงหาคม 2569 — ในนั้นมี type ของ request ปนอยู่ด้วย
+ซึ่งไม่ต้องย้าย) ซึ่งไล่ย้ายทีละ
 feature ที่ [#68](https://github.com/khthana/Deep-Portfolio/issues/68) ส่วน
 envelope ฝั่ง web (`ResponseWrapper`) อยู่ที่
 [#67](https://github.com/khthana/Deep-Portfolio/issues/67)
@@ -26,7 +27,8 @@ envelope ฝั่ง web (`ResponseWrapper`) อยู่ที่
 เหตุผลทั้งหมดอยู่ใน [ADR-0028](../docs/adr/0028-shared-api-types.md) — อ่านก่อน
 เพิ่ม type ใหม่เข้ามา — และ
 [ADR-0029](../docs/adr/0029-api-types-per-feature.md) คือกติกาของแต่ละรอบที่ย้าย
-feature เข้ามา
+feature เข้ามา ส่วน [ADR-0030](../docs/adr/0030-evaluation-row-union.md) คือรอบ
+evaluation ซึ่งตัดสินว่า response ที่ถือแถวหลายแบบให้เขียนเป็น union
 
 ## เพิ่ม package ใหม่
 

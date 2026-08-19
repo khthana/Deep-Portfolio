@@ -1,8 +1,9 @@
 import prisma from "../config/prisma";
-import {
-  GetStudentEvaluationList,
-  StudentEvaluationData,
-} from "../models/evaluation.model";
+import type {
+  StudentEvaluationActivityRow,
+  StudentEvaluationLearningActivityRow,
+  StudentEvaluationListResp,
+} from "@deep-portfolio/api-types";
 import { isAnnounced } from "../utils/is-announced";
 import { GradebookService } from "./gradebook.service";
 
@@ -16,7 +17,7 @@ export default class EvaluationService {
   async getStudentEvaluationList(
     student_id: string,
     section_id: number,
-  ): Promise<GetStudentEvaluationList> {
+  ): Promise<StudentEvaluationListResp> {
     const activities =
       await this.gradebookService.getGradebookPerActivity(section_id);
 
@@ -50,9 +51,11 @@ export default class EvaluationService {
     // Annotated rather than cast: `as StudentEvaluationData` told the compiler
     // the row had every field of the type when it has five, which is how the
     // type came to disagree with the wire (#28). The annotation checks the same
-    // shape from the other side, so a missing field is an error here.
+    // shape from the other side, so a missing field is an error here. The
+    // annotation names one half of the union rather than the union, because
+    // this branch only ever builds that half and saying so is free (#68).
     const learningActivityResults = learningActivities.map(
-      (activity): StudentEvaluationData | null => {
+      (activity): StudentEvaluationLearningActivityRow | null => {
         const studentData = activity.student_learning_activity.find(
           (data) => data.student_id === student_id,
         );
@@ -75,7 +78,7 @@ export default class EvaluationService {
 
     const activityResults = await Promise.all(
       activities.activities.map(
-        async (activity): Promise<StudentEvaluationData | null> => {
+        async (activity): Promise<StudentEvaluationActivityRow | null> => {
           const studentActivity = await prisma.student_activity.findFirst({
             where: {
               student_id,
