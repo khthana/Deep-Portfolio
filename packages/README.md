@@ -18,10 +18,11 @@ service ไว้กับมัน คอมไพเลอร์จึงเ�
 ตอนนี้ถือ envelope (`ApiResponse`, `ApiError`, `FieldError`, `FieldLocation`),
 response ของ course, response ของ gradebook, response ของรายการผลการประเมิน,
 response ของ activity พร้อม rubric กับหมวดคะแนน, response ของ
-learning-activity, รูปของไฟล์แนบ (`AttachmentDetailResp`, `FileDetail`,
-`URLDetail`) และ `StudentActivityStatusDB`
-ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 38 ไฟล์
-2,035 บรรทัด (นับ 19 สิงหาคม 2569 — ในนั้นมี type ของ request ปนอยู่ด้วย
+learning-activity, response ของสองเส้นส่งงานพร้อมรูปกลุ่มกับชื่อนักศึกษา,
+รูปของไฟล์แนบ (`AttachmentDetailResp`, `FileDetail`, `URLDetail`) และ
+`StudentActivityStatusDB`
+ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 35 ไฟล์
+1,858 บรรทัด (นับ 19 สิงหาคม 2569 — ในนั้นมี type ของ request ปนอยู่ด้วย
 ซึ่งไม่ต้องย้าย) ซึ่งไล่ย้ายทีละ
 feature ที่ [#68](https://github.com/khthana/Deep-Portfolio/issues/68) ส่วน
 envelope ฝั่ง web (`ResponseWrapper`) อยู่ที่
@@ -37,7 +38,9 @@ evaluation ซึ่งตัดสินว่า response ที่ถือ�
 [ADR-0032](../docs/adr/0032-activity-follows-the-row.md) คือรอบ activity ซึ่งเจอ
 ว่า `as` ที่ครอบทั้งวัตถุกลบรูปของทุก field ที่เหลือไปด้วย และ
 [ADR-0033](../docs/adr/0033-learning-activity-and-the-absent-key.md) คือรอบ
-learning-activity ซึ่งแยกคีย์ที่ไม่มีอยู่ออกจากคีย์ที่เป็น `null`
+learning-activity ซึ่งแยกคีย์ที่ไม่มีอยู่ออกจากคีย์ที่เป็น `null` และ
+[ADR-0034](../docs/adr/0034-submissions-move-as-a-pair.md) คือรอบส่งงาน ซึ่งอธิบาย
+ว่าทำไมสอง feature ที่ใช้รูปเดียวกันจริง ๆ ถึงย้ายรอบเดียวกัน
 
 ## เพิ่ม package ใหม่
 

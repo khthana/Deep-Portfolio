@@ -1,13 +1,6 @@
 import { Prisma } from "@prisma/client";
-import type {
-  AttachmentDetailResp,
-  LearningActivityDetailResp,
-  StudentActivityStatusDB,
-} from "@deep-portfolio/api-types";
-import {
-  StudentActivityStatus,
-  SubmissionGroup,
-} from "./student-activity.model";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
+import { StudentActivityStatus } from "./student-activity.model";
 import { ClassworkType } from "./student.model";
 
 export type GetAllStudentLearningActivity = {
@@ -33,57 +26,12 @@ type StudentLearningActivityBrief = {
 
 //-----------------------------------
 
-export type GetStudentLearningActivityDetail = {
-  id: number;
-  learning_activity_id: number;
-  student_id: string;
-  status: StudentActivityStatus;
-  submitted_at: Date;
-  graded_at: Date;
-  feedback: string | null;
-  is_bookmark: boolean;
-  remark: string | null;
-
-  student: {
-    first_name_th: string;
-    last_name_th: string;
-  };
-};
-
-export type GetStudentLearningActivityDetailResp = LearningActivityDetailResp &
-  GetStudentLearningActivityDetail & {
-    submitted_files: AttachmentDetailResp;
-  };
-
-//--------------------------------
-
-export type GetAllSubmittedLearningActivityByLearningActivityIdResp = {
-  learning_activity_id: number;
-  learning_activity_name: string;
-  deadline_date: Date | null;
-  submissions: Submission[];
-};
-
-export type Submission = {
-  id: number;
-  submission_type: ClassworkType;
-  status: StudentActivityStatusDB;
-  submitted_at: Date | null;
-  feedback: string | null;
-  is_bookmark: boolean;
-
-  student?: {
-    student_id: string;
-    first_name_th: string;
-    last_name_th: string;
-  };
-
-  // Same roster as the graded half, and for the same reason — see
-  // SubmissionGroup in student-activity.model.ts.
-  group?: SubmissionGroup;
-};
-
-//-------------------------------
+// GetStudentLearningActivityDetail, GetStudentLearningActivityDetailResp,
+// GetAllSubmittedLearningActivityByLearningActivityIdResp and Submission used
+// to be declared here. They moved to @deep-portfolio/api-types (#68) — import
+// StudentLearningActivityDetailResp, LearningActivitySubmissionListResp and
+// LearningActivitySubmission from there. Same corrections as the graded twin,
+// minus every mention of a score. See ADR-0034.
 
 export type {
   GradeStudentLearningActivityBody as GradeStudentLearningActivityData,

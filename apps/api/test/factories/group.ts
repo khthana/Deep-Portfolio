@@ -50,6 +50,11 @@ export interface ActivityGroupOptions {
   members?: GroupMemberOptions[];
   /** The group's own status, which its members' submission rows take too. */
   status?: "NOT_SUBMITTED" | "SUBMITTED" | "GRADING" | "GRADED";
+  /** What the marking wrote on every member's submission row. The teacher's
+   *  roster reads all three off the first accepted member. */
+  score?: number;
+  feedback?: string;
+  remark?: string;
 }
 
 export async function createActivityGroup(options: ActivityGroupOptions = {}) {
@@ -71,6 +76,9 @@ export async function createActivityGroup(options: ActivityGroupOptions = {}) {
         student_id,
         status,
         submitted_at: submittedAtFor(status),
+        score: options.score,
+        feedback: options.feedback,
+        remark: options.remark,
       },
     });
 
@@ -98,6 +106,10 @@ export interface LearningActivityGroupOptions {
   members?: GroupMemberOptions[];
   /** The group's own status, which its members' submission rows take too. */
   status?: "NOT_SUBMITTED" | "SUBMITTED" | "GRADING" | "GRADED";
+  /** What the marking wrote on every member's submission row. No score here —
+   *  classroom work is not marked out of anything. */
+  feedback?: string;
+  remark?: string;
 }
 
 export async function createLearningActivityGroup(
@@ -122,6 +134,8 @@ export async function createLearningActivityGroup(
         student_id,
         status,
         submitted_at: submittedAtFor(status),
+        feedback: options.feedback,
+        remark: options.remark,
       },
     });
 

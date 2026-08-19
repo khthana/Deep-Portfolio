@@ -1,6 +1,6 @@
+import type { PortfolioActivityType as PortfolioActivityResp } from "../../types/activity-type.type";
 import { Image, Popconfirm } from "antd";
 import WhiteContainer from "../../../../../components/container/white-container";
-import type { PortfolioActivityType as PortfolioActivityResp } from "../../types/activity-type.type";
 import { getFile } from "../../../../../utils/get-file";
 import { convertToBE } from "../../../../../utils/year-utils";
 

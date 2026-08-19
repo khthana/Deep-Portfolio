@@ -31,6 +31,7 @@ import type {
   ActivityDetailResp,
   CourseDetail,
   LearningActivityDetailResp,
+  StudentActivityDetailResp,
 } from "@deep-portfolio/api-types";
 import type {
   AnnouncementDetailResp,
@@ -45,12 +46,11 @@ import {
   type GetStudentWithoutGroupResp,
 } from "../types/course-type";
 import type { StudentDetailResp } from "../../../../types/student-type.type";
-import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
 
 type StudentCourseSlice = {
   courseList: CourseDetail[];
   selectedCourse: CourseDetail | null;
-  selectedClasswork: GetStudentActivityDetailResp | null;
+  selectedClasswork: StudentActivityDetailResp | null;
   classworkDetail: ClassworkDetailFull | null;
   announcements: AnnouncementDetailResp[];
   activities: ActivityDetailResp[];
@@ -239,8 +239,13 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchStudentActivityDetail.fulfilled, (state, action) => {
         state.fetchActivityDetailLoading = false;
-        state.selectedClasswork = action.payload.data;
-        state.classworkDetail = mapActivityDetail(action.payload.data);
+
+        // No submission by that id, so there is nothing to map: the mappers
+        // read the response's own fields and would throw on an absent one. The
+        // screen reads the same null it does before the request lands (#68).
+        const detail = action.payload.data;
+        state.selectedClasswork = detail ?? null;
+        state.classworkDetail = detail ? mapActivityDetail(detail) : null;
       })
       .addCase(fetchStudentActivityDetail.rejected, (state, action) => {
         state.fetchActivityDetailLoading = false;
@@ -256,7 +261,12 @@ export const studentCourseSlice = createSlice({
       })
       .addCase(fetchLearningActivityDetail.fulfilled, (state, action) => {
         state.fetchLearningActivityDetailLoading = false;
-        state.classworkDetail = mapLearningActivityDetail(action.payload.data);
+
+        // Same guard as the graded half above.
+        const detail = action.payload.data;
+        state.classworkDetail = detail
+          ? mapLearningActivityDetail(detail)
+          : null;
       })
       .addCase(fetchLearningActivityDetail.rejected, (state, action) => {
         state.fetchLearningActivityDetailLoading = false;

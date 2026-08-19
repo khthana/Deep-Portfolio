@@ -1,11 +1,6 @@
 import StatusChip from "./status-chip";
 import ActivityFileCard from "./activity-file-card";
 import { useEffect, useState } from "react";
-import type {
-  GradeStudentActivityData,
-  GradingFormType,
-} from "../types/activity-type.type";
-import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
 import { useForm } from "antd/es/form/Form";
 import { message } from "antd";
 import type { AppDispatch } from "../../../../stores/stores";
@@ -15,10 +10,15 @@ import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import RubricModal from "./rubric-modal";
 import GradingForm from "./grading-form";
 import { AttachmentType } from "../../announcement/types/announement-type";
+import type { StudentActivityDetailResp } from "@deep-portfolio/api-types";
+import type {
+  GradeStudentActivityData,
+  GradingFormType,
+} from "../types/activity-type.type";
 
 type Props = {
   handlePreviewFile: (src: string) => void;
-  classworkData: GetStudentActivityDetailResp;
+  classworkData: StudentActivityDetailResp;
   handleFetchStudentActivityDetail: () => void;
 
   action?: boolean;

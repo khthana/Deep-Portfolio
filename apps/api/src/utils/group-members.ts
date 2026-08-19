@@ -1,8 +1,8 @@
-import type { MemberStatus } from "../models/student-activity-group.model";
 import type {
-  GroupMemberDetail,
+  MemberStatus,
+  StudentNameBrief,
   UnacceptedGroupMember,
-} from "../models/student-activity.model";
+} from "@deep-portfolio/api-types";
 
 /**
  * Who is in a group, split the way a teacher's roster screen needs it.
@@ -21,7 +21,7 @@ import type {
  */
 export interface GroupMemberRow {
   status: MemberStatus;
-  student: GroupMemberDetail;
+  student: StudentNameBrief;
 }
 
 export function splitByAcceptance<T extends GroupMemberRow>(

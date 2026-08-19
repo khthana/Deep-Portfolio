@@ -1,13 +1,16 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
+import type {
+  AttachmentDetailResp,
+  LearningActivityIndividualSubmission,
+  LearningActivitySubmission,
+  LearningActivitySubmissionListResp,
+  StudentLearningActivityDetailResp,
+} from "@deep-portfolio/api-types";
 import {
   AddStudentLearningActivityToBookmark,
   GetAllStudentLearningActivity,
-  GetAllSubmittedLearningActivityByLearningActivityIdResp,
-  GetStudentLearningActivityDetailResp,
   GradeStudentLearningActivityData,
-  Submission,
 } from "../models/student-learning-activity.model";
 import { splitByAcceptance } from "../utils/group-members";
 import { HttpError } from "../utils/http-error";
@@ -27,7 +30,7 @@ export default class StudentLearningActivityService {
 
   async getAllSubmittedLearningActivityByLearningActivityId(
     learning_activity_id: number,
-  ): Promise<GetAllSubmittedLearningActivityByLearningActivityIdResp | null> {
+  ): Promise<LearningActivitySubmissionListResp | null> {
     // 1. ดึงข้อมูล activity
     const activity = await prisma.learning_activities.findUnique({
       where: { id: learning_activity_id },
@@ -52,7 +55,8 @@ export default class StudentLearningActivityService {
     return {
       learning_activity_id: activity.id,
       learning_activity_name: activity.learning_activity_name,
-      deadline_date: activity.deadline_date,
+      // Written out rather than left to res.json for the reason #68 gives.
+      deadline_date: activity.deadline_date?.toISOString() ?? null,
       submissions,
     };
   }
@@ -64,7 +68,7 @@ export default class StudentLearningActivityService {
    *  student-activity.service.ts for why the filter went (#56). */
   private async getIndividualSubmissions(
     learning_activity_id: number,
-  ): Promise<Submission[]> {
+  ): Promise<LearningActivityIndividualSubmission[]> {
     const activities = await prisma.student_learning_activity.findMany({
       where: { learning_activity_id },
       select: {
@@ -90,7 +94,7 @@ export default class StudentLearningActivityService {
         id: a.id,
         submission_type: "INDIVIDUAL" as const,
         status: a.status,
-        submitted_at: a.submitted_at,
+        submitted_at: a.submitted_at?.toISOString() ?? null,
         feedback: a.feedback,
         remark: a.remark,
         is_bookmark: a.is_bookmark,
@@ -106,7 +110,7 @@ export default class StudentLearningActivityService {
    *  student-activity.service.ts for both reasons (#56). */
   private async getGroupSubmissions(
     learning_activity_id: number,
-  ): Promise<Submission[]> {
+  ): Promise<LearningActivitySubmission[]> {
     const groups = await prisma.student_learning_activity_group.findMany({
       where: { learning_activity_id },
       orderBy: { id: "asc" },
@@ -150,7 +154,7 @@ export default class StudentLearningActivityService {
         return {
           submission_type: "GROUP" as const,
           status: activity.status,
-          submitted_at: activity.submitted_at,
+          submitted_at: activity.submitted_at?.toISOString() ?? null,
           feedback: activity.feedback,
           remark: activity.remark,
           is_bookmark: activity.is_bookmark,
@@ -172,7 +176,7 @@ export default class StudentLearningActivityService {
    *  graded half in student-activity.service.ts (#56). */
   private async getUngroupedSubmissions(
     learning_activity_id: number,
-  ): Promise<Submission[]> {
+  ): Promise<LearningActivityIndividualSubmission[]> {
     const ungrouped = await prisma.student_learning_activity.findMany({
       where: {
         learning_activity_id,
@@ -201,7 +205,7 @@ export default class StudentLearningActivityService {
       id: a.id,
       submission_type: "INDIVIDUAL" as const,
       status: a.status,
-      submitted_at: a.submitted_at,
+      submitted_at: a.submitted_at?.toISOString() ?? null,
       feedback: a.feedback,
       remark: a.remark,
       is_bookmark: a.is_bookmark,
@@ -282,7 +286,7 @@ export default class StudentLearningActivityService {
   async getStudentLearningActivityDetail(
     student_learning_activity_id: number,
     tx?: Prisma.TransactionClient,
-  ): Promise<GetStudentLearningActivityDetailResp> {
+  ): Promise<StudentLearningActivityDetailResp | undefined> {
     const prismaClient = tx ?? prisma;
 
     const studentLearningActivity =
@@ -308,11 +312,19 @@ export default class StudentLearningActivityService {
         },
       });
 
+    // Same fall-through the graded half had: an id naming no row used to reach
+    // getLearningActivityDetail(0), find nothing there either, and leave the
+    // caller a 200 whose body held one key. See BEHAVIOR-CHANGES.md (#68).
+    if (!studentLearningActivity) return;
+
+    // Cannot be undefined: learning_activity_id is a foreign key onto the row
+    // this is reading, and deleting the activity cascades its submissions away.
     const activityDetail =
       await this.learningActivityService.getLearningActivityDetail(
-        studentLearningActivity?.learning_activity_id ?? 0,
+        studentLearningActivity.learning_activity_id,
         tx,
       );
+    if (!activityDetail) return;
 
     const attachments = await this.getAllAttachments(
       student_learning_activity_id,
@@ -322,8 +334,12 @@ export default class StudentLearningActivityService {
     return {
       ...activityDetail,
       ...studentLearningActivity,
+      // Written out here rather than left to res.json, which calls the same
+      // toJSON() on the way past — the annotation says string (#68).
+      submitted_at: studentLearningActivity.submitted_at?.toISOString() ?? null,
+      graded_at: studentLearningActivity.graded_at?.toISOString() ?? null,
       submitted_files: attachments,
-    } as GetStudentLearningActivityDetailResp;
+    };
   }
 
   private getDisplayStatus(status: string, deadline: Date | null): string {

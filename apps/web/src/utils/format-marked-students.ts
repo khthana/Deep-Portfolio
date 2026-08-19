@@ -1,19 +1,21 @@
-type Student = {
-  student_id: string;
-  first_name_th: string;
-  last_name_th: string;
-};
+import type { StudentNameBrief } from "@deep-portfolio/api-types";
 
 /**
  * As much of a submission as the two columns naming who is being marked need.
- * Each teacher marking table has its own `Submission` type — the graded half
- * carries a score, the learning-activity half does not — and both satisfy this.
+ *
+ * A union on `submission_type` rather than one shape with `student` and `group`
+ * both optional, which is what it was until #68 — the API's own rows became
+ * unions in that pass, and both satisfy this one structurally. Narrowing it
+ * this way is what lets the body below take the half that is really there
+ * instead of guarding for the other one's absence.
+ *
+ * Still only the two fields it reads, not the whole row: this is a formatter
+ * for two table columns, and a case testing it should not have to build a
+ * submission to call it.
  */
-export type MarkedSubmission = {
-  submission_type: string;
-  student?: Student;
-  group?: { members: Student[] };
-};
+export type MarkedSubmission =
+  | { submission_type: "INDIVIDUAL"; student: StudentNameBrief }
+  | { submission_type: "GROUP"; group: { members: StudentNameBrief[] } };
 
 /**
  * The student codes and names this submission's mark lands on: every member of
@@ -23,9 +25,7 @@ export type MarkedSubmission = {
  *
  * The two lists are built together because they are two columns of the same
  * row: the third name down in one is the third code down in the other, and a
- * teacher reads them across. Where the side of the branch the submission claims
- * is missing, both come back empty rather than a row that names the wrong
- * people.
+ * teacher reads them across.
  */
 export function formatMarkedStudents(submission: MarkedSubmission): {
   codes: string[];
@@ -33,10 +33,8 @@ export function formatMarkedStudents(submission: MarkedSubmission): {
 } {
   const students =
     submission.submission_type === "GROUP"
-      ? (submission.group?.members ?? [])
-      : submission.student
-        ? [submission.student]
-        : [];
+      ? submission.group.members
+      : [submission.student];
 
   return {
     codes: students.map((student) => student.student_id),

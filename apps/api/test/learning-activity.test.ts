@@ -849,14 +849,72 @@ describe("GET /learning-activity/student/detail", () => {
     });
   });
 
-  it("answers an empty envelope for a row that does not exist", async () => {
+  it("answers with every key of both halves, the submission's winning", async () => {
+    // The pin the type in @deep-portfolio/api-types was written against (#68),
+    // and the twin of the same case on /activity/student/detail. The body is
+    // the activity spread whole, then the submission spread over it, so `id` is
+    // the student_learning_activity row rather than the activity.
+    const course = await createCourse();
+    const student = await createStudent({ first_name_th: "สมชาย" });
+    const activity = await createLearningActivity({
+      section_id: course.section_id,
+      learning_activity_name: "ใบงานที่ 1",
+    });
+    const submission = await createLearningSubmission({
+      student_id: student.student_id,
+      learning_activity_id: activity.id,
+      status: "GRADED",
+      feedback: "ทำได้ดี",
+      remark: "ตรวจแล้ว",
+      graded_at: new Date("2026-03-09T10:00:00.000Z"),
+      submitted_at: new Date("2026-03-08T15:00:00.000Z"),
+    });
+
+    const response = await request(app)
+      .get("/learning-activity/student/detail")
+      .query({ student_learning_activity_id: submission.id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({
+      // The activity half, less the one key the submission overwrites.
+      learning_activity_id: activity.id,
+      learning_activity_type: "INDIVIDUAL",
+      learning_activity_name: "ใบงานที่ 1",
+      section_id: course.section_id,
+      course_syllabus_id: null,
+      detail: null,
+      announcement_date: null,
+      deadline_date: null,
+      created_at: expect.any(String),
+      updated_at: expect.any(String),
+      attachments: { file: [], url: [] },
+
+      // The submission half. No score anywhere: classroom work is not marked
+      // out of anything, which is the whole difference from the activity twin.
+      id: submission.id,
+      student_id: student.student_id,
+      status: "GRADED",
+      submitted_at: "2026-03-08T15:00:00.000Z",
+      graded_at: "2026-03-09T10:00:00.000Z",
+      feedback: "ทำได้ดี",
+      remark: "ตรวจแล้ว",
+      is_bookmark: false,
+      student: { first_name_th: "สมชาย", last_name_th: expect.any(String) },
+      submitted_files: { file: [], url: [] },
+    });
+  });
+
+  it("answers with no data for a row that does not exist", async () => {
+    // Same correction as the graded twin: the body used to hold the empty
+    // attachment lists and nothing else (#68, BEHAVIOR-CHANGES.md).
     const response = await request(app)
       .get("/learning-activity/student/detail")
       .query({ student_learning_activity_id: 999_999 });
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toEqual({
-      submitted_files: { file: [], url: [] },
+    expect(response.body).toEqual({
+      success: true,
+      message: "get learning activity successfully",
     });
   });
 
@@ -1030,6 +1088,95 @@ describe("GET /learning-activity/submitted/list", () => {
       }),
     ]);
     expect(alones[0]).not.toHaveProperty("group");
+  });
+
+  it("answers with exactly the keys each shape of submission row has", async () => {
+    // The twin of the same case on /activity/submitted/list. `submission_type`
+    // is the discriminant and describes the ROW: a student in no group comes
+    // back as an individual row off a group activity. No score on either shape.
+    const teacher = await createTeacher();
+    const activity = await createLearningActivity({
+      learning_activity_type: "group",
+      learning_activity_name: "อภิปรายกลุ่ม",
+      deadline_date: new Date("2026-03-08T16:30:00.000Z"),
+    });
+    const leader = await createStudent({ first_name_th: "สมชาย" });
+    const invited = await createStudent({ first_name_th: "สมหญิง" });
+    const group = await createLearningActivityGroup({
+      learning_activity_id: activity.id,
+      status: "GRADED",
+      feedback: "ทำได้ดี",
+      remark: "ตรวจแล้ว",
+      members: [
+        { student_id: leader.student_id },
+        { student_id: invited.student_id, status: "REJECTED" },
+      ],
+    });
+    const alone = await createStudent({ first_name_th: "สมศรี" });
+    const solo = await createLearningSubmission({
+      student_id: alone.student_id,
+      learning_activity_id: activity.id,
+      status: "NOT_SUBMITTED",
+    });
+
+    const response = await request(app)
+      .get("/learning-activity/submitted/list")
+      .query({ learning_activity_id: activity.id })
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({
+      learning_activity_id: activity.id,
+      learning_activity_name: "อภิปรายกลุ่ม",
+      deadline_date: "2026-03-08T16:30:00.000Z",
+      submissions: expect.any(Array),
+    });
+
+    const [groupRow, soloRow] = response.body.data.submissions;
+    expect(groupRow).toEqual({
+      id: groupRow.id,
+      submission_type: "GROUP",
+      status: "GRADED",
+      submitted_at: expect.any(String),
+      feedback: "ทำได้ดี",
+      remark: "ตรวจแล้ว",
+      is_bookmark: false,
+      group: {
+        group_id: group.id,
+        members: [
+          {
+            student_id: leader.student_id,
+            first_name_th: "สมชาย",
+            last_name_th: expect.any(String),
+          },
+        ],
+        unaccepted_members: [
+          {
+            student_id: invited.student_id,
+            first_name_th: "สมหญิง",
+            last_name_th: expect.any(String),
+            status: "REJECTED",
+          },
+        ],
+      },
+    });
+    expect(groupRow).not.toHaveProperty("student");
+
+    expect(soloRow).toEqual({
+      id: solo.id,
+      submission_type: "INDIVIDUAL",
+      status: "NOT_SUBMITTED",
+      submitted_at: null,
+      feedback: null,
+      remark: null,
+      is_bookmark: false,
+      student: {
+        student_id: alone.student_id,
+        first_name_th: "สมศรี",
+        last_name_th: expect.any(String),
+      },
+    });
+    expect(soloRow).not.toHaveProperty("group");
   });
 
   it("puts a group that handed something in ahead of one that did not", async () => {

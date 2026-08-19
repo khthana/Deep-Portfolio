@@ -13,11 +13,11 @@ import {
   fetchStudentActivityDetail,
   patchBookmarkStudentActivity,
 } from "../stores/teacher-activity-action";
-import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
 import {
   activityTypeLabel,
   type AddStudentActivityToBookmark,
 } from "../types/activity-type.type";
+import type { StudentActivityDetailResp } from "@deep-portfolio/api-types";
 
 const TeacherGradingPage = () => {
   const { secId, activityId, workId } = useParams();
@@ -29,7 +29,7 @@ const TeacherGradingPage = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   const [classworkData, setClassworkData] =
-    useState<GetStudentActivityDetailResp>();
+    useState<StudentActivityDetailResp>();
   const [fileSrc, setFileSrc] = useState<string | null>(null);
   const [isBookmark, setIsBookmark] = useState<boolean>(false);
 

@@ -142,7 +142,12 @@ the score category with them; ADR-0032 has what the two `as` casts in
 once. The classroom-work half followed the same day, and ADR-0033 came out of
 it: a key JSON drops because its value is `undefined` is not the same thing as
 a key sent as `null`, so the list row's `week_no` is optional rather than
-nullable. 38 files and 2,035 lines are still web-side.
+nullable. What the students hand in against both followed, as one pass rather
+than two — the two submission features share the group a roster reports, so
+splitting them would have been one pass under two names (ADR-0034) — and it is
+the only pass of #68 that changes what a caller sees: a detail endpoint asked
+for an id matching no row used to answer a body holding one key, and now
+answers no data at all. 35 files and 1,858 lines are still web-side.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

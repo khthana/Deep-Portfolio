@@ -1,10 +1,10 @@
+import type { activityType } from "../types/activity-type.type";
 import { Form, message, Table, type TableProps } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../../../stores/stores";
 import { useEffect, useState } from "react";
 import EditableCell from "../../../../components/input/table/editable-cell";
 import ActivityColumn from "./activity-column";
-import type { activityType } from "../types/activity-type.type";
 import {
   deleteActivity,
   fetchAllActivity,

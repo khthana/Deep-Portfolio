@@ -1,7 +1,5 @@
 import type { JSONContent } from "@tiptap/react";
 import type { AttachmentDetailItem } from "../../announcement/types/announement-type";
-import type { StudentActivityStatusDB } from "@deep-portfolio/api-types";
-import type { UnacceptedMember } from "../../../../types/activity-type.type";
 import type { ClassworkType } from "../../../student/course/types/course-type";
 
 export type CreateLearningActivityFormType = {
@@ -34,40 +32,10 @@ export type CreateLearningActivityReqBody = {
 // two columns it had never declared — learning_activity_type and
 // course_syllabus_id — are written down. See ADR-0033.
 
-export type GetAllSubmittedLearningActivityByLearningActivityIdResp = {
-  learning_activity_id: number;
-  learning_activity_name: string;
-  deadline_date: Date | null;
-  submissions: Submission[];
-};
-
-export type Submission = {
-  id: number;
-  submission_type: ClassworkType;
-  status: StudentActivityStatusDB;
-  submitted_at: Date | null;
-  feedback: string | null;
-  is_bookmark: boolean;
-  remark: string | null;
-
-  student?: {
-    student_id: string;
-    first_name_th: string;
-    last_name_th: string;
-  };
-
-  group?: {
-    group_id: number;
-    // Same two lists as the graded half, and for the same reason — see
-    // Submission in ../../activity/types/activity-type.type.ts.
-    members: {
-      student_id: string;
-      first_name_th: string;
-      last_name_th: string;
-    }[];
-    unaccepted_members: UnacceptedMember[];
-  };
-};
+// GetAllSubmittedLearningActivityByLearningActivityIdResp and Submission used
+// to be declared here. They moved to @deep-portfolio/api-types (#68) — import
+// LearningActivitySubmissionListResp and LearningActivitySubmission from there.
+// Same union as the graded twin, minus the score. See ADR-0034.
 
 //-----------------------------
 

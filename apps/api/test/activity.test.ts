@@ -1689,6 +1689,75 @@ describe("GET /activity/student/detail", () => {
     });
   });
 
+  it("answers with every key of both halves, the submission's winning", async () => {
+    // The pin the type in @deep-portfolio/api-types was written against (#68).
+    // The body is the activity spread whole, then the submission spread over
+    // it, so the two keys they share — `id` and `activity_id` — come from the
+    // submission and `id` is the student_activity row, not the activity.
+    const course = await createCourse();
+    const student = await createStudent({ first_name_th: "สมชาย" });
+    const activity = await createActivity({
+      section_id: course.section_id,
+      activity_name: "รายงานบทที่ 1",
+    });
+    const submission = await createSubmission({
+      student_id: student.student_id,
+      activity_id: activity.id,
+      status: "GRADED",
+      score: 18,
+      feedback: "ทำได้ดี",
+      remark: "ตรวจแล้ว",
+      graded_at: new Date("2026-03-09T10:00:00.000Z"),
+      submitted_at: new Date("2026-03-08T15:00:00.000Z"),
+    });
+
+    const response = await request(app)
+      .get("/activity/student/detail")
+      .query({ student_activity_id: submission.id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({
+      // The activity half, less the two keys the submission overwrites.
+      activity_id: activity.id,
+      activity_type: "INDIVIDUAL",
+      activity_name: "รายงานบทที่ 1",
+      description: "รายละเอียดงานตัวอย่าง",
+      score_number: 10,
+      score_ratio_id: null,
+      section_id: course.section_id,
+      course_syllabus_id: null,
+      expected_level: null,
+      is_average_score: false,
+      is_self_assessment: false,
+      detail: null,
+      announcement_date: null,
+      deadline_date: null,
+      created_at: expect.any(String),
+      updated_at: expect.any(String),
+      subject_score_ratio: null,
+      rubric_activity_mapping: [],
+      attachments: { file: [], url: [] },
+
+      // The submission half.
+      id: submission.id,
+      student_id: student.student_id,
+      status: "GRADED",
+      submitted_at: "2026-03-08T15:00:00.000Z",
+      graded_at: "2026-03-09T10:00:00.000Z",
+      feedback: "ทำได้ดี",
+      remark: "ตรวจแล้ว",
+      is_bookmark: false,
+      // The same number under two names: `student_score` is written first and
+      // `score` arrives with the spread. Both are on the wire and both are in
+      // the type, because taking either away is a change a caller can see.
+      score: 18,
+      student_score: 18,
+      student: { first_name_th: "สมชาย", last_name_th: expect.any(String) },
+      student_activity_rubric_score: [],
+      submitted_files: { file: [], url: [] },
+    });
+  });
+
   it("sends the marks as numbers, criterion by criterion", async () => {
     // student_activity.score and student_activity_rubric_score.calculated_score
     // are both Decimal(5,2), and this endpoint used to hand them to res.json as
@@ -1734,16 +1803,19 @@ describe("GET /activity/student/detail", () => {
     ]);
   });
 
-  it("fails for a submission that does not exist", async () => {
-    // Nothing found means the activity is looked up as id 0, which finds
-    // nothing either, and the response ends up as an empty envelope.
+  it("answers with no data for a submission that does not exist", async () => {
+    // Used to answer a body holding one key — the empty attachment lists —
+    // because nothing found meant the activity was looked up as id 0 and the
+    // two absent halves were spread into each other anyway. Now it stops at the
+    // missing row, the way GET /activity already did (#68, BEHAVIOR-CHANGES.md).
     const response = await request(app)
       .get("/activity/student/detail")
       .query({ student_activity_id: 999_999 });
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toEqual({
-      submitted_files: { file: [], url: [] },
+    expect(response.body).toEqual({
+      success: true,
+      message: "get activity successfully",
     });
   });
 
@@ -1926,6 +1998,131 @@ describe("GET /activity/submitted/list", () => {
     // No group to name, so the row does not pretend to have one — the two
     // columns naming who is marked read it as the single student it is.
     expect(alones[0]).not.toHaveProperty("group");
+  });
+
+  it("answers with exactly the keys each shape of submission row has", async () => {
+    // The pin the union in @deep-portfolio/api-types was written against
+    // (#68). `submission_type` is the discriminant and it describes the ROW,
+    // not the activity: an individual row carries `student` and no `group`, a
+    // group row the other way round, and a student in no group at all comes
+    // back as an individual row off a group activity.
+    const teacher = await createTeacher();
+    const activity = await createActivity({
+      activity_type: "group",
+      activity_name: "รายงานกลุ่ม",
+      score_number: 20,
+      deadline_date: new Date("2026-03-08T16:30:00.000Z"),
+    });
+    const leader = await createStudent({ first_name_th: "สมชาย" });
+    const invited = await createStudent({ first_name_th: "สมหญิง" });
+    const group = await createActivityGroup({
+      activity_id: activity.id,
+      status: "GRADED",
+      score: 15,
+      feedback: "ทำได้ดี",
+      remark: "ตรวจแล้ว",
+      members: [
+        { student_id: leader.student_id },
+        { student_id: invited.student_id, status: "REJECTED" },
+      ],
+    });
+    const alone = await createStudent({ first_name_th: "สมศรี" });
+    const solo = await createSubmission({
+      student_id: alone.student_id,
+      activity_id: activity.id,
+      status: "NOT_SUBMITTED",
+    });
+
+    const response = await request(app)
+      .get("/activity/submitted/list")
+      .query({ activity_id: activity.id })
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({
+      activity_id: activity.id,
+      activity_name: "รายงานกลุ่ม",
+      deadline_date: "2026-03-08T16:30:00.000Z",
+      score: 20,
+      submissions: expect.any(Array),
+    });
+
+    const [groupRow, soloRow] = response.body.data.submissions;
+    expect(groupRow).toEqual({
+      id: groupRow.id,
+      submission_type: "GROUP",
+      status: "GRADED",
+      submitted_at: expect.any(String),
+      score: 15,
+      feedback: "ทำได้ดี",
+      remark: "ตรวจแล้ว",
+      is_bookmark: false,
+      group: {
+        group_id: group.id,
+        members: [
+          {
+            student_id: leader.student_id,
+            first_name_th: "สมชาย",
+            last_name_th: expect.any(String),
+          },
+        ],
+        unaccepted_members: [
+          {
+            student_id: invited.student_id,
+            first_name_th: "สมหญิง",
+            last_name_th: expect.any(String),
+            status: "REJECTED",
+          },
+        ],
+      },
+    });
+    expect(groupRow).not.toHaveProperty("student");
+
+    expect(soloRow).toEqual({
+      id: solo.id,
+      submission_type: "INDIVIDUAL",
+      status: "NOT_SUBMITTED",
+      submitted_at: null,
+      score: null,
+      feedback: null,
+      remark: null,
+      is_bookmark: false,
+      student: {
+        student_id: alone.student_id,
+        first_name_th: "สมศรี",
+        last_name_th: expect.any(String),
+      },
+    });
+    expect(soloRow).not.toHaveProperty("group");
+  });
+
+  it("sends a mark of zero as zero, not as null", async () => {
+    // The expression reading this column is `a.score ? Number(a.score) : null`,
+    // which reads like a falsy-zero bug and is not one: Prisma hands back a
+    // Decimal *object*, and an object is truthy whatever number it holds. Only
+    // a genuinely unmarked row is null. Written down because the next reader
+    // will have the same doubt, and because the type says `number | null` on
+    // the strength of it.
+    const teacher = await createTeacher();
+    const activity = await createActivity();
+    const student = await createStudent();
+    await createSubmission({
+      student_id: student.student_id,
+      activity_id: activity.id,
+      status: "GRADED",
+      score: 0,
+    });
+
+    const response = await request(app)
+      .get("/activity/submitted/list")
+      .query({ activity_id: activity.id })
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }));
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.submissions[0]).toMatchObject({
+      status: "GRADED",
+      score: 0,
+    });
   });
 
   it("puts a group that handed something in ahead of one that did not", async () => {

@@ -1,3 +1,5 @@
+import type { LearningActivitySubmission } from "@deep-portfolio/api-types";
+import type { SubmissionStatus } from "../../activity/types/activity-type.type";
 import { useDispatch } from "react-redux";
 import TeacherBreadcrumb from "../../../../components/breadcrumb/teacher-breadcrumb";
 import PageLayout from "../../../../components/container/page-layout";
@@ -6,8 +8,7 @@ import type { AppDispatch } from "../../../../stores/stores";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { fetchAllSubmittedLearningActivityList } from "../stores/teacher-learning-activity-action";
-import type { SubmissionStatus } from "../../activity/types/activity-type.type";
-import type { Submission } from "../types/learning-activity-type.type";
+
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import { formatUnacceptedMembers } from "../../../../utils/format-unaccepted-member";
 import { formatMarkedStudents } from "../../../../utils/format-marked-students";
@@ -34,7 +35,10 @@ export type DataType = {
  * One row of the marking table, for the full list and the bookmarked list
  * alike.
  */
-const toRow = (classwork: Submission, dataIndex: number): DataType => {
+const toRow = (
+  classwork: LearningActivitySubmission,
+  dataIndex: number,
+): DataType => {
   const { codes, names } = formatMarkedStudents(classwork);
 
   return {
@@ -43,7 +47,11 @@ const toRow = (classwork: Submission, dataIndex: number): DataType => {
     submitted_date: convertDateToThaiFormat(classwork.submitted_at) ?? "-",
     code: codes,
     name: names,
-    unaccepted: formatUnacceptedMembers(classwork.group?.unaccepted_members),
+    unaccepted: formatUnacceptedMembers(
+      classwork.submission_type === "GROUP"
+        ? classwork.group.unaccepted_members
+        : undefined,
+    ),
     status: formatSubmissionStatus(classwork.status),
     remark: classwork.remark ?? "",
     feedback: classwork.feedback ?? "",
@@ -58,7 +66,7 @@ const TeacherLearningActivityDetailPage = () => {
   const [bookmarkData, setBookmarkData] = useState<DataType[]>([]);
   const [activityData, setActivityData] = useState<{
     activity_name: string;
-    deadline_date: Date | null;
+    deadline_date: string | null;
   }>();
 
   const handleFetchData = async () => {

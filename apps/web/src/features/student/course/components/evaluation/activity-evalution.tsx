@@ -6,12 +6,12 @@ import PageLayout from "../../../../../components/container/page-layout";
 import WhiteContainer from "../../../../../components/container/white-container";
 import type { AppDispatch } from "../../../../../stores/stores";
 import { useDispatch } from "react-redux";
-import type { GetStudentActivityDetailResp } from "../../../../../types/student-activity-type.type";
 import { fetchStudentActivityDetail } from "../../../../teacher/activity/stores/teacher-activity-action";
 import { activityTypeLabel } from "../../../../teacher/activity/types/activity-type.type";
 import ActivityViewer from "../../../../teacher/activity/components/activity-viewer";
 import GradingSection from "../../../../teacher/activity/components/grading-section";
 import { Breadcrumb } from "antd";
+import type { StudentActivityDetailResp } from "@deep-portfolio/api-types";
 
 const ActivityEvaluation = () => {
   const { secId, activityId } = useParams();
@@ -22,7 +22,7 @@ const ActivityEvaluation = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   const [classworkData, setClassworkData] =
-    useState<GetStudentActivityDetailResp>();
+    useState<StudentActivityDetailResp>();
   const [fileSrc, setFileSrc] = useState<string | null>(null);
   const [isBookmark] = useState<boolean>(false);
 

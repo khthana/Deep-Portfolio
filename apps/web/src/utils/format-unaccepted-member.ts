@@ -1,6 +1,6 @@
-import type { UnacceptedMember } from "../types/activity-type.type";
+import type { UnacceptedGroupMember } from "@deep-portfolio/api-types";
 
-const WHAT_THE_SILENCE_IS: Record<UnacceptedMember["status"], string> = {
+const WHAT_THE_SILENCE_IS: Record<UnacceptedGroupMember["status"], string> = {
   PENDING: "รอตอบรับ",
   REJECTED: "ปฏิเสธ",
 };
@@ -11,7 +11,7 @@ const WHAT_THE_SILENCE_IS: Record<UnacceptedMember["status"], string> = {
  * an absent list is as ordinary as an empty one and both come back empty.
  */
 export function formatUnacceptedMembers(
-  members: UnacceptedMember[] | undefined,
+  members: UnacceptedGroupMember[] | undefined,
 ): string[] {
   if (!members) return [];
 

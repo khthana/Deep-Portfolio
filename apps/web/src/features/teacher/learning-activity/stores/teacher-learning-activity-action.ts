@@ -13,14 +13,14 @@ import {
 } from "../services/learning-activity.service";
 import type {
   AddStudentLearningActivityToBookmark,
-  GetAllSubmittedLearningActivityByLearningActivityIdResp,
   GradeStudentLearningActivityData,
 } from "../types/learning-activity-type.type";
 import { getStudentLearningActivityDetail } from "../../../../services/student-learning-service.service";
-import type { GetStudentLearningActivityDetailResp } from "../../../../types/student-learning-activity-type.type";
 import type {
   LearningActivityDetailResp,
   LearningActivityListItem,
+  LearningActivitySubmissionListResp,
+  StudentLearningActivityDetailResp,
 } from "@deep-portfolio/api-types";
 
 export const fetchLearningActivity = createAsyncThunk<
@@ -54,12 +54,13 @@ export const fetchLearningActivityOptions = createAsyncThunk<
 >("learning-activity/options", getLearningActivityOptions);
 
 export const fetchAllSubmittedLearningActivityList = createAsyncThunk<
-  ResponseWrapper<GetAllSubmittedLearningActivityByLearningActivityIdResp>,
+  ResponseWrapper<LearningActivitySubmissionListResp>,
   number
 >("learning-activity/submitted/list", getAllSubmittedLearningActivityList);
 
 export const fetchStudentLearningActivityDetail = createAsyncThunk<
-  ResponseWrapper<GetStudentLearningActivityDetailResp>,
+  /** Absent for an id that names no submission (#68). */
+  ResponseWrapper<StudentLearningActivityDetailResp | undefined>,
   number
 >("learning-activity/detail", getStudentLearningActivityDetail);
 

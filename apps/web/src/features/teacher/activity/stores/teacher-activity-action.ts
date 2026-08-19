@@ -21,17 +21,17 @@ import {
   validateActivityCLOMapping,
 } from "../services/activity-service.service";
 import type {
-  AddStudentActivityToBookmark,
-  GetAllSubmittedActivityByActivityIdResp,
-  GradeStudentActivityData,
-  GradeStudentActivityResp,
-} from "../types/activity-type.type";
-import type {
   ActivityDetailResp,
   ActivityListItem,
+  ActivitySubmissionListResp,
+  GradeStudentActivityResp,
+  StudentActivityDetailResp,
 } from "@deep-portfolio/api-types";
+import type {
+  AddStudentActivityToBookmark,
+  GradeStudentActivityData,
+} from "../types/activity-type.type";
 import { getStudentActivityDetail } from "../../../../services/student-activity-service.service";
-import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
 
 export const fetchSharedRubric = createAsyncThunk<
   ResponseWrapper<SharedRubricResp[]>,
@@ -76,14 +76,15 @@ export const fetchActivityOptions = createAsyncThunk<
 >("activity/options", getActivityOptions);
 
 export const fetchAllSubmittedActivityList = createAsyncThunk<
-  ResponseWrapper<GetAllSubmittedActivityByActivityIdResp>,
+  ResponseWrapper<ActivitySubmissionListResp>,
   number
 >("activity/submitted/list", getAllSubmittedActivityList);
 
 //----------------------------------------------------
 
 export const fetchStudentActivityDetail = createAsyncThunk<
-  ResponseWrapper<GetStudentActivityDetailResp>,
+  /** Absent for an id that names no submission (#68). */
+  ResponseWrapper<StudentActivityDetailResp | undefined>,
   number
 >("activity/student/detail", getStudentActivityDetail);
 

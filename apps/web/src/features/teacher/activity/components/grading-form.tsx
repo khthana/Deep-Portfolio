@@ -1,6 +1,4 @@
 import { Form, Tooltip, type FormInstance } from "antd";
-import type { GradingFormType } from "../types/activity-type.type";
-import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
 import TextArea from "antd/es/input/TextArea";
 import RubricCard from "./rubric-card";
 import { useSelector } from "react-redux";
@@ -8,10 +6,12 @@ import type { RootState } from "../../../../stores/stores";
 import type { MessageInstance } from "antd/es/message/interface";
 import Button from "../../../../components/button/button";
 import { InfoCircleOutlined } from "@ant-design/icons";
+import type { StudentActivityDetailResp } from "@deep-portfolio/api-types";
+import type { GradingFormType } from "../types/activity-type.type";
 
 type Props = {
   gradingForm: FormInstance<GradingFormType>;
-  classworkData: GetStudentActivityDetailResp;
+  classworkData: StudentActivityDetailResp;
   handleOnFinish: (value: GradingFormType) => void;
   messageApi: MessageInstance;
 

@@ -3,7 +3,6 @@ import TeacherBreadcrumb from "../../../../components/breadcrumb/teacher-breadcr
 import PageLayout from "../../../../components/container/page-layout";
 import WhiteContainer from "../../../../components/container/white-container";
 import StudentWorkTable from "../components/student-work-table";
-import type { Submission, SubmissionStatus } from "../types/activity-type.type";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../../../stores/stores";
 import {
@@ -15,6 +14,8 @@ import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import { formatUnacceptedMembers } from "../../../../utils/format-unaccepted-member";
 import { formatMarkedStudents } from "../../../../utils/format-marked-students";
 import { formatSubmissionStatus } from "../../../../utils/format-submission-status";
+import type { ActivitySubmission } from "@deep-portfolio/api-types";
+import type { SubmissionStatus } from "../types/activity-type.type";
 
 export type DataType = {
   key: string;
@@ -39,7 +40,7 @@ export type DataType = {
  * same columns, so they are built the same way and only differ in what is fed
  * in.
  */
-const toRow = (classwork: Submission, dataIndex: number): DataType => {
+const toRow = (classwork: ActivitySubmission, dataIndex: number): DataType => {
   const { codes, names } = formatMarkedStudents(classwork);
 
   return {
@@ -48,7 +49,11 @@ const toRow = (classwork: Submission, dataIndex: number): DataType => {
     submitted_date: convertDateToThaiFormat(classwork.submitted_at) ?? "-",
     code: codes,
     name: names,
-    unaccepted: formatUnacceptedMembers(classwork.group?.unaccepted_members),
+    unaccepted: formatUnacceptedMembers(
+      classwork.submission_type === "GROUP"
+        ? classwork.group.unaccepted_members
+        : undefined,
+    ),
     status: formatSubmissionStatus(classwork.status),
     score: classwork.score,
     remark: classwork.remark ?? "",
@@ -65,7 +70,7 @@ const TeacherActivityDetailPage = () => {
   const [bookmarkData, setBookmarkData] = useState<DataType[]>([]);
   const [activityData, setActivityData] = useState<{
     activity_name: string;
-    deadline_date: Date | null;
+    deadline_date: string | null;
     score: number | null;
   }>();
   const [validateMessage, setValidateMessage] = useState<string | null>(null);

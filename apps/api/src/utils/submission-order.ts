@@ -2,12 +2,17 @@ import type { StudentActivityStatusDB } from "@deep-portfolio/api-types";
 
 /**
  * As much of a submission as the order needs. Both roster endpoints have their
- * own `Submission` type — the graded half carries a score, the learning-activity
- * half does not — and both satisfy this.
+ * own row type — the graded half carries a score, the learning-activity half
+ * does not — and both satisfy this.
+ *
+ * `submitted_at` is an ISO string rather than a Date because that is what both
+ * rows now hold: the services write the column out with `toISOString()` where
+ * they used to hand `res.json` a Date to serialise, so the sort sees the same
+ * value the caller does (#68).
  */
 export interface OrderableSubmission {
   status: StudentActivityStatusDB;
-  submitted_at: Date | null;
+  submitted_at: string | null;
 }
 
 /**
@@ -40,5 +45,8 @@ export function byUnsubmittedLast(
     return aHandedIn ? -1 : 1;
   }
 
-  return (b.submitted_at?.getTime() ?? 0) - (a.submitted_at?.getTime() ?? 0);
+  return (
+    (b.submitted_at ? Date.parse(b.submitted_at) : 0) -
+    (a.submitted_at ? Date.parse(a.submitted_at) : 0)
+  );
 }

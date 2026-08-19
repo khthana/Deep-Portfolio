@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import type { GetStudentLearningActivityDetailResp } from "../../../../types/student-learning-activity-type.type";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import ActivityFileCard from "../../activity/components/activity-file-card";
 import StatusChip from "../../activity/components/status-chip";
@@ -16,10 +15,11 @@ import type { AppDispatch, RootState } from "../../../../stores/stores";
 import { postGradeStudentLearningActivity } from "../stores/teacher-learning-activity-action";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { AttachmentType } from "../../announcement/types/announement-type";
+import type { StudentLearningActivityDetailResp } from "@deep-portfolio/api-types";
 
 type Props = {
   handlePreviewFile: (src: string) => void;
-  classworkData: GetStudentLearningActivityDetailResp;
+  classworkData: StudentLearningActivityDetailResp;
   handleFetchStudentLearningActivityDetail: () => void;
 
   action?: boolean;

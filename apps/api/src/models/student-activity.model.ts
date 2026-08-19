@@ -1,11 +1,6 @@
 import { Prisma } from "@prisma/client";
-import type {
-  ActivityDetailResp,
-  AttachmentDetailResp,
-  StudentActivityStatusDB,
-} from "@deep-portfolio/api-types";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import { ClassworkType } from "./student.model";
-import type { MemberStatus } from "./student-activity-group.model";
 import type {
   BookmarkStudentActivityBody,
   GradeStudentActivityBody,
@@ -49,92 +44,15 @@ export type StudentActivityStatus =
 
 //-----------------------------------
 
-export type GetStudentActivityDetail = {
-  id: number;
-  activity_id: number;
-  student_id: string;
-  status: StudentActivityStatus;
-  submitted_at: Date;
-  graded_at: Date;
-  feedback: string | null;
-  remark: string | null;
-  // Decimal(5,2) in the database, converted to a number before it leaves the
-  // service — the type says what is on the wire, not what Prisma returns (#33).
-  student_score: number | null;
-  is_bookmark: boolean;
-
-  student_activity_rubric_score: {
-    rubric_activity_mapping_id: number;
-    rubric_level_id: number;
-    calculated_score: number;
-  }[];
-
-  student: {
-    first_name_th: string;
-    last_name_th: string;
-  };
-};
-
-export type GetStudentActivityDetailResp = ActivityDetailResp &
-  GetStudentActivityDetail & { submitted_files: AttachmentDetailResp };
-
-//-------------------------------
-
-export type GetAllSubmittedActivityByActivityIdResp = {
-  activity_id: number;
-  activity_name: string;
-  deadline_date: Date | null;
-  score: number | null;
-  submissions: Submission[];
-};
-
-export type Submission = {
-  id: number;
-  submission_type: ClassworkType;
-  status: StudentActivityStatusDB;
-  submitted_at: Date | null;
-  score: number | null;
-  feedback: string | null;
-  is_bookmark: boolean;
-
-  student?: {
-    student_id: string;
-    first_name_th: string;
-    last_name_th: string;
-  };
-
-  group?: SubmissionGroup;
-};
-
-/**
- * The group behind a group submission, as a teacher's roster screen sees it.
- *
- * The two lists are deliberately separate. `members` means "who this score
- * lands on", which since ADR-0017 is the ACCEPT members and nobody else;
- * `unaccepted_members` is everyone who was invited and has not accepted, which
- * is information the teacher has no other way to get — invitations expire after
- * seven days and there is no resend endpoint, so a student who never clicked is
- * silently missing from the marking list (#53).
- */
-export type SubmissionGroup = {
-  group_id: number;
-  members: GroupMemberDetail[];
-  unaccepted_members: UnacceptedGroupMember[];
-};
-
-export type GroupMemberDetail = {
-  student_id: string;
-  first_name_th: string;
-  last_name_th: string;
-};
-
-/** ACCEPT is what `members` is; what is left is the two kinds of silence, and
- *  the caller is told which one it is looking at. */
-export type UnacceptedGroupMember = GroupMemberDetail & {
-  status: Exclude<MemberStatus, "ACCEPT">;
-};
-
-//----------------------------------
+// GetStudentActivityDetail, GetStudentActivityDetailResp,
+// GetAllSubmittedActivityByActivityIdResp, Submission, SubmissionGroup,
+// GroupMemberDetail and UnacceptedGroupMember used to be declared here. They
+// moved to @deep-portfolio/api-types (#68) — import StudentActivityDetailResp,
+// ActivitySubmissionListResp and ActivitySubmission from there, and the group
+// shapes from group.ts, which is where they belong now that both rosters send
+// them. The row is a union on submission_type rather than one row with both
+// halves optional, `remark` was on the wire and undeclared, and every date says
+// string. See ADR-0034.
 
 export type GradeStudentActivityData = GradeStudentActivityBody;
 export type AddStudentActivityToBookmark = BookmarkStudentActivityBody;

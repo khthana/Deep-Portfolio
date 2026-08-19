@@ -18,11 +18,13 @@ import LearningActivityService from "./learning-activity.service";
 import StudentActivityService from "./student-activity.service";
 import StudentLearningActivityService from "./student-learning-activity.service";
 import MinIOService from "./upload.service";
-import type { CourseDetail } from "@deep-portfolio/api-types";
+import type {
+  CourseDetail,
+  StudentActivityDetailResp,
+  StudentLearningActivityDetailResp,
+} from "@deep-portfolio/api-types";
 import { sortByDate } from "../utils/sort-by-date";
 import { isAnnounced } from "../utils/is-announced";
-import { GetStudentActivityDetailResp } from "../models/student-activity.model";
-import { GetStudentLearningActivityDetailResp } from "../models/student-learning-activity.model";
 import { HttpError } from "../utils/http-error";
 
 /**
@@ -214,7 +216,7 @@ export default class StudentService {
 
   async submitActivity(
     data: SubmitActivityBody,
-  ): Promise<GetStudentActivityDetailResp> {
+  ): Promise<StudentActivityDetailResp | undefined> {
     const { result, objects } = await transactionWithUploads(
       async (tx, uploads) => {
         // 1. ดึง activity พร้อม attachments เดิม
@@ -302,7 +304,7 @@ export default class StudentService {
 
   async submitGroupActivity(
     data: SubmitActivityBody,
-  ): Promise<GetStudentActivityDetailResp> {
+  ): Promise<StudentActivityDetailResp | undefined> {
     const { result, objects } = await transactionWithUploads(
       async (tx, uploads) => {
         // 1. ดึงสมาชิกในกลุ่ม
@@ -436,7 +438,7 @@ export default class StudentService {
 
   async submitLearningActivity(
     data: SubmitLearningActivityBody,
-  ): Promise<GetStudentLearningActivityDetailResp> {
+  ): Promise<StudentLearningActivityDetailResp | undefined> {
     const { result, objects } = await transactionWithUploads(
       async (tx, uploads) => {
         const existingActivity = await tx.student_learning_activity.findUnique({

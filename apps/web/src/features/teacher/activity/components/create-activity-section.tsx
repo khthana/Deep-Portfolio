@@ -2,7 +2,6 @@ import { useForm } from "antd/es/form/Form";
 import Button from "../../../../components/button/button";
 import ActivityDetailForm from "./activity-detail-form";
 import RubricForm from "./rubric-form";
-import type { CreateActivityFormType } from "../types/activity-type.type";
 import { useEffect, useState } from "react";
 import SharedRubricModal from "./shared-rubric-modal";
 import { useDispatch, useSelector } from "react-redux";
@@ -22,6 +21,7 @@ import {
   appendPrimitive,
 } from "../../../../utils/append-form-data";
 import type { ActivityDetailResp } from "@deep-portfolio/api-types";
+import type { CreateActivityFormType } from "../types/activity-type.type";
 import { toRubricPayload } from "../utils/rubric-payload";
 import dayjs from "dayjs";
 

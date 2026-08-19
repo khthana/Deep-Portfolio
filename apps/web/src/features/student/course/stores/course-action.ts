@@ -38,7 +38,9 @@ import type {
 import type {
   CLOResp,
   CourseDetail,
+  StudentActivityDetailResp,
   StudentEvaluationListResp,
+  StudentLearningActivityDetailResp,
 } from "@deep-portfolio/api-types";
 import type {
   AnnouncementDetailResp,
@@ -51,9 +53,7 @@ import {
 import { getCLO } from "../../../../services/course-service.service";
 import { getAllAnnouncements } from "../../../../services/announcement-service.service";
 import { getStudentActivityDetail } from "../../../../services/student-activity-service.service";
-import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
 import { getStudentLearningActivityDetail } from "../../../../services/student-learning-service.service";
-import type { GetStudentLearningActivityDetailResp } from "../../../../types/student-learning-activity-type.type";
 import {
   createStudentLearningActivityGroup,
   getStudentLearningActivityGroup,
@@ -92,12 +92,18 @@ export const fetchAllAnnouncement = createAsyncThunk<
 >("student/announcement", getAllAnnouncements);
 
 export const fetchStudentActivityDetail = createAsyncThunk<
-  ResponseWrapper<GetStudentActivityDetailResp>,
+  // `data` is absent when the id names no submission, which is what the
+  // endpoint answers now rather than a body holding one empty key (#68, see
+  // BEHAVIOR-CHANGES.md). Written into the type so the reducer has to say what
+  // it does about it — `ResponseWrapper` itself declares `data` non-optional,
+  // and correcting that is #67.
+  ResponseWrapper<StudentActivityDetailResp | undefined>,
   number
 >("student/activity", getStudentActivityDetail);
 
 export const fetchLearningActivityDetail = createAsyncThunk<
-  ResponseWrapper<GetStudentLearningActivityDetailResp>,
+  /** Absent for an id that names no submission — see above. */
+  ResponseWrapper<StudentLearningActivityDetailResp | undefined>,
   number
 >("student/learning-activity", getStudentLearningActivityDetail);
 
@@ -109,12 +115,12 @@ export const fetchCourseClasswork = createAsyncThunk<
 //---------------------------------------------------------
 
 export const postSubmitActivity = createAsyncThunk<
-  ResponseWrapper<GetStudentActivityDetailResp>,
+  ResponseWrapper<StudentActivityDetailResp>,
   FormData
 >("student/submit/activity", submitActivity);
 
 export const postSubmitLearningActivity = createAsyncThunk<
-  ResponseWrapper<GetStudentLearningActivityDetailResp>,
+  ResponseWrapper<StudentLearningActivityDetailResp>,
   FormData
 >("student/submit/learning-activity", submitLearningActivity);
 

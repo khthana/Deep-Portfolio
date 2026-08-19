@@ -11,7 +11,7 @@ import ActivityViewer from "../../../../teacher/activity/components/activity-vie
 import { Breadcrumb } from "antd";
 import GradingSection from "../../../../teacher/learning-activity/components/grading-section";
 import { fetchStudentLearningActivityDetail } from "../../../../teacher/learning-activity/stores/teacher-learning-activity-action";
-import type { GetStudentLearningActivityDetailResp } from "../../../../../types/student-learning-activity-type.type";
+import type { StudentLearningActivityDetailResp } from "@deep-portfolio/api-types";
 
 const LearningActivityEvaluation = () => {
   const { secId, activityId } = useParams();
@@ -22,7 +22,7 @@ const LearningActivityEvaluation = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   const [classworkData, setClassworkData] =
-    useState<GetStudentLearningActivityDetailResp>();
+    useState<StudentLearningActivityDetailResp>();
   const [fileSrc, setFileSrc] = useState<string | null>(null);
   const [isBookmark] = useState<boolean>(false);
 

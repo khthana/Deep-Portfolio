@@ -1,6 +1,6 @@
 import type { RubricDetail } from "@deep-portfolio/api-types";
-import { Form, type FormInstance } from "antd";
 import type { GradingFormType } from "../types/activity-type.type";
+import { Form, type FormInstance } from "antd";
 import FormItem from "antd/es/form/FormItem";
 
 type Props = {

@@ -33,13 +33,15 @@ import {
   type GetStudentActivityGroupResp,
   type GetStudentWithoutGroupResp,
 } from "../types/course-type";
-import type { CourseDetail } from "@deep-portfolio/api-types";
+import type {
+  CourseDetail,
+  StudentActivityDetailResp,
+  StudentLearningActivityDetailResp,
+} from "@deep-portfolio/api-types";
 import type {
   AnnouncementDetailResp,
   ScoreWeightResp,
 } from "../../../../types/course-type.type";
-import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
-import type { GetStudentLearningActivityDetailResp } from "../../../../types/student-learning-activity-type.type";
 import type { StudentDetailResp } from "../../../../types/student-type.type";
 import {
   failed,
@@ -87,13 +89,13 @@ const activityDetail = {
   score_number: 20,
   student_score: 18,
   expected_level: 3,
-  deadline_date: new Date("2024-01-05T13:45:00.000Z"),
+  deadline_date: "2024-01-05T13:45:00.000Z",
   detail: null,
   attachments: null,
   rubric_activity_mapping: [],
   submitted_files: { file: [], url: [] },
-  submitted_at: new Date("2024-01-04T09:00:00.000Z"),
-} as unknown as GetStudentActivityDetailResp;
+  submitted_at: "2024-01-04T09:00:00.000Z",
+} as unknown as StudentActivityDetailResp;
 
 const learningActivityDetail = {
   id: 601,
@@ -103,12 +105,12 @@ const learningActivityDetail = {
   learning_activity_name: "กิจกรรมที่หนึ่ง",
   learning_activity_type: "GROUP",
   status: "NOT_SUBMITTED",
-  deadline_date: new Date("2024-01-09T13:45:00.000Z"),
+  deadline_date: "2024-01-09T13:45:00.000Z",
   detail: null,
   attachments: null,
   submitted_files: { file: [], url: [] },
-  submitted_at: new Date("2024-01-08T09:00:00.000Z"),
-} as unknown as GetStudentLearningActivityDetailResp;
+  submitted_at: "2024-01-08T09:00:00.000Z",
+} as unknown as StudentLearningActivityDetailResp;
 
 const group: GetStudentActivityGroupResp = {
   group_id: 3,
@@ -469,7 +471,7 @@ describe("studentCourseSlice", () => {
           file: [{ attachment_id: 9, title: "งาน.pdf" }],
           url: [],
         },
-      } as unknown as GetStudentActivityDetailResp;
+      } as unknown as StudentActivityDetailResp;
 
       const fulfilled = reducer(
         reducer(initialState, started(postSubmitActivity)),
@@ -516,7 +518,7 @@ describe("studentCourseSlice", () => {
       const submitted = {
         ...learningActivityDetail,
         status: "SUBMITTED",
-      } as unknown as GetStudentLearningActivityDetailResp;
+      } as unknown as StudentLearningActivityDetailResp;
 
       const fulfilled = reducer(
         reducer(initialState, started(postSubmitLearningActivity)),

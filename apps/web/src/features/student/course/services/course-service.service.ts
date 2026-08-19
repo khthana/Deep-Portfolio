@@ -2,11 +2,11 @@ import { endpoints } from "../../../../configs/endpoints.config";
 import { axiosInstance } from "../../../../lib/axios";
 import type {
   CourseDetail,
+  StudentActivityDetailResp,
   StudentEvaluationListResp,
+  StudentLearningActivityDetailResp,
 } from "@deep-portfolio/api-types";
 import type { ResponseWrapper } from "../../../../types/global-type";
-import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
-import type { GetStudentLearningActivityDetailResp } from "../../../../types/student-learning-activity-type.type";
 import type {
   ClassworkDetailResp,
   CreateStudentActivityGroupBody,
@@ -53,7 +53,7 @@ export const getStudentCourseClassworkList = async (
 
 export const submitActivity = async (formData: FormData) => {
   const resp = await axiosInstance.post<
-    ResponseWrapper<GetStudentActivityDetailResp>
+    ResponseWrapper<StudentActivityDetailResp>
   >(endpoints.student.submit.activity, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
@@ -63,7 +63,7 @@ export const submitActivity = async (formData: FormData) => {
 
 export const submitLearningActivity = async (formData: FormData) => {
   const resp = await axiosInstance.post<
-    ResponseWrapper<GetStudentLearningActivityDetailResp>
+    ResponseWrapper<StudentLearningActivityDetailResp>
   >(endpoints.student.submit.learning_activity, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });

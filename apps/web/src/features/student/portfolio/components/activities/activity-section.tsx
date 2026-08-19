@@ -1,9 +1,9 @@
+import type { PortfolioActivityType as PortfolioActivityResp } from "../../types/activity-type.type";
 import { useState, useEffect } from "react";
 import { message } from "antd";
 import { paths } from "../../../../../routes/paths.config";
 import SectionLayout from "../section-layout";
 import ActivityCard from "./activity-card";
-import type { PortfolioActivityType as PortfolioActivityResp } from "../../types/activity-type.type";
 import {
   deletePortfolioActivity,
   getAllPortfolioActivity,

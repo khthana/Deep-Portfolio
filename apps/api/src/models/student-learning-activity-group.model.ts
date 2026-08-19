@@ -1,4 +1,5 @@
-import { GroupRole, MemberStatus } from "./student-activity-group.model";
+import type { MemberStatus } from "@deep-portfolio/api-types";
+import { GroupRole } from "./student-activity-group.model";
 
 export type {
   CreateStudentLearningActivityGroupBody,

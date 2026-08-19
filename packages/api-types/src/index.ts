@@ -12,9 +12,12 @@
  * the shape six of them embed, and was moved ahead of all six on purpose
  * (docs/adr/0031-attachments-are-the-leaf.md) — and then the teacher's
  * assessment endpoints, which brought the rubric and the score category with
- * them (docs/adr/0032-activity-follows-the-row.md), and then the classroom-work
+ * them (docs/adr/0032-activity-follows-the-row.md), then the classroom-work
  * half of the same screen
- * (docs/adr/0033-learning-activity-and-the-absent-key.md).
+ * (docs/adr/0033-learning-activity-and-the-absent-key.md), and then what the
+ * students hand in against both — the two submission features, moved together
+ * because they share the group a roster reports
+ * (docs/adr/0034-submissions-move-as-a-pair.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -61,6 +64,12 @@ export type {
 } from "./gradebook";
 
 export type {
+  MemberStatus,
+  SubmissionGroup,
+  UnacceptedGroupMember,
+} from "./group";
+
+export type {
   LearningActivityDetailResp,
   LearningActivityListItem,
   LearningActivityType,
@@ -70,4 +79,23 @@ export type { RubricDetail, RubricLevel } from "./rubric";
 
 export type { ScoreWeightBrief, ScoreWeightDetail } from "./score-weight";
 
-export type { StudentActivityStatusDB } from "./student-activity";
+export type { StudentFullNameTh, StudentNameBrief } from "./student";
+
+export type {
+  ActivityGroupSubmission,
+  ActivityIndividualSubmission,
+  ActivitySubmission,
+  ActivitySubmissionListResp,
+  GradeStudentActivityResp,
+  StudentActivityDetailResp,
+  StudentActivityRubricScore,
+  StudentActivityStatusDB,
+} from "./student-activity";
+
+export type {
+  LearningActivityGroupSubmission,
+  LearningActivityIndividualSubmission,
+  LearningActivitySubmission,
+  LearningActivitySubmissionListResp,
+  StudentLearningActivityDetailResp,
+} from "./student-learning-activity";

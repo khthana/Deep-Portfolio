@@ -1,3 +1,5 @@
+import type { MemberStatus } from "@deep-portfolio/api-types";
+
 export type {
   CreateStudentActivityGroupBody,
   UpdateStudentActivityGroupBody,
@@ -5,7 +7,10 @@ export type {
 } from "../validation/student-activity-group.schema";
 
 export type GroupRole = "LEADER" | "MEMBER";
-export type MemberStatus = "PENDING" | "ACCEPT" | "REJECTED";
+
+// MemberStatus used to be declared here. It moved to @deep-portfolio/api-types
+// (#68) because both roster endpoints send it inside SubmissionGroup — the rest
+// of this feature has not moved. See ADR-0034.
 
 export type GetStudentActivityGroupResp = {
   group_id: number;

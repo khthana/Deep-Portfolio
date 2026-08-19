@@ -2,9 +2,10 @@ import type { JSONContent } from "@tiptap/react";
 import type {
   AttachmentDetailResp,
   RubricDetail,
+  StudentActivityDetailResp,
+  StudentActivityStatusDB,
+  StudentLearningActivityDetailResp,
 } from "@deep-portfolio/api-types";
-import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
-import type { GetStudentLearningActivityDetailResp } from "../../../../types/student-learning-activity-type.type";
 import type { CourseMaterialDetail } from "../../../teacher/material/types/course-material-type";
 
 export type CourseDetailSummary = {
@@ -148,7 +149,12 @@ export type ClassworkDetailFull = {
   attachments: AttachmentDetailResp | null;
   rubrics: RubricDetail[] | null;
   expected_level: number | null;
-  status: ClassworkStatus;
+  // The column, not the reading of it. `ClassworkStatus` here used to say
+  // `LATE`, which neither endpoint filling this has ever sent — it is
+  // getDisplayStatus() comparing a deadline to the clock, and it reaches a
+  // screen only through the student's classwork list. What these two do send is
+  // `GRADING`, which the old union had no room for at all (#68).
+  status: StudentActivityStatusDB;
   category: "activity" | "learning_activity";
 
   student_id: string;
@@ -156,7 +162,7 @@ export type ClassworkDetailFull = {
   activity_id: number;
 
   submitted_files: AttachmentDetailResp;
-  submitted_at: Date;
+  submitted_at: string | null;
 };
 
 //------------------------------------
@@ -300,7 +306,7 @@ export type GetStudentLessonPlanWithMaterialResp = {
 //------------------------------------
 
 export const mapActivityDetail = (
-  data: GetStudentActivityDetailResp,
+  data: StudentActivityDetailResp,
 ): ClassworkDetailFull => ({
   id: data.id,
   name: data.activity_name,
@@ -326,7 +332,7 @@ export const mapActivityDetail = (
 });
 
 export const mapLearningActivityDetail = (
-  data: GetStudentLearningActivityDetailResp,
+  data: StudentLearningActivityDetailResp,
 ): ClassworkDetailFull => ({
   id: data.id,
   name: data.learning_activity_name,

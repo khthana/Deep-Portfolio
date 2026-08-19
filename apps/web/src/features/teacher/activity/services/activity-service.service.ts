@@ -3,13 +3,13 @@ import { axiosInstance } from "../../../../lib/axios";
 import type {
   ActivityDetailResp,
   ActivityListItem,
+  ActivitySubmissionListResp,
+  GradeStudentActivityResp,
 } from "@deep-portfolio/api-types";
 import type { Options, ResponseWrapper } from "../../../../types/global-type";
 import type {
   AddStudentActivityToBookmark,
-  GetAllSubmittedActivityByActivityIdResp,
   GradeStudentActivityData,
-  GradeStudentActivityResp,
 } from "../types/activity-type.type";
 
 export const createActivity = async (formData: FormData) => {
@@ -78,7 +78,7 @@ export const getAllActivityList = async (section_id: number) => {
 
 export const getAllSubmittedActivityList = async (activity_id: number) => {
   const resp = await axiosInstance.get<
-    ResponseWrapper<GetAllSubmittedActivityByActivityIdResp>
+    ResponseWrapper<ActivitySubmissionListResp>
   >(endpoints.activity.submitted_list, {
     params: { activity_id },
   });

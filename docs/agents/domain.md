@@ -113,7 +113,12 @@ value is held in a slice, and
 because its value is `undefined` is not the same thing to a caller as a key
 sent as `null`, so it is written optional rather than nullable and pinned with
 `not.toHaveProperty`, and that two columns holding the same two values on two
-tables stay two unions, each guarded by its own schema.
+tables stay two unions, each guarded by its own schema, and
+`0034-submissions-move-as-a-pair.md`, which says two features that share a
+shape outright move in one pass rather than one dragging the other along
+behind it, that a row carrying two mutually exclusive halves is a union on the
+discriminant it already has, and that where the type can only be written
+honestly by admitting a shape nobody designed, the shape is what gets fixed.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

@@ -9,13 +9,13 @@ import {
   fetchStudentLearningActivityDetail,
   patchBookmarkStudentLearningActivity,
 } from "../stores/teacher-learning-activity-action";
-import type { GetStudentLearningActivityDetailResp } from "../../../../types/student-learning-activity-type.type";
 import { useEffect, useState } from "react";
 import { activityTypeLabel } from "../../activity/types/activity-type.type";
 import WhiteContainer from "../../../../components/container/white-container";
 import ActivityViewer from "../../activity/components/activity-viewer";
 import GradingSection from "../components/grading-section";
 import type { AddStudentLearningActivityToBookmark } from "../types/learning-activity-type.type";
+import type { StudentLearningActivityDetailResp } from "@deep-portfolio/api-types";
 
 const TeacherGradingLearningActivityPage = () => {
   const { secId, activityId, workId } = useParams();
@@ -30,7 +30,7 @@ const TeacherGradingLearningActivityPage = () => {
   const [isBookmark, setIsBookmark] = useState<boolean>(false);
 
   const [classworkData, setClassworkData] =
-    useState<GetStudentLearningActivityDetailResp>();
+    useState<StudentLearningActivityDetailResp>();
 
   const handleFetchStudentLearningActivityDetail = async () => {
     if (!workId) return;

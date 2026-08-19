@@ -1,7 +1,5 @@
 import type { JSONContent } from "@tiptap/react";
 import type { AttachmentDetailItem } from "../../announcement/types/announement-type";
-import type { StudentActivityStatusDB } from "@deep-portfolio/api-types";
-import type { UnacceptedMember } from "../../../../types/activity-type.type";
 import type { ClassworkType } from "../../../student/course/types/course-type";
 
 export const activityType = {
@@ -83,65 +81,12 @@ export type CreateActivityFormType = {
 
 //----------------------------------------------
 
-// export type GetAllSubmittedActivityByActivityIdResp = {
-//   submitted_detail: SubmittedDetail[];
-//   activity_id: number;
-//   activity_name: string;
-//   score: number | null;
-//   deadline_date: Date | null;
-// };
-
-// export type SubmittedDetail = {
-//   status: StudentActivityStatusDB;
-//   id: number;
-//   is_bookmark: boolean;
-//   score: number | null;
-//   feedback: string | null;
-//   submitted_at: Date | null;
-//   student: {
-//     student_id: string;
-//     first_name_th: string;
-//     last_name_th: string;
-//   };
-// };
-
-export type GetAllSubmittedActivityByActivityIdResp = {
-  activity_id: number;
-  activity_name: string;
-  deadline_date: Date | null;
-  score: number | null;
-  submissions: Submission[];
-};
-
-export type Submission = {
-  submission_type: ClassworkType;
-  status: StudentActivityStatusDB;
-  submitted_at: Date | null;
-  score: number | null;
-  feedback: string | null;
-  remark: string | null;
-  is_bookmark: boolean;
-  id: number;
-
-  student?: {
-    student_id: string;
-    first_name_th: string;
-    last_name_th: string;
-  };
-
-  group?: {
-    group_id: number;
-    // Who this score lands on — ACCEPT only, see ADR-0017.
-    members: {
-      student_id: string;
-      first_name_th: string;
-      last_name_th: string;
-    }[];
-    // Everyone else who was invited, so the teacher can see a name is missing
-    // from the list they are marking (ADR-0023).
-    unaccepted_members: UnacceptedMember[];
-  };
-};
+// GetAllSubmittedActivityByActivityIdResp and Submission used to be declared
+// here. They moved to @deep-portfolio/api-types (#68) — import
+// ActivitySubmissionListResp and ActivitySubmission from there. The row is a
+// union on submission_type now rather than one row with `student` and `group`
+// both optional, so a reader narrows once and gets the half that is really
+// there; the dates say string. See ADR-0034.
 
 export type GradeStudentActivityData = {
   activity_id: number;
@@ -159,10 +104,9 @@ export type GradeStudentActivityData = {
   }[];
 };
 
-export type GradeStudentActivityResp = {
-  student_activity_id: number;
-  total_score: number;
-};
+// GradeStudentActivityResp used to be declared here. It moved to
+// @deep-portfolio/api-types (#68) — the same two fields, now bound to both
+// gradeStudentActivity and gradeStudentGroupActivity on the API side.
 
 export type GradingFormType = {
   feedback: string;
