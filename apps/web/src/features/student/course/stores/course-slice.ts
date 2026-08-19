@@ -30,12 +30,12 @@ import {
 import type {
   ActivityDetailResp,
   CourseDetail,
+  LearningActivityDetailResp,
 } from "@deep-portfolio/api-types";
 import type {
   AnnouncementDetailResp,
   ScoreWeightResp,
 } from "../../../../types/course-type.type";
-import type { GetLearningActivityDetailResp } from "../../../../types/activity-type.type";
 import {
   mapActivityDetail,
   mapLearningActivityDetail,
@@ -54,7 +54,7 @@ type StudentCourseSlice = {
   classworkDetail: ClassworkDetailFull | null;
   announcements: AnnouncementDetailResp[];
   activities: ActivityDetailResp[];
-  learningActivities: GetLearningActivityDetailResp[];
+  learningActivities: LearningActivityDetailResp[];
   allClasswork: ClassworkDetailResp | null;
   scoreWeight: ScoreWeightResp[];
   studentList: StudentDetailResp[];

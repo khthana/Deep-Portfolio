@@ -139,7 +139,10 @@ the next one, because the obvious next feature turned out to be unmovable on
 its own. The teacher's assessment endpoints followed, bringing the rubric and
 the score category with them; ADR-0032 has what the two `as` casts in
 `activity.service.ts` had been hiding, which was drift in both directions at
-once. 38 files and 2,055 lines are still web-side.
+once. The classroom-work half followed the same day, and ADR-0033 came out of
+it: a key JSON drops because its value is `undefined` is not the same thing as
+a key sent as `null`, so the list row's `week_no` is optional rather than
+nullable. 38 files and 2,035 lines are still web-side.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

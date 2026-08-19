@@ -17,13 +17,13 @@ import {
   appendPrimitive,
 } from "../../../../utils/append-form-data";
 import { scrollToErrorField } from "../../../../utils/handle-form-status";
-import type { GetLearningActivityDetailResp } from "../../../../types/activity-type.type";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
+import type { LearningActivityDetailResp } from "@deep-portfolio/api-types";
 
 type Props = {
   edit?: boolean;
-  activityDetail?: GetLearningActivityDetailResp;
+  activityDetail?: LearningActivityDetailResp;
 };
 
 const CreateLearningActivitySection = (props: Props) => {

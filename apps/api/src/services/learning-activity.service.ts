@@ -1,16 +1,34 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
+import type {
+  AttachmentDetailResp,
+  LearningActivityDetailResp,
+  LearningActivityListItem,
+  LearningActivityType,
+} from "@deep-portfolio/api-types";
 import {
   CreateLearningActivityReqBody,
-  GetAllLearningActivityList,
-  GetLearningActivityDetailResp,
   UpdateLearningActivityReqBody,
 } from "../models/learning-activity.model";
 import AttachmentsService, {
   transactionWithUploads,
 } from "./attachments.service";
 import MinIOService from "./upload.service";
+
+/**
+ * The one narrowing left in this file, and the only one the row needs.
+ *
+ * `learning_activities.learning_activity_type` is a `VarChar(20)` stored lower
+ * case, so the column itself promises nothing. What promises something is the
+ * way in: `classworkType` is a two-value enum and `POST`/`PUT
+ * /learning-activity` are the only writers, so every row the system creates
+ * upper-cases to one of these two. A row written another way would pass
+ * through unchanged, which is why this is one assertion with a reason rather
+ * than an `as` over the whole object — that one used to hide the shape of
+ * everything else along with it (#68).
+ */
+const toLearningActivityType = (stored: string) =>
+  stored.toUpperCase() as LearningActivityType;
 
 export default class LearningActivityService {
   private readonly uploadService: MinIOService;
@@ -134,7 +152,7 @@ export default class LearningActivityService {
 
   async getAllLearningActivity(
     section_id: number,
-  ): Promise<GetAllLearningActivityList[]> {
+  ): Promise<LearningActivityListItem[]> {
     const activities = await prisma.learning_activities.findMany({
       where: { section_id: section_id },
       select: {
@@ -183,8 +201,15 @@ export default class LearningActivityService {
 
           // attachments,
           week_no: courseSyllabus?.week_no,
-          learning_activity_type: activity.learning_activity_type.toUpperCase(),
-        } as GetAllLearningActivityList;
+          // Written out here rather than left to res.json, which calls the
+          // same toJSON() on the way past — the annotation on this method says
+          // string, and that is what a caller parses (#68).
+          announcement_date: activity.announcement_date?.toISOString() ?? null,
+          deadline_date: activity.deadline_date?.toISOString() ?? null,
+          learning_activity_type: toLearningActivityType(
+            activity.learning_activity_type,
+          ),
+        };
       }),
     );
 
@@ -194,7 +219,7 @@ export default class LearningActivityService {
   async getLearningActivityDetail(
     id: number,
     tx?: Prisma.TransactionClient,
-  ): Promise<GetLearningActivityDetailResp | undefined> {
+  ): Promise<LearningActivityDetailResp | undefined> {
     const prismaClient = tx ?? prisma;
 
     const activity = await prismaClient.learning_activities.findUnique({
@@ -214,8 +239,14 @@ export default class LearningActivityService {
       attachments,
       learning_activity_id: activity.id,
       // week_no: courseSyllabus?.week_no,
-      learning_activity_type: activity.learning_activity_type.toUpperCase(),
-    } as GetLearningActivityDetailResp;
+      learning_activity_type: toLearningActivityType(
+        activity.learning_activity_type,
+      ),
+      announcement_date: activity.announcement_date?.toISOString() ?? null,
+      deadline_date: activity.deadline_date?.toISOString() ?? null,
+      created_at: activity.created_at?.toISOString() ?? null,
+      updated_at: activity.updated_at?.toISOString() ?? null,
+    };
   }
 
   async getAllAttachments(

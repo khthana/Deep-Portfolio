@@ -108,7 +108,12 @@ every key rather than from the type that was there — an `as` over the whole
 object hides the shape of every field at once — that one nested shape read two
 ways is two types, and that an unconstrained `json` column is `unknown` on the
 wire, because a recursive JSON union breaks Immer's draft recursion where the
-value is held in a slice.
+value is held in a slice, and
+`0033-learning-activity-and-the-absent-key.md`, which says a key JSON drops
+because its value is `undefined` is not the same thing to a caller as a key
+sent as `null`, so it is written optional rather than nullable and pinned with
+`not.toHaveProperty`, and that two columns holding the same two values on two
+tables stay two unions, each guarded by its own schema.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

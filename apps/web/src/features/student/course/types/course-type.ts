@@ -140,13 +140,10 @@ export type ClassworkDetailFull = {
   type: "INDIVIDUAL" | "GROUP";
   score: number | null;
   student_score: number | null;
-  // A string once it comes off /activity, which moved to
-  // @deep-portfolio/api-types (#68); still a Date off the learning-activity
-  // half, which has not moved yet. Both halves reach the same two readers —
-  // convertDateToThaiFormat and checkIsOverSubmittionDeadline — and each
-  // builds its own Date from whatever it is handed, so the union costs
-  // nothing and goes when the other half follows.
-  deadline_date: Date | string | null;
+  // A string: both halves that fill this now come off @deep-portfolio/api-types
+  // (#68), and a date over JSON is a string. It was briefly `Date | string`
+  // while only the activity half had moved.
+  deadline_date: string | null;
   detail: JSONContent | null;
   attachments: AttachmentDetailResp | null;
   rubrics: RubricDetail[] | null;
@@ -336,7 +333,8 @@ export const mapLearningActivityDetail = (
   type: data.learning_activity_type,
   score: null,
   deadline_date: data.deadline_date,
-  detail: data.detail,
+  // Same reason as the activity half above.
+  detail: data.detail as JSONContent | null,
   attachments: data.attachments,
   rubrics: null,
   expected_level: null,

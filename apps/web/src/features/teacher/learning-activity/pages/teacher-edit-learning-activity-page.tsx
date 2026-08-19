@@ -6,9 +6,9 @@ import CreateLearningActivitySection from "../components/create-learning-activit
 import PageLayout from "../../../../components/container/page-layout";
 import type { AppDispatch } from "../../../../stores/stores";
 import { useDispatch } from "react-redux";
-import type { GetLearningActivityDetailResp } from "../../../../types/activity-type.type";
 import { useEffect, useState } from "react";
 import { fetchLearningActivity } from "../stores/teacher-learning-activity-action";
+import type { LearningActivityDetailResp } from "@deep-portfolio/api-types";
 
 const TeacherEditLearningActivityPage = () => {
   const { secId, activityId } = useParams();
@@ -19,7 +19,7 @@ const TeacherEditLearningActivityPage = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   const [activityDetail, setActivityDetail] =
-    useState<GetLearningActivityDetailResp | null>(null);
+    useState<LearningActivityDetailResp | null>(null);
 
   const handleFetchData = async () => {
     try {

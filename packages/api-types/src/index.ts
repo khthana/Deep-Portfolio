@@ -12,7 +12,9 @@
  * the shape six of them embed, and was moved ahead of all six on purpose
  * (docs/adr/0031-attachments-are-the-leaf.md) — and then the teacher's
  * assessment endpoints, which brought the rubric and the score category with
- * them (docs/adr/0032-activity-follows-the-row.md).
+ * them (docs/adr/0032-activity-follows-the-row.md), and then the classroom-work
+ * half of the same screen
+ * (docs/adr/0033-learning-activity-and-the-absent-key.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -57,6 +59,12 @@ export type {
   GradebookStudent,
   GradebookStudentActivity,
 } from "./gradebook";
+
+export type {
+  LearningActivityDetailResp,
+  LearningActivityListItem,
+  LearningActivityType,
+} from "./learning-activity";
 
 export type { RubricDetail, RubricLevel } from "./rubric";
 

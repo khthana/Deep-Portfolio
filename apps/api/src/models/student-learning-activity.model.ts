@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import type {
   AttachmentDetailResp,
+  LearningActivityDetailResp,
   StudentActivityStatusDB,
 } from "@deep-portfolio/api-types";
 import {
@@ -8,7 +9,6 @@ import {
   SubmissionGroup,
 } from "./student-activity.model";
 import { ClassworkType } from "./student.model";
-import { GetLearningActivityDetailResp } from "./learning-activity.model";
 
 export type GetAllStudentLearningActivity = {
   attachments: AttachmentDetailResp;
@@ -50,11 +50,10 @@ export type GetStudentLearningActivityDetail = {
   };
 };
 
-export type GetStudentLearningActivityDetailResp =
-  GetLearningActivityDetailResp &
-    GetStudentLearningActivityDetail & {
-      submitted_files: AttachmentDetailResp;
-    };
+export type GetStudentLearningActivityDetailResp = LearningActivityDetailResp &
+  GetStudentLearningActivityDetail & {
+    submitted_files: AttachmentDetailResp;
+  };
 
 //--------------------------------
 

@@ -27,18 +27,12 @@ export type CreateLearningActivityReqBody = {
 
 //----------------------------------------------
 
-export type GetAllLearningActivityList = {
-  id: number;
-  learning_activity_name: string;
-  announcement_date: Date | null;
-  deadline_date: Date | null;
-  section_id: number | null;
-  week_no: number | undefined;
-
-  submitted_count: number | null;
-  pending_grading_count: number | null;
-  student_count: number | null;
-};
+// GetAllLearningActivityList used to be declared here. It moved to
+// @deep-portfolio/api-types (#68) as LearningActivityListItem — the endpoint
+// answers a list and this is one row of it, which the old name did not say.
+// section_id and the three counts are never null, the dates are strings, and
+// two columns it had never declared — learning_activity_type and
+// course_syllabus_id — are written down. See ADR-0033.
 
 export type GetAllSubmittedLearningActivityByLearningActivityIdResp = {
   learning_activity_id: number;

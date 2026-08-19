@@ -13,16 +13,18 @@ import {
 } from "../services/learning-activity.service";
 import type {
   AddStudentLearningActivityToBookmark,
-  GetAllLearningActivityList,
   GetAllSubmittedLearningActivityByLearningActivityIdResp,
   GradeStudentLearningActivityData,
 } from "../types/learning-activity-type.type";
 import { getStudentLearningActivityDetail } from "../../../../services/student-learning-service.service";
 import type { GetStudentLearningActivityDetailResp } from "../../../../types/student-learning-activity-type.type";
-import type { GetLearningActivityDetailResp } from "../../../../types/activity-type.type";
+import type {
+  LearningActivityDetailResp,
+  LearningActivityListItem,
+} from "@deep-portfolio/api-types";
 
 export const fetchLearningActivity = createAsyncThunk<
-  ResponseWrapper<GetLearningActivityDetailResp>,
+  ResponseWrapper<LearningActivityDetailResp>,
   number
 >("learning-activity/get", getLearningActivity);
 
@@ -42,7 +44,7 @@ export const putLearningActivity = createAsyncThunk<
 >("learning-activity/update", updateLearningActivity);
 
 export const fetchAllLearningActivity = createAsyncThunk<
-  ResponseWrapper<GetAllLearningActivityList[]>,
+  ResponseWrapper<LearningActivityListItem[]>,
   number
 >("learning-activity/get/all", getAllLearningActivityList);
 

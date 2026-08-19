@@ -1,17 +1,19 @@
 import { endpoints } from "../../../../configs/endpoints.config";
 import { axiosInstance } from "../../../../lib/axios";
-import type { GetLearningActivityDetailResp } from "../../../../types/activity-type.type";
 import type { Options, ResponseWrapper } from "../../../../types/global-type";
 import type {
   AddStudentLearningActivityToBookmark,
-  GetAllLearningActivityList,
   GetAllSubmittedLearningActivityByLearningActivityIdResp,
   GradeStudentLearningActivityData,
 } from "../types/learning-activity-type.type";
+import type {
+  LearningActivityDetailResp,
+  LearningActivityListItem,
+} from "@deep-portfolio/api-types";
 
 export const getLearningActivity = async (learning_activity_id: number) => {
   const resp = await axiosInstance.get<
-    ResponseWrapper<GetLearningActivityDetailResp>
+    ResponseWrapper<LearningActivityDetailResp>
   >(endpoints.learning_activity.root, {
     params: { learning_activity_id },
   });
@@ -69,7 +71,7 @@ export const getLearningActivityOptions = async (section_id: number) => {
 
 export const getAllLearningActivityList = async (section_id: number) => {
   const resp = await axiosInstance.get<
-    ResponseWrapper<GetAllLearningActivityList[]>
+    ResponseWrapper<LearningActivityListItem[]>
   >(endpoints.learning_activity.list, {
     params: { section_id },
   });

@@ -1,5 +1,3 @@
-import { Prisma } from "@prisma/client";
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import type {
   CreateLearningActivityBody,
   UpdateLearningActivityBody,
@@ -14,34 +12,11 @@ export type UpdateLearningActivityReqBody = UpdateLearningActivityBody & {
   files: Express.Multer.File[];
 };
 
-//-------------------------------------
-
-export type GetLearningActivityDetailResp = {
-  attachments: AttachmentDetailResp;
-  // week_no: number | undefined;
-  learning_activity_type: string;
-  learning_activity_id: number;
-  learning_activity_name: string;
-  created_at: Date | null;
-  updated_at: Date | null;
-  announcement_date: Date | null;
-  deadline_date: Date | null;
-  course_syllabus_id: number;
-  section_id: number;
-  detail: Prisma.InputJsonValue;
-};
-
-//-------------------------------------
-
-export type GetAllLearningActivityList = {
-  id: number;
-  learning_activity_name: string;
-  announcement_date: Date | null;
-  deadline_date: Date | null;
-  section_id: number | null;
-  week_no: number | undefined;
-
-  submitted_count: number | null;
-  pending_grading_count: number | null;
-  student_count: number | null;
-};
+// GetLearningActivityDetailResp and GetAllLearningActivityList used to be
+// declared here. They moved to @deep-portfolio/api-types (#68) — import
+// LearningActivityDetailResp and LearningActivityListItem from there. The
+// dates that said Date now say string, `id` and the two columns the list row
+// had never declared are written down, and week_no is optional on the list and
+// absent from the detail; see ADR-0033. What is left in this file is the two
+// request bodies, which stay: the zod schemas in ../validation are what
+// actually refuses a bad one (ADR-0028).

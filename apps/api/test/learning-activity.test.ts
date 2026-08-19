@@ -586,6 +586,52 @@ describe("GET /learning-activity", () => {
     ]);
   });
 
+  it("answers with every key the row has, and dates as strings", async () => {
+    // The service spreads the Prisma row whole, so the body is the row plus
+    // two additions — and until #68 the type said otherwise in both
+    // directions. This is the pin the type was then written against, so it
+    // names every key rather than matching a subset.
+    const course = await createCourse();
+    const activity = await createLearningActivity({
+      section_id: course.section_id,
+      learning_activity_type: "group",
+      announcement_date: new Date("2026-03-01T09:00:00.000Z"),
+      deadline_date: new Date("2026-03-08T16:30:00.000Z"),
+    });
+
+    const response = await request(app)
+      .get("/learning-activity")
+      .query({ learning_activity_id: activity.id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({
+      id: activity.id,
+      learning_activity_id: activity.id,
+      learning_activity_name: "กิจกรรมการเรียนรู้ตัวอย่าง",
+      // Stored lower case, handed back upper case.
+      learning_activity_type: "GROUP",
+      // Named to the millisecond rather than expect.any(String): the service
+      // now writes these two with toISOString() where res.json used to call
+      // Date#toJSON on the way past, and the two are only byte-identical as
+      // long as nobody changes one of them.
+      announcement_date: "2026-03-01T09:00:00.000Z",
+      deadline_date: "2026-03-08T16:30:00.000Z",
+      course_syllabus_id: null,
+      section_id: course.section_id,
+      detail: null,
+      // Never null: getAllAttachments answers two lists whatever it finds.
+      attachments: { file: [], url: [] },
+      // Both default to now(), so the instant cannot be named — what is being
+      // pinned is that they arrive as strings, which is what the type says.
+      created_at: expect.any(String),
+      updated_at: expect.any(String),
+    });
+    // No week here, unlike the list row: the lesson-plan lookup that would
+    // fetch it is commented out in the service, so the key is absent rather
+    // than null.
+    expect(response.body.data).not.toHaveProperty("week_no");
+  });
+
   it("answers with no data for an activity that does not exist", async () => {
     const response = await request(app)
       .get("/learning-activity")
@@ -656,6 +702,70 @@ describe("GET /learning-activity/list", () => {
       submitted_count: 2,
       pending_grading_count: 1,
     });
+  });
+
+  it("answers with exactly the keys the list row has", async () => {
+    // The other half of the pin above. This row is a `select`, not a spread,
+    // so it is a shorter list than the detail — but it carries the week and
+    // the three counts, which the detail does not.
+    const course = await createCourse();
+    const week = await createLessonPlan({
+      section_id: course.section_id,
+      week_no: 3,
+    });
+    const withWeek = await createLearningActivity({
+      section_id: course.section_id,
+      course_syllabus_id: week.id,
+      learning_activity_name: "ใบงานที่ 1",
+      announcement_date: new Date("2026-03-01T09:00:00.000Z"),
+      deadline_date: new Date("2026-03-08T16:30:00.000Z"),
+    });
+    const withoutWeek = await createLearningActivity({
+      section_id: course.section_id,
+      learning_activity_name: "ใบงานที่ 2",
+      learning_activity_type: "group",
+    });
+
+    const response = await request(app)
+      .get("/learning-activity/list")
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([
+      {
+        id: withWeek.id,
+        learning_activity_name: "ใบงานที่ 1",
+        learning_activity_type: "INDIVIDUAL",
+        // Same reason as the detail case: this endpoint writes them with
+        // toISOString() too, so one row names the instant rather than its type.
+        announcement_date: "2026-03-01T09:00:00.000Z",
+        deadline_date: "2026-03-08T16:30:00.000Z",
+        section_id: course.section_id,
+        course_syllabus_id: week.id,
+        week_no: 3,
+        // Never null: each is the length of an array the service just counted.
+        student_count: 0,
+        submitted_count: 0,
+        pending_grading_count: 0,
+      },
+      {
+        id: withoutWeek.id,
+        learning_activity_name: "ใบงานที่ 2",
+        learning_activity_type: "GROUP",
+        announcement_date: null,
+        deadline_date: null,
+        section_id: course.section_id,
+        course_syllabus_id: null,
+        // No lesson plan to read a week off, so the service leaves week_no
+        // undefined and JSON drops the key. That is why the type marks it
+        // optional rather than nullable — the two are not the same thing to a
+        // caller doing `"week_no" in row`.
+        student_count: 0,
+        submitted_count: 0,
+        pending_grading_count: 0,
+      },
+    ]);
+    expect(response.body.data[1]).not.toHaveProperty("week_no");
   });
 
   it("answers 400 when section_id is missing", async () => {

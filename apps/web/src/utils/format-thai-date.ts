@@ -73,9 +73,12 @@ export const checkIsTomorrow = (date: Date | null) => {
   return isSameDay(new Date(date), tomorrow);
 };
 
-/** Widened for the same reason `convertDateToThaiFormat` was (ADR-0029 §5):
- *  the deadline arrives over JSON, so it is a string, and the body already
- *  builds a Date from whatever it is given. */
+/** Its one live caller now hands it a string, both halves of the classroom
+ *  screen having moved to @deep-portfolio/api-types (#68). The union stays
+ *  anyway, for the same reason `convertDateToThaiFormat` keeps its: these two
+ *  are general date helpers read side by side, the body builds its own Date
+ *  from whatever it is given, and narrowing one of a pair that behaves
+ *  identically only makes the pair harder to read. */
 export const checkIsOverSubmittionDeadline = (
   deadline: Date | string | null,
 ) => {

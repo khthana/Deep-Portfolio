@@ -1,6 +1,3 @@
-import type { JSONContent } from "@tiptap/react";
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
-
 // GetActivityDetailResp, RubricDetail, RubricLevel and ScoreWeightDetail used
 // to be declared here. They moved to @deep-portfolio/api-types (#68) — import
 // ActivityDetailResp, RubricDetail, RubricLevel and
@@ -10,21 +7,11 @@ import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 // said Date now say string, and both nested shapes gained the bookkeeping
 // columns the endpoint had been sending all along; see ADR-0032.
 
-export type GetLearningActivityDetailResp = {
-  week_no: number | undefined;
-  learning_activity_type: "INDIVIDUAL" | "GROUP";
-  learning_activity_name: string;
-  created_at: Date | null;
-  updated_at: Date | null;
-  announcement_date: Date | null;
-  deadline_date: Date | null;
-  course_syllabus_id: number | null;
-  section_id: number;
-  detail: JSONContent | null;
-  learning_activity_id: number;
-
-  attachments: AttachmentDetailResp | null;
-};
+// GetLearningActivityDetailResp used to be declared here. It moved to
+// @deep-portfolio/api-types (#68) as LearningActivityDetailResp — the dates
+// that said Date now say string, `attachments` is never null, `detail` is
+// unknown, and week_no is gone because this endpoint has never sent it. See
+// ADR-0033.
 
 /**
  * The people invited into a group who are not in it: `PENDING` if the
