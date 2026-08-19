@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Table, type TableProps } from "antd";
 import WhiteContainer from "../../../../../components/container/white-container";
-import type { RubricDetail } from "../../../../../types/activity-type.type";
+import type { RubricDetail } from "@deep-portfolio/api-types";
 
 type Props = {
   rubrics: RubricDetail[];

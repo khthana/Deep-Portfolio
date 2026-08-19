@@ -73,7 +73,12 @@ export const checkIsTomorrow = (date: Date | null) => {
   return isSameDay(new Date(date), tomorrow);
 };
 
-export const checkIsOverSubmittionDeadline = (deadline: Date | null) => {
+/** Widened for the same reason `convertDateToThaiFormat` was (ADR-0029 §5):
+ *  the deadline arrives over JSON, so it is a string, and the body already
+ *  builds a Date from whatever it is given. */
+export const checkIsOverSubmittionDeadline = (
+  deadline: Date | string | null,
+) => {
   if (!deadline) return false;
 
   const now = new Date();

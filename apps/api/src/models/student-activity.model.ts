@@ -1,10 +1,10 @@
 import { Prisma } from "@prisma/client";
 import type {
+  ActivityDetailResp,
   AttachmentDetailResp,
   StudentActivityStatusDB,
 } from "@deep-portfolio/api-types";
 import { ClassworkType } from "./student.model";
-import { GetActivityDetailResp } from "./activity.model";
 import type { MemberStatus } from "./student-activity-group.model";
 import type {
   BookmarkStudentActivityBody,
@@ -75,7 +75,7 @@ export type GetStudentActivityDetail = {
   };
 };
 
-export type GetStudentActivityDetailResp = GetActivityDetailResp &
+export type GetStudentActivityDetailResp = ActivityDetailResp &
   GetStudentActivityDetail & { submitted_files: AttachmentDetailResp };
 
 //-------------------------------

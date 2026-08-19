@@ -1394,6 +1394,97 @@ describe("GET /activity", () => {
     ).toEqual(expect.arrayContaining(levels));
   });
 
+  it("answers with every key the row has, and dates as strings", async () => {
+    // The service spreads the Prisma row whole, so the body is the row plus
+    // three additions — and until #68 the type said otherwise in both
+    // directions. This is the pin the type was then written against, so it
+    // names every key rather than matching a subset.
+    const course = await createCourse();
+    const activity = await createActivity({ section_id: course.section_id });
+
+    const response = await request(app)
+      .get("/activity")
+      .query({ activity_id: activity.id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({
+      id: activity.id,
+      activity_id: activity.id,
+      score_ratio_id: null,
+      activity_type: "INDIVIDUAL",
+      activity_name: "งานตัวอย่าง",
+      description: "รายละเอียดงานตัวอย่าง",
+      score_number: 10,
+      announcement_date: null,
+      deadline_date: null,
+      course_syllabus_id: null,
+      is_average_score: false,
+      is_self_assessment: false,
+      detail: null,
+      section_id: course.section_id,
+      expected_level: null,
+      // Nothing is joined on, and the relation is optional — so this is null,
+      // not a missing key and not an empty object.
+      subject_score_ratio: null,
+      rubric_activity_mapping: [],
+      // Never null: getAllAttachments answers two lists whatever it finds.
+      attachments: { file: [], url: [] },
+      // Both default to now(), so the instant cannot be named — what is being
+      // pinned is that they arrive as strings, which is what the type says.
+      created_at: expect.any(String),
+      updated_at: expect.any(String),
+    });
+  });
+
+  it("sends the rubric and the score category as whole rows", async () => {
+    // Both nested shapes carry their own bookkeeping columns out to the
+    // caller — created_at, updated_at, and the rubric's created_by. Recorded
+    // as what the endpoint does, not as what it ought to do: #68 writes the
+    // type to the wire and changes no behaviour, so trimming the response is
+    // a separate question and nobody has asked it yet.
+    const course = await createCourse();
+    const weight = await createScoreWeight({ section_id: course.section_id });
+    const activity = await createActivity({
+      section_id: course.section_id,
+      score_weight_id: weight.score_ratio_id,
+    });
+    const rubric = await createActivityRubric({ activity_id: activity.id });
+
+    const response = await request(app)
+      .get("/activity")
+      .query({ activity_id: activity.id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.subject_score_ratio).toEqual({
+      score_ratio_id: weight.score_ratio_id,
+      sequence_order: weight.sequence_order,
+      score_category: weight.score_category,
+      weight: weight.weight,
+      section_id: course.section_id,
+      created_at: expect.any(String),
+      updated_at: expect.any(String),
+    });
+    expect(response.body.data.rubric_activity_mapping[0]).toEqual({
+      id: rubric.id,
+      activity_id: activity.id,
+      criteria: expect.any(String),
+      weight: expect.any(Number),
+      created_at: expect.any(String),
+      updated_at: expect.any(String),
+      created_by: null,
+      rubric_levels: expect.any(Array),
+    });
+    expect(
+      response.body.data.rubric_activity_mapping[0].rubric_levels[0],
+    ).toEqual({
+      id: expect.any(Number),
+      rubric_id: rubric.id,
+      level_no: expect.any(Number),
+      description: expect.any(String),
+      created_at: expect.any(String),
+    });
+  });
+
   it("answers with no data for an activity that does not exist", async () => {
     // The service returns undefined and the controller passes it straight on,
     // so the caller gets a 200 with nothing in it rather than a 404.
@@ -1465,6 +1556,46 @@ describe("GET /activity/list", () => {
         score_ratio_id: weight.score_ratio_id,
         score_category: "งานที่มอบหมาย",
       }),
+    });
+  });
+
+  it("answers with exactly the keys the list row has", async () => {
+    // The other pin for #68: this row is seven selected columns plus four
+    // counted or joined values, and nothing else. The type was written against
+    // this, so it names every key.
+    const course = await createCourse();
+    const weight = await createScoreWeight({ section_id: course.section_id });
+    const activity = await createActivity({
+      section_id: course.section_id,
+      score_weight_id: weight.score_ratio_id,
+      deadline_date: new Date("2026-06-01T10:00:00.000Z"),
+    });
+
+    const response = await request(app)
+      .get("/activity/list")
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data[0]).toEqual({
+      id: activity.id,
+      activity_name: "งานตัวอย่าง",
+      activity_type: "INDIVIDUAL",
+      score_ratio_id: weight.score_ratio_id,
+      announcement_date: null,
+      // The column is `timestamp` without a zone, so the instant written comes
+      // back as the same one whatever zone the machine running this is in.
+      deadline_date: "2026-06-01T10:00:00.000Z",
+      section_id: course.section_id,
+      subject_score_ratio: {
+        score_ratio_id: weight.score_ratio_id,
+        sequence_order: weight.sequence_order,
+        score_category: weight.score_category,
+        weight: weight.weight,
+        section_id: course.section_id,
+      },
+      student_count: 0,
+      submitted_count: 0,
+      pending_grading_count: 0,
     });
   });
 

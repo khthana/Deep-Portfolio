@@ -33,10 +33,13 @@ import WhiteContainer from "../../../../components/container/white-container";
 import type { UploadChangeParam, UploadFile } from "antd/es/upload";
 import PreviewListFile from "../../announcement/components/preview-list-file";
 import UploadLinkForm from "../../announcement/components/upload-link-form";
-import type { GetActivityDetailResp } from "../../../../types/activity-type.type";
+import type {
+  ActivityDetailResp,
+  FileDetail,
+  URLDetail,
+} from "@deep-portfolio/api-types";
 import FileWithRemoveButton from "../components/file-with-remove-button";
 import UrlWithRemoveButton from "./url-with-remove-button";
-import type { FileDetail, URLDetail } from "@deep-portfolio/api-types";
 
 type Props = {
   classworkForm: FormInstance<CreateActivityFormType>;
@@ -44,7 +47,7 @@ type Props = {
 
   edit?: boolean;
 
-  activityDetail?: GetActivityDetailResp;
+  activityDetail?: ActivityDetailResp;
 
   setRemoveFile?: React.Dispatch<React.SetStateAction<number[]>>;
 };

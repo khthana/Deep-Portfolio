@@ -1,10 +1,7 @@
 import type { JSONContent } from "@tiptap/react";
 import type { AttachmentDetailItem } from "../../announcement/types/announement-type";
 import type { StudentActivityStatusDB } from "@deep-portfolio/api-types";
-import type {
-  ScoreWeightDetail,
-  UnacceptedMember,
-} from "../../../../types/activity-type.type";
+import type { UnacceptedMember } from "../../../../types/activity-type.type";
 import type { ClassworkType } from "../../../student/course/types/course-type";
 
 export const activityType = {
@@ -78,19 +75,11 @@ export type CreateActivityFormType = {
 
 //---------------------------------------------
 
-export type GetAllActivityList = {
-  id: number;
-  activity_type: ClassworkType;
-  activity_name: string;
-  announcement_date: Date | null;
-  deadline_date: Date | null;
-  section_id: number | null;
-  subject_score_ratio?: ScoreWeightDetail;
-
-  submitted_count: number | null;
-  pending_grading_count: number | null;
-  student_count: number | null;
-};
+// GetAllActivityList used to be declared here. It moved to
+// @deep-portfolio/api-types as ActivityListItem (#68) — the endpoint answers a
+// list and this is one row of it, which the old name did not say. Its
+// `subject_score_ratio` was optional here and nullable there, which is what the
+// endpoint actually sends, and its three counts are never null. See ADR-0032.
 
 //----------------------------------------------
 

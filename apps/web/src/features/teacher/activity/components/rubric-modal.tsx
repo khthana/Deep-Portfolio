@@ -1,6 +1,6 @@
 import { Modal } from "antd";
 import type { Dispatch, SetStateAction } from "react";
-import type { RubricDetail } from "../../../../types/activity-type.type";
+import type { RubricDetail } from "@deep-portfolio/api-types";
 import RubricTable from "../../../student/course/components/classwork-detail/rubric-table";
 
 type Props = {

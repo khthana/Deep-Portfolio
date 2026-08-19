@@ -102,7 +102,13 @@ intersected with that feature's type rather than copied field by field, and
 passes is set by the dependency graph rather than by size — a shape several
 features embed moves before all of them, and a file mixing a runtime value
 with its types is split rather than moved whole, because the package compiles
-to nothing on purpose.
+to nothing on purpose, and `0032-activity-follows-the-row.md`, which says a
+response built by spreading a Prisma row is written from a test that names
+every key rather than from the type that was there — an `as` over the whole
+object hides the shape of every field at once — that one nested shape read two
+ways is two types, and that an unconstrained `json` column is `unknown` on the
+wire, because a recursive JSON union breaks Immer's draft recursion where the
+value is held in a slice.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

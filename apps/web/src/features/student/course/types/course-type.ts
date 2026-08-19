@@ -1,6 +1,8 @@
 import type { JSONContent } from "@tiptap/react";
-import type { RubricDetail } from "../../../../types/activity-type.type";
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
+import type {
+  AttachmentDetailResp,
+  RubricDetail,
+} from "@deep-portfolio/api-types";
 import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
 import type { GetStudentLearningActivityDetailResp } from "../../../../types/student-learning-activity-type.type";
 import type { CourseMaterialDetail } from "../../../teacher/material/types/course-material-type";
@@ -138,7 +140,13 @@ export type ClassworkDetailFull = {
   type: "INDIVIDUAL" | "GROUP";
   score: number | null;
   student_score: number | null;
-  deadline_date: Date | null;
+  // A string once it comes off /activity, which moved to
+  // @deep-portfolio/api-types (#68); still a Date off the learning-activity
+  // half, which has not moved yet. Both halves reach the same two readers —
+  // convertDateToThaiFormat and checkIsOverSubmittionDeadline — and each
+  // builds its own Date from whatever it is handed, so the union costs
+  // nothing and goes when the other half follows.
+  deadline_date: Date | string | null;
   detail: JSONContent | null;
   attachments: AttachmentDetailResp | null;
   rubrics: RubricDetail[] | null;
@@ -302,7 +310,10 @@ export const mapActivityDetail = (
   type: data.activity_type,
   score: data.score_number,
   deadline_date: data.deadline_date,
-  detail: data.detail,
+  // The API does not know what is in this column and says so — `unknown` off
+  // the wire (#68). The editor at this end is the only thing that ever wrote
+  // it, so this is the one place that says what it is.
+  detail: data.detail as JSONContent | null,
   attachments: data.attachments,
   rubrics: data.rubric_activity_mapping,
   expected_level: data.expected_level ?? null,

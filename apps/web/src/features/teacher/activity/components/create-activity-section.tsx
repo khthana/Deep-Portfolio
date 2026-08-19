@@ -21,13 +21,13 @@ import {
   appendAttachments,
   appendPrimitive,
 } from "../../../../utils/append-form-data";
-import type { GetActivityDetailResp } from "../../../../types/activity-type.type";
+import type { ActivityDetailResp } from "@deep-portfolio/api-types";
 import { toRubricPayload } from "../utils/rubric-payload";
 import dayjs from "dayjs";
 
 type Props = {
   edit?: boolean;
-  activityDetail?: GetActivityDetailResp;
+  activityDetail?: ActivityDetailResp;
 };
 
 const CreateActivitySection = (props: Props) => {

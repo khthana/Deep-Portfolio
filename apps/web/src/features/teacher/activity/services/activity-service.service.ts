@@ -1,10 +1,12 @@
 import { endpoints } from "../../../../configs/endpoints.config";
 import { axiosInstance } from "../../../../lib/axios";
-import type { GetActivityDetailResp } from "../../../../types/activity-type.type";
+import type {
+  ActivityDetailResp,
+  ActivityListItem,
+} from "@deep-portfolio/api-types";
 import type { Options, ResponseWrapper } from "../../../../types/global-type";
 import type {
   AddStudentActivityToBookmark,
-  GetAllActivityList,
   GetAllSubmittedActivityByActivityIdResp,
   GradeStudentActivityData,
   GradeStudentActivityResp,
@@ -23,7 +25,7 @@ export const createActivity = async (formData: FormData) => {
 };
 
 export const getActivity = async (activity_id: number) => {
-  const resp = await axiosInstance.get<ResponseWrapper<GetActivityDetailResp>>(
+  const resp = await axiosInstance.get<ResponseWrapper<ActivityDetailResp>>(
     endpoints.activity.root,
     { params: { activity_id } },
   );
@@ -64,7 +66,7 @@ export const getActivityOptions = async (section_id: number) => {
 };
 
 export const getAllActivityList = async (section_id: number) => {
-  const resp = await axiosInstance.get<ResponseWrapper<GetAllActivityList[]>>(
+  const resp = await axiosInstance.get<ResponseWrapper<ActivityListItem[]>>(
     endpoints.activity.list,
     {
       params: { section_id },

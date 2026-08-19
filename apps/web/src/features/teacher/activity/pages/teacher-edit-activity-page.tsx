@@ -8,7 +8,7 @@ import type { AppDispatch } from "../../../../stores/stores";
 import { useDispatch } from "react-redux";
 import { useEffect, useState } from "react";
 import { fetchActivity } from "../stores/teacher-activity-action";
-import type { GetActivityDetailResp } from "../../../../types/activity-type.type";
+import type { ActivityDetailResp } from "@deep-portfolio/api-types";
 
 const TeacherEditActivityPage = () => {
   const { secId, activityId } = useParams();
@@ -19,7 +19,7 @@ const TeacherEditActivityPage = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   const [activityDetail, setActivityDetail] =
-    useState<GetActivityDetailResp | null>(null);
+    useState<ActivityDetailResp | null>(null);
 
   const handleFetchData = async () => {
     try {

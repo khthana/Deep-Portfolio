@@ -1,5 +1,7 @@
-import type { GetActivityDetailResp } from "./activity-type.type";
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
+import type {
+  ActivityDetailResp,
+  AttachmentDetailResp,
+} from "@deep-portfolio/api-types";
 import type { ClassworkStatus } from "../features/student/course/types/course-type";
 
 export type GetStudentActivityDetail = {
@@ -26,5 +28,5 @@ export type GetStudentActivityDetail = {
   };
 };
 
-export type GetStudentActivityDetailResp = GetActivityDetailResp &
+export type GetStudentActivityDetailResp = ActivityDetailResp &
   GetStudentActivityDetail & { submitted_files: AttachmentDetailResp };

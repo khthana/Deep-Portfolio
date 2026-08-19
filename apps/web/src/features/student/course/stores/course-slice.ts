@@ -27,15 +27,15 @@ import {
   fetchStudentLearningActivityWithoutGroup,
   fetchStudentEvaluationList,
 } from "./course-action";
-import type { CourseDetail } from "@deep-portfolio/api-types";
+import type {
+  ActivityDetailResp,
+  CourseDetail,
+} from "@deep-portfolio/api-types";
 import type {
   AnnouncementDetailResp,
   ScoreWeightResp,
 } from "../../../../types/course-type.type";
-import type {
-  GetActivityDetailResp,
-  GetLearningActivityDetailResp,
-} from "../../../../types/activity-type.type";
+import type { GetLearningActivityDetailResp } from "../../../../types/activity-type.type";
 import {
   mapActivityDetail,
   mapLearningActivityDetail,
@@ -53,7 +53,7 @@ type StudentCourseSlice = {
   selectedClasswork: GetStudentActivityDetailResp | null;
   classworkDetail: ClassworkDetailFull | null;
   announcements: AnnouncementDetailResp[];
-  activities: GetActivityDetailResp[];
+  activities: ActivityDetailResp[];
   learningActivities: GetLearningActivityDetailResp[];
   allClasswork: ClassworkDetailResp | null;
   scoreWeight: ScoreWeightResp[];

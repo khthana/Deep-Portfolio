@@ -22,14 +22,16 @@ import {
 } from "../services/activity-service.service";
 import type {
   AddStudentActivityToBookmark,
-  GetAllActivityList,
   GetAllSubmittedActivityByActivityIdResp,
   GradeStudentActivityData,
   GradeStudentActivityResp,
 } from "../types/activity-type.type";
+import type {
+  ActivityDetailResp,
+  ActivityListItem,
+} from "@deep-portfolio/api-types";
 import { getStudentActivityDetail } from "../../../../services/student-activity-service.service";
 import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
-import type { GetActivityDetailResp } from "../../../../types/activity-type.type";
 
 export const fetchSharedRubric = createAsyncThunk<
   ResponseWrapper<SharedRubricResp[]>,
@@ -44,7 +46,7 @@ export const fetchSharedRubricDetail = createAsyncThunk<
 //---------------------------------------------------
 
 export const fetchActivity = createAsyncThunk<
-  ResponseWrapper<GetActivityDetailResp>,
+  ResponseWrapper<ActivityDetailResp>,
   number
 >("activity/detail", getActivity);
 
@@ -64,7 +66,7 @@ export const putActivity = createAsyncThunk<
 >("activity/update", updateActivity);
 
 export const fetchAllActivity = createAsyncThunk<
-  ResponseWrapper<GetAllActivityList[]>,
+  ResponseWrapper<ActivityListItem[]>,
   number
 >("activity", getAllActivityList);
 

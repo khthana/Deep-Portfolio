@@ -1,18 +1,33 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import {
-  GetActivityDetailResp,
   CreateActivityReqBody,
-  GetAllActivityList,
   UpdateActivityReqBody,
 } from "../models/activity.model";
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
-import { ClassworkType } from "../models/student.model";
+import type {
+  ActivityDetailResp,
+  ActivityListItem,
+  ActivityType,
+  AttachmentDetailResp,
+} from "@deep-portfolio/api-types";
 import { HttpError } from "../utils/http-error";
 import AttachmentsService, {
   transactionWithUploads,
 } from "./attachments.service";
 import MinIOService from "./upload.service";
+
+/**
+ * The one narrowing left in this file, and the only one the row needs.
+ *
+ * `activities.activity_type` is a `VarChar(20)` stored lower case, so the
+ * column itself promises nothing. What promises something is the way in:
+ * `classworkType` is a two-value enum and `POST`/`PUT /activity` are the only
+ * writers, so every row the system creates upper-cases to one of these two. A
+ * row written another way would pass through unchanged, which is why this is
+ * one assertion with a reason rather than an `as` over the whole object — that
+ * one used to hide the shape of everything else along with it (#68).
+ */
+const toActivityType = (stored: string) => stored.toUpperCase() as ActivityType;
 
 /** A level as it stands in the database: what it is, and where in the scale it
  *  currently sits. */
@@ -505,7 +520,7 @@ export default class ActivityService {
     }
   }
 
-  async getAllActivity(section_id: number): Promise<GetAllActivityList[]> {
+  async getAllActivity(section_id: number): Promise<ActivityListItem[]> {
     const allActivity = await prisma.activities.findMany({
       where: { section_id: section_id },
       select: {
@@ -554,8 +569,10 @@ export default class ActivityService {
           submitted_count: submittedCount.length,
           pending_grading_count: pendingGradingCount.length,
           // attachments,
-          activity_type: activity.activity_type.toUpperCase(),
-        } as GetAllActivityList;
+          announcement_date: activity.announcement_date?.toISOString() ?? null,
+          deadline_date: activity.deadline_date?.toISOString() ?? null,
+          activity_type: toActivityType(activity.activity_type),
+        };
       }),
     );
 
@@ -565,7 +582,7 @@ export default class ActivityService {
   async getActivityDetail(
     id: number,
     tx?: Prisma.TransactionClient,
-  ): Promise<GetActivityDetailResp | undefined> {
+  ): Promise<ActivityDetailResp | undefined> {
     const prismaClient = tx ?? prisma;
 
     const activity = await prismaClient.activities.findUnique({
@@ -587,9 +604,34 @@ export default class ActivityService {
     return {
       ...activity,
       activity_id: activity.id,
-      activity_type: activity.activity_type.toUpperCase() as ClassworkType,
+      activity_type: toActivityType(activity.activity_type),
+      // Written out here rather than left to res.json, which calls the same
+      // toJSON() on the way past — the annotation on this method says string,
+      // and that is what a caller parses (#68).
+      announcement_date: activity.announcement_date?.toISOString() ?? null,
+      deadline_date: activity.deadline_date?.toISOString() ?? null,
+      created_at: activity.created_at?.toISOString() ?? null,
+      updated_at: activity.updated_at?.toISOString() ?? null,
+      subject_score_ratio: activity.subject_score_ratio && {
+        ...activity.subject_score_ratio,
+        created_at:
+          activity.subject_score_ratio.created_at?.toISOString() ?? null,
+        updated_at:
+          activity.subject_score_ratio.updated_at?.toISOString() ?? null,
+      },
+      rubric_activity_mapping: activity.rubric_activity_mapping.map(
+        (rubric) => ({
+          ...rubric,
+          created_at: rubric.created_at?.toISOString() ?? null,
+          updated_at: rubric.updated_at?.toISOString() ?? null,
+          rubric_levels: rubric.rubric_levels.map((level) => ({
+            ...level,
+            created_at: level.created_at?.toISOString() ?? null,
+          })),
+        }),
+      ),
       attachments,
-    } as GetActivityDetailResp;
+    };
   }
 
   async getAllAttachments(

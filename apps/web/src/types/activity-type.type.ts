@@ -1,57 +1,14 @@
 import type { JSONContent } from "@tiptap/react";
-import type { activityType } from "../features/teacher/activity/types/activity-type.type";
 import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 
-export type GetActivityDetailResp = {
-  activity_id: number;
-  activity_type: activityType;
-  activity_name: string;
-  description: string | null;
-  created_at: Date | null;
-  updated_at: Date | null;
-  score_number: number | null;
-  announcement_date: Date | null;
-  deadline_date: Date | null;
-  course_syllabus_id: number | null;
-  is_average_score: boolean;
-  is_self_assessment: boolean;
-  detail: JSONContent | null;
-  section_id: number | null;
-  score_ratio_id: number | null;
-
-  sequence_order?: number;
-  score_category?: string;
-  weight?: number | null;
-  expected_level?: number;
-
-  rubric_activity_mapping: RubricDetail[];
-  attachments: AttachmentDetailResp | null;
-  subject_score_ratio: ScoreWeightDetail;
-};
-
-export type RubricDetail = {
-  id: number;
-  weight: number;
-  activity_id: number;
-  criteria: string;
-
-  rubric_levels: RubricLevel[];
-};
-
-export type RubricLevel = {
-  description: string;
-  id: number;
-  rubric_id: number;
-  level_no: number;
-};
-
-export type ScoreWeightDetail = {
-  score_ratio_id: number;
-  sequence_order: number;
-  score_category: string;
-  weight: number;
-  section_id: number;
-};
+// GetActivityDetailResp, RubricDetail, RubricLevel and ScoreWeightDetail used
+// to be declared here. They moved to @deep-portfolio/api-types (#68) — import
+// ActivityDetailResp, RubricDetail, RubricLevel and
+// ScoreWeightBrief/ScoreWeightDetail from there. The score category is two
+// types now because the two endpoints read it differently: the list selects
+// five columns (Brief) and the detail joins the row (Detail). The dates that
+// said Date now say string, and both nested shapes gained the bookkeeping
+// columns the endpoint had been sending all along; see ADR-0032.
 
 export type GetLearningActivityDetailResp = {
   week_no: number | undefined;

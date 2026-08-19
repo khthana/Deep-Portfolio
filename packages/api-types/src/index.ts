@@ -10,7 +10,9 @@
  * The course feature moved first, then the gradebook, then the student's
  * evaluation list, then attachments — which is not a feature of its own but
  * the shape six of them embed, and was moved ahead of all six on purpose
- * (docs/adr/0031-attachments-are-the-leaf.md).
+ * (docs/adr/0031-attachments-are-the-leaf.md) — and then the teacher's
+ * assessment endpoints, which brought the rubric and the score category with
+ * them (docs/adr/0032-activity-follows-the-row.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -22,6 +24,12 @@ export type {
   FieldError,
   FieldLocation,
 } from "./envelope";
+
+export type {
+  ActivityDetailResp,
+  ActivityListItem,
+  ActivityType,
+} from "./activity";
 
 export type { AttachmentDetailResp, FileDetail, URLDetail } from "./attachment";
 
@@ -49,5 +57,9 @@ export type {
   GradebookStudent,
   GradebookStudentActivity,
 } from "./gradebook";
+
+export type { RubricDetail, RubricLevel } from "./rubric";
+
+export type { ScoreWeightBrief, ScoreWeightDetail } from "./score-weight";
 
 export type { StudentActivityStatusDB } from "./student-activity";

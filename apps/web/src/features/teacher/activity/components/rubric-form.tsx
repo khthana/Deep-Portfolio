@@ -7,7 +7,7 @@ import type {
   CreateRubricFormType,
   RubricDetailForm,
 } from "../types/rubric-type.type";
-import type { RubricDetail } from "../../../../types/activity-type.type";
+import type { RubricDetail } from "@deep-portfolio/api-types";
 
 type Props = {
   setOpenModal: Dispatch<SetStateAction<boolean>>;
