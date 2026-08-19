@@ -8,10 +8,13 @@
  * which are what actually refuses a bad one.
  *
  * The course feature moved first, then the gradebook, then the student's
- * evaluation list; docs/adr/0028-shared-api-types.md says why the package is
- * shaped this way and docs/adr/0029-api-types-per-feature.md what each pass
- * after the first has to do. The rest are still written twice, one feature at
- * a time (#68).
+ * evaluation list, then attachments — which is not a feature of its own but
+ * the shape six of them embed, and was moved ahead of all six on purpose
+ * (docs/adr/0031-attachments-are-the-leaf.md).
+ *
+ * docs/adr/0028-shared-api-types.md says why the package is shaped this way
+ * and docs/adr/0029-api-types-per-feature.md what each pass after the first
+ * has to do. The rest are still written twice, one feature at a time (#68).
  */
 export type {
   ApiError,
@@ -19,6 +22,8 @@ export type {
   FieldError,
   FieldLocation,
 } from "./envelope";
+
+export type { AttachmentDetailResp, FileDetail, URLDetail } from "./attachment";
 
 export type {
   CLOResp,

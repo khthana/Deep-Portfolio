@@ -1,4 +1,4 @@
-import type { URLDetail } from "../../../../types/attachment-type.type";
+import type { URLDetail } from "@deep-portfolio/api-types";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 
 type Props = {

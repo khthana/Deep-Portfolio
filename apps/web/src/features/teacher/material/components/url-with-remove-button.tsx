@@ -1,5 +1,5 @@
 import { DeleteOutlined } from "@ant-design/icons";
-import type { URLDetail } from "../../../../types/attachment-type.type";
+import type { URLDetail } from "@deep-portfolio/api-types";
 import type { AppDispatch } from "../../../../stores/stores";
 import { useDispatch } from "react-redux";
 import { removeCourseMaterial } from "../stores/teacher-material-action";

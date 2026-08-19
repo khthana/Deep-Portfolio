@@ -49,7 +49,7 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1057 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 1058 API cases over
   40 files, 451 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
@@ -132,8 +132,11 @@ and the student's evaluation list followed on 2026-08-19, which is where
 ADR-0030 came from: a response holding two shapes of row is a union
 discriminated on its own field, not one row with every difference marked
 optional. That pass also filed **#69**, where `GRADING` has no Thai word on
-the evaluation table and would draw an empty cell. 38 files and 2,111 lines
-are still web-side.
+the evaluation table and would draw an empty cell. Attachments moved the same
+day, and ADR-0031 came out of it: the order of the remaining passes is set by
+the dependency graph, not by which feature is biggest — read it before picking
+the next one, because the obvious next feature turned out to be unmovable on
+its own. 38 files and 2,096 lines are still web-side.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

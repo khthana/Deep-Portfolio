@@ -1,7 +1,4 @@
-import type {
-  FileDetail,
-  URLDetail,
-} from "../../../../types/attachment-type.type";
+import type { FileDetail, URLDetail } from "@deep-portfolio/api-types";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import { AttachmentType } from "../../announcement/types/announement-type";
 

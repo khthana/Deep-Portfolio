@@ -1,5 +1,5 @@
 import type { GetActivityDetailResp } from "./activity-type.type";
-import type { AttachmentDetailResp } from "./attachment-type.type";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import type { ClassworkStatus } from "../features/student/course/types/course-type";
 
 export type GetStudentActivityDetail = {

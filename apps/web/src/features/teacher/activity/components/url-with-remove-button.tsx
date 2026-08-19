@@ -1,5 +1,5 @@
 import { DeleteOutlined, PaperClipOutlined } from "@ant-design/icons";
-import type { URLDetail } from "../../../../types/attachment-type.type";
+import type { URLDetail } from "@deep-portfolio/api-types";
 import { Popconfirm } from "antd";
 
 type Props = {

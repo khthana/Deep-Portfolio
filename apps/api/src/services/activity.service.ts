@@ -6,7 +6,7 @@ import {
   GetAllActivityList,
   UpdateActivityReqBody,
 } from "../models/activity.model";
-import { AttachmentDetailResp } from "../models/announcement.model";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import { ClassworkType } from "../models/student.model";
 import { HttpError } from "../utils/http-error";
 import AttachmentsService, {

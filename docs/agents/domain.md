@@ -97,7 +97,12 @@ another pass of #68, and `0030-evaluation-row-union.md`, which says a response
 holding more than one shape of row is written as a union discriminated on the
 field that already tells them apart, not as one row with every difference
 marked optional, and that a row borrowed whole from another feature is
-intersected with that feature's type rather than copied field by field.
+intersected with that feature's type rather than copied field by field, and
+`0031-attachments-are-the-leaf.md`, which says the order of the remaining
+passes is set by the dependency graph rather than by size — a shape several
+features embed moves before all of them, and a file mixing a runtime value
+with its types is split rather than moved whole, because the package compiles
+to nothing on purpose.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

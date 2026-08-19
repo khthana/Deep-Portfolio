@@ -579,6 +579,43 @@ describe("GET /announcement/:id/attachments", () => {
     ]);
   });
 
+  it("sends uploaded_at as an ISO string and file_size as a number", async () => {
+    // The shape of an attachment is the same wherever one appears — six
+    // features embed it — so this is the one place it is pinned to what JSON
+    // actually carries (#68). `uploaded_at` is a Date in the column and a
+    // string on the wire; `file_size` is a BigInt in the column, which
+    // JSON.stringify refuses outright, and the service converts it.
+    //
+    // The expected string names UTC because the value written did: the column
+    // is `timestamptz`, so Postgres holds the instant and hands the same one
+    // back whatever zone the machine running this is in.
+    const course = await createCourse();
+    const file = await createFileAttachment({
+      file_size: 2048,
+      uploaded_at: new Date("2026-05-01T07:30:00.000Z"),
+    });
+    const link = await createLinkAttachment({
+      uploaded_at: new Date("2026-05-02T07:30:00.000Z"),
+    });
+    const announcement = await createAnnouncement({
+      section_id: course.section_id,
+      attachment_ids: [file.attachment_id, link.attachment_id],
+    });
+
+    const response = await request(app).get(
+      `/announcement/${announcement.announcement_id}/attachments`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.file[0]).toMatchObject({
+      file_size: 2048,
+      uploaded_at: "2026-05-01T07:30:00.000Z",
+    });
+    expect(response.body.data.url[0]).toMatchObject({
+      uploaded_at: "2026-05-02T07:30:00.000Z",
+    });
+  });
+
   it("returns empty lists for an announcement with no attachments", async () => {
     const course = await createCourse();
     const announcement = await createAnnouncement({

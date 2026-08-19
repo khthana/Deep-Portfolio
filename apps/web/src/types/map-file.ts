@@ -1,5 +1,5 @@
 import type { UploadFile } from "antd/es/upload/interface";
-import type { FileDetail } from "./attachment-type.type";
+import type { FileDetail } from "@deep-portfolio/api-types";
 
 export const mapFileDetailToUploadFile = (file: FileDetail): UploadFile => {
   return {

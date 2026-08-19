@@ -1,7 +1,7 @@
 import prisma from "../config/prisma";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import {
   AnnouncementDetailResp,
-  AttachmentDetailResp,
   CreateAnnouncementReqBody,
 } from "../models/announcement.model";
 import AttachmentsService, {

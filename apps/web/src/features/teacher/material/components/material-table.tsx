@@ -9,7 +9,7 @@ import {
   fetchCourseMaterial,
   postCourseMaterial,
 } from "../stores/teacher-material-action";
-import type { AttachmentDetailResp } from "../../../../types/attachment-type.type";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import { type AttachmentDetailItem } from "../../announcement/types/announement-type";
 
 export type DataType = {

@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
-import type { StudentActivityStatusDB } from "@deep-portfolio/api-types";
-import { AttachmentDetailResp } from "./announcement.model";
+import type {
+  AttachmentDetailResp,
+  StudentActivityStatusDB,
+} from "@deep-portfolio/api-types";
 import {
   StudentActivityStatus,
   SubmissionGroup,

@@ -1,6 +1,6 @@
 import type { JSONContent } from "@tiptap/react";
 import type { RubricDetail } from "../../../../types/activity-type.type";
-import type { AttachmentDetailResp } from "../../../../types/attachment-type.type";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import type { GetStudentActivityDetailResp } from "../../../../types/student-activity-type.type";
 import type { GetStudentLearningActivityDetailResp } from "../../../../types/student-learning-activity-type.type";
 import type { CourseMaterialDetail } from "../../../teacher/material/types/course-material-type";

@@ -5,7 +5,7 @@ import {
 } from "@ant-design/icons";
 import type { AttachmentItemsType, DataType } from "./material-table";
 import UploadSection from "./upload-section";
-import type { AttachmentDetailResp } from "../../../../types/attachment-type.type";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import { Spin, type FormInstance } from "antd";
 import FileWithRemoveButton from "./file-with-remove-button";
 import UrlWithRemoveButton from "./url-with-remove-button";

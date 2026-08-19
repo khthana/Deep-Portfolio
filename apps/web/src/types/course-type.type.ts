@@ -1,7 +1,5 @@
-import type {
-  AttachmentDetailResp,
-  AttachmentType,
-} from "./attachment-type.type";
+import type { AttachmentType } from "./attachment-type.type";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 
 /**
  * `CourseDetail`, `CLOResp` and `PLOResp` used to be written out here. They now

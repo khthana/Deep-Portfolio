@@ -25,6 +25,10 @@ export interface FileAttachmentOptions {
   /** The extension, upper-cased and without the dot — that is what the upload
    *  path writes, so the default matches it. */
   file_type?: string;
+  /** The column defaults to now(), which is right for every case that does not
+   *  care. A case that asserts the value itself passes one, because now() is
+   *  not something an expectation can name. */
+  uploaded_at?: Date;
 }
 
 export function createFileAttachment(options: FileAttachmentOptions = {}) {
@@ -38,6 +42,7 @@ export function createFileAttachment(options: FileAttachmentOptions = {}) {
       original_filename,
       file_size: BigInt(options.file_size ?? 1024),
       file_type: options.file_type ?? "PDF",
+      uploaded_at: options.uploaded_at,
     },
   });
 }
@@ -45,6 +50,8 @@ export function createFileAttachment(options: FileAttachmentOptions = {}) {
 export interface LinkAttachmentOptions {
   title?: string;
   url?: string;
+  /** As above — the column defaults to now(). */
+  uploaded_at?: Date;
 }
 
 export function createLinkAttachment(options: LinkAttachmentOptions = {}) {
@@ -53,6 +60,7 @@ export function createLinkAttachment(options: LinkAttachmentOptions = {}) {
       title: options.title ?? "ลิงก์ตัวอย่าง",
       attachment_type: "link",
       url: options.url ?? "https://example.test/material",
+      uploaded_at: options.uploaded_at,
     },
   });
 }

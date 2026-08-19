@@ -4,7 +4,7 @@ import { fetchStudentLessonPlanWithMaterial } from "../stores/course-action";
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../../../stores/stores";
-import type { AttachmentDetailResp } from "../../../../types/attachment-type.type";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import { getFile } from "../../../../utils/get-file";
 
 type Props = {

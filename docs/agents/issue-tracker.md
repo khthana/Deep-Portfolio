@@ -124,8 +124,9 @@ Run `gh issue view <number> --comments`.
   `#68` (`ready-for-agent`) is the 38 web type files that still hold copies of
   what the API answers, moved one feature at a time — the gradebook landed on
   2026-08-15 and left ADR-0029 behind it, the student's evaluation list on
-  2026-08-19 leaving ADR-0030 and `#69`, and the ticket stays open with the rest
-  of the features on it — and `#67` (`needs-info`) is
+  2026-08-19 leaving ADR-0030 and `#69`, and attachments the same day leaving
+  ADR-0031, which sets the order of what is left; the ticket stays open with the
+  rest of the features on it — and `#67` (`needs-info`) is
   `ResponseWrapper`, read in 277 places and disagreeing with the envelope the
   API actually answers in.
 

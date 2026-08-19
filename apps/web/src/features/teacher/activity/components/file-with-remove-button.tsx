@@ -3,7 +3,7 @@ import {
   FilePdfOutlined,
   PictureOutlined,
 } from "@ant-design/icons";
-import type { FileDetail } from "../../../../types/attachment-type.type";
+import type { FileDetail } from "@deep-portfolio/api-types";
 import { Popconfirm } from "antd";
 import type { Dispatch, SetStateAction } from "react";
 import { getFile } from "../../../../utils/get-file";

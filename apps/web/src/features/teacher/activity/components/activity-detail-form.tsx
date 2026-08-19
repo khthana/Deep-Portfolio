@@ -36,10 +36,7 @@ import UploadLinkForm from "../../announcement/components/upload-link-form";
 import type { GetActivityDetailResp } from "../../../../types/activity-type.type";
 import FileWithRemoveButton from "../components/file-with-remove-button";
 import UrlWithRemoveButton from "./url-with-remove-button";
-import type {
-  FileDetail,
-  URLDetail,
-} from "../../../../types/attachment-type.type";
+import type { FileDetail, URLDetail } from "@deep-portfolio/api-types";
 
 type Props = {
   classworkForm: FormInstance<CreateActivityFormType>;

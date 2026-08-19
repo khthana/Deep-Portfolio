@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
-import { AttachmentDetailResp } from "../models/announcement.model";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import {
   AddStudentActivityToBookmark,
   CalculateRubricScore,

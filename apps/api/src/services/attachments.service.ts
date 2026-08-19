@@ -1,6 +1,10 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
-import { FileDetail, URLDetail } from "../models/announcement.model";
+import type {
+  AttachmentDetailResp,
+  FileDetail,
+  URLDetail,
+} from "@deep-portfolio/api-types";
 import { UploadAttachments } from "../models/attachments.model";
 import { formatFileType } from "../utils/format-file-type";
 import { signFileUrl } from "../utils/file-url";
@@ -189,7 +193,7 @@ export default class AttachmentsService {
       attachment_id: number;
     }[],
     tx?: Prisma.TransactionClient,
-  ) {
+  ): Promise<AttachmentDetailResp> {
     const prismaClient = tx ?? prisma;
 
     const attachments = await prismaClient.attachments.findMany({
@@ -209,7 +213,7 @@ export default class AttachmentsService {
           attachment_id: attachment.attachment_id,
           title: attachment.title,
           url: attachment.url!,
-          uploaded_at: attachment.uploaded_at,
+          uploaded_at: attachment.uploaded_at?.toISOString() ?? null,
         });
       } else {
         files.push({
@@ -225,7 +229,11 @@ export default class AttachmentsService {
           file_size: Number(attachment.file_size!),
           file_type: attachment.file_type!,
           original_filename: attachment.original_filename!,
-          uploaded_at: attachment.uploaded_at,
+          // Written out here rather than left to res.json, which would call
+          // the same toJSON() on the way past: the type says string because
+          // that is what a caller parses, and the compiler holds this method
+          // to it (#68, ADR-0028 §1).
+          uploaded_at: attachment.uploaded_at?.toISOString() ?? null,
         });
       }
     }

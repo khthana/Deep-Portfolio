@@ -1,4 +1,4 @@
-import { AttachmentDetailResp } from "./announcement.model";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import { UploadURLDetail } from "./attachments.model";
 
 export type GetCourseMaterialDetailResp = {

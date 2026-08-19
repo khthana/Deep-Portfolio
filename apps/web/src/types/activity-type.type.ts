@@ -1,6 +1,6 @@
 import type { JSONContent } from "@tiptap/react";
 import type { activityType } from "../features/teacher/activity/types/activity-type.type";
-import type { AttachmentDetailResp } from "./attachment-type.type";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 
 export type GetActivityDetailResp = {
   activity_id: number;

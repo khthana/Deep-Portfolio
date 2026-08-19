@@ -1,4 +1,4 @@
-import type { AttachmentDetailResp } from "../../../../types/attachment-type.type";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 
 export type GetCourseMaterialDetailResp = {
   course_syllabus_id: number;

@@ -1,4 +1,5 @@
 import { $Enums, Prisma } from "@prisma/client";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import type { CreateAnnouncementBody } from "../validation/announcement.schema";
 
 /**
@@ -34,26 +35,4 @@ export type AnnouncementDetailResp = {
   view_count: number | null;
   announcement_id: number;
   attachments: AttachmentDetailResp | null;
-};
-
-export type AttachmentDetailResp = {
-  file: FileDetail[];
-  url: URLDetail[];
-};
-
-export type FileDetail = {
-  attachment_id: number;
-  title: string;
-  file_path: string;
-  original_filename: string;
-  file_size: number;
-  file_type: string;
-  uploaded_at: Date | null;
-};
-
-export type URLDetail = {
-  attachment_id: number;
-  title: string;
-  url: string;
-  uploaded_at: Date | null;
 };

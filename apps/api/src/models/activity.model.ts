@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { AttachmentDetailResp } from "./announcement.model";
+import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
 import { ClassworkType } from "./student.model";
 import type {
   CreateActivityBody,

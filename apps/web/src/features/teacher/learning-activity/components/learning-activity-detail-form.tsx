@@ -22,10 +22,7 @@ import PreviewListFile from "../../announcement/components/preview-list-file";
 import UploadLinkForm from "../../announcement/components/upload-link-form";
 import type { UploadChangeParam, UploadFile } from "antd/es/upload";
 import type { GetLearningActivityDetailResp } from "../../../../types/activity-type.type";
-import type {
-  FileDetail,
-  URLDetail,
-} from "../../../../types/attachment-type.type";
+import type { FileDetail, URLDetail } from "@deep-portfolio/api-types";
 import FileWithRemoveButton from "../../activity/components/file-with-remove-button";
 import UrlWithRemoveButton from "../../activity/components/url-with-remove-button";
 import type { MessageInstance } from "antd/es/message/interface";
