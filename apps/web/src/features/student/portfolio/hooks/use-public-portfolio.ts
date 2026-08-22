@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
+import type { PublicPortfolioDetail } from "@deep-portfolio/api-types";
 import { getFile } from "../../../../utils/get-file";
+import { cleanNullStr } from "../../../../utils/clean-null-str";
+import type { ResponseWrapper } from "../../../../types/global-type";
 import type { PortfolioData } from "../components/e-portfolio-template/types";
 import { axiosInstance } from "../../../../lib/axios";
 import {
@@ -35,22 +38,17 @@ export const usePublicPortfolio = (
           return;
         }
 
-        // Use custom endpoint for public portfolio
-        const resp = await axiosInstance.get(`/portfolio/public/${token}`);
+        // The one route in the group with no session behind it: the token in
+        // the URL is the credential (ADR-0001), so this is the only fetch here
+        // that does not go through a service in src/services.
+        const resp = await axiosInstance.get<
+          ResponseWrapper<PublicPortfolioDetail>
+        >(`/portfolio/public/${token}`);
         if (!resp.data.success)
           throw new Error(resp.data.message || "Failed to fetch portfolio");
 
-        const cleanNullStr = (val: any): any => {
-          if (val === "null" || val === "undefined") return "";
-          if (Array.isArray(val)) return val.map(cleanNullStr);
-          if (val !== null && typeof val === "object") {
-            return Object.fromEntries(
-              Object.entries(val).map(([k, v]) => [k, cleanNullStr(v)]),
-            );
-          }
-          return val;
-        };
-
+        // The same cleanNullStr src/utils has, which this file used to carry a
+        // second copy of, character for character (#68).
         const cleanedData = cleanNullStr(resp.data.data);
 
         const {
@@ -70,8 +68,8 @@ export const usePublicPortfolio = (
 
         const mappedData: PortfolioData = {
           ...matchedConfig,
-          selectedSkillIds: (matchedConfig.selectedSkillIds || []).map(
-            (id: any) => id.toString(),
+          selectedSkillIds: matchedConfig.selectedSkillIds.map((id) =>
+            id.toString(),
           ),
           personalInfo: mapPersonalInfo(userData, portfolioPersonalData, {
             firstName: "",
@@ -79,9 +77,9 @@ export const usePublicPortfolio = (
             fullName: "",
             profileImageUrl: "",
           }),
-          education: (educationData || [])
-            .filter((e: any) => e.is_show)
-            .map((e: any) => ({
+          education: educationData
+            .filter((e) => e.is_show)
+            .map((e) => ({
               id: e.id.toString(),
               startDate: formatBuddhistYear(e.start_year),
               endDate: formatBuddhistYear(e.end_year),
@@ -100,8 +98,8 @@ export const usePublicPortfolio = (
                       .filter(Boolean)
                       .join(" "),
             })),
-          works: (realWorks || []).map((w: any) => {
-            const relatedSkillIds = (w.relatedSkillIds || []).map((id: any) =>
+          works: realWorks.map((w) => {
+            const relatedSkillIds = w.relatedSkillIds.map((id) =>
               id.toString(),
             );
             return {
@@ -109,16 +107,19 @@ export const usePublicPortfolio = (
               id: w.id.toString(),
               relatedSkillIds,
               relatedSkills: relatedSkillIds.map((id: string) => {
-                const s = (skillsData || []).find(
-                  (sk: any) => sk.id.toString() === id,
-                );
+                const s = skillsData.find((sk) => sk.id.toString() === id);
                 return { id, name: s?.name || "ทักษะ" };
               }),
-              attachments: (w.attachments || []).map((a: any) => {
-                const ext = a.original_filename
-                  ?.split(".")
-                  .pop()
-                  ?.toLowerCase();
+              // The extension comes off fileName. It used to be read off
+              // original_filename, which this endpoint has never sent — the
+              // key is fileName here, where the section endpoints call it
+              // original_filename — so ext was undefined and isImg was always
+              // false. What reads this is the work detail page on the shared
+              // route, /p/:shareToken/work/:workId, which splits attachments
+              // into an image gallery and a file list: every image landed in
+              // the file list (#68, and BEHAVIOR-CHANGES.md).
+              attachments: w.attachments.map((a) => {
+                const ext = a.fileName.split(".").pop()?.toLowerCase();
                 const isImg = [
                   "jpg",
                   "jpeg",
@@ -130,31 +131,26 @@ export const usePublicPortfolio = (
                 ].includes(ext || "");
                 return {
                   ...a,
-                  id: a.attachment_id?.toString() || a.id?.toString() || "",
                   fileType: isImg ? "image" : ext === "pdf" ? "pdf" : "file",
-                  url: a.url
-                    ? a.url.startsWith("http")
-                      ? a.url
-                      : getFile(a.url)
-                    : undefined,
+                  url: a.url.startsWith("http") ? a.url : getFile(a.url),
                 };
               }),
             };
           }),
-          skills: (skillsData || []).map((s: any) => ({
+          skills: skillsData.map((s) => ({
             id: s.id.toString(),
             name: s.name || "",
           })),
-          trainings: (trainingData || [])
-            .filter((t: any) => t.is_show)
-            .map((t: any) => ({
+          trainings: trainingData
+            .filter((t) => t.is_show)
+            .map((t) => ({
               id: t.id.toString(),
               year: t.year?.toString() || "",
               organize: t.organize || "",
               name: t.name || "",
               description: t.description || "",
               country: t.country || "",
-              attachments: (t.attachments || []).map((a: any) => {
+              attachments: t.attachments.map((a) => {
                 const ext = a.original_filename
                   ?.split(".")
                   .pop()
@@ -180,9 +176,9 @@ export const usePublicPortfolio = (
                 };
               }),
             })),
-          certificates: (certificateData || [])
-            .filter((c: any) => c.is_show)
-            .map((c: any) => ({
+          certificates: certificateData
+            .filter((c) => c.is_show)
+            .map((c) => ({
               id: c.id.toString(),
               name: c.name || "",
               organizer: c.organize || "",
@@ -194,7 +190,7 @@ export const usePublicPortfolio = (
                   })
                 : "",
               description: c.description || "",
-              attachments: (c.attachments || []).map((a: any) => {
+              attachments: c.attachments.map((a) => {
                 const ext = a.original_filename
                   ?.split(".")
                   .pop()
@@ -220,7 +216,7 @@ export const usePublicPortfolio = (
                 };
               }),
             })),
-          experiences: (internshipData || []).map((i: any) => ({
+          experiences: internshipData.map((i) => ({
             id: i.id.toString(),
             title: i.title || "",
             year: i.start_date
@@ -252,7 +248,7 @@ export const usePublicPortfolio = (
             isShowLearning: i.is_show_learning ?? true,
             reflection: i.reflection || "",
             isShowReflection: i.is_show_reflec ?? true,
-            attachments: (i.attachments || []).map((a: any) => {
+            attachments: i.attachments.map((a) => {
               const ext = a.original_filename?.split(".").pop()?.toLowerCase();
               const isImg = [
                 "jpg",
@@ -275,9 +271,9 @@ export const usePublicPortfolio = (
               };
             }),
           })),
-          awards: (awardData || [])
-            .filter((a: any) => a.is_show)
-            .map((a: any) => ({
+          awards: awardData
+            .filter((a) => a.is_show)
+            .map((a) => ({
               id: a.id.toString(),
               name: a.name || "",
               organizer: a.organize || "",
@@ -290,7 +286,7 @@ export const usePublicPortfolio = (
                   })
                 : "",
               isShow: a.is_show ?? true,
-              attachments: (a.attachments || []).map((att: any) => {
+              attachments: a.attachments.map((att) => {
                 const ext = att.original_filename
                   ?.split(".")
                   .pop()
@@ -316,9 +312,9 @@ export const usePublicPortfolio = (
                 };
               }),
             })),
-          activities: (activityData || [])
-            .filter((a: any) => a.is_show)
-            .map((a: any) => ({
+          activities: activityData
+            .filter((a) => a.is_show)
+            .map((a) => ({
               id: a.id.toString(),
               year: a.date
                 ? (new Date(a.date).getFullYear() + 543).toString()
@@ -333,7 +329,7 @@ export const usePublicPortfolio = (
                     day: "numeric",
                   })
                 : undefined,
-              attachments: (a.attachments || []).map((att: any) => {
+              attachments: a.attachments.map((att) => {
                 const ext = att.original_filename
                   ?.split(".")
                   .pop()
@@ -359,7 +355,7 @@ export const usePublicPortfolio = (
                 };
               }),
             })),
-          projects: (thesisData || []).map((t: any) => ({
+          projects: thesisData.map((t) => ({
             id: t.id.toString(),
             title: t.name || "",
             tag: "โครงงานปริญญาตรี",
@@ -371,7 +367,7 @@ export const usePublicPortfolio = (
             isShowInitialExpectation: t.is_show_init ?? true,
             reflection: t.reflection || "",
             isShowReflection: t.is_show_reflec ?? true,
-            attachments: (t.attachments || []).map((a: any) => {
+            attachments: t.attachments.map((a) => {
               const ext = a.original_filename?.split(".").pop()?.toLowerCase();
               const isImg = [
                 "jpg",

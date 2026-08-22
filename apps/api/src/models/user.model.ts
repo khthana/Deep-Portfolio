@@ -9,17 +9,8 @@ export type UserDetail = {
   role: string;
 };
 
-export type StudentDetail = {
-  user_id: string;
-  student_id: string;
-  full_name_th: string | null;
-  //   full_name_en: string;
-  first_name_th: string;
-  last_name_th: string;
-
-  title_th: string | null;
-  email: string | null;
-  phone: string | null;
-  department_name: string;
-  program_name: string;
-};
+// StudentDetail used to be declared here. It moved to
+// @deep-portfolio/api-types (#68) — import it from there. It went ahead of the
+// rest of the user feature because the aggregate /portfolio/public/:token
+// embeds it (ADR-0043 §3). Four of its ten fields were nullable here and none of
+// them is: getStudentDetail coalesces every one of them to "" before answering.

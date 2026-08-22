@@ -1,12 +1,11 @@
 import { axiosInstance } from "../lib/axios";
 import { endpoints } from "../configs/endpoints.config";
 import type { ResponseWrapper } from "../types/global-type";
+import type {
+  PortfolioDetail,
+  PortfolioTemplateDetail,
+} from "@deep-portfolio/api-types";
 import type { PortfolioConfig } from "../features/student/portfolio/components/e-portfolio-template/types";
-
-export interface PortfolioTemplate {
-  id: number;
-  name: string;
-}
 
 export interface CreatePortfolioReq {
   template_id: number;
@@ -25,25 +24,36 @@ export interface CreatePortfolioReq {
   isShowActivity?: boolean;
 }
 
-// Define types to match backend response then map to frontend PortfolioConfig
-export interface PortfolioBackendResp extends Omit<
-  PortfolioConfig,
-  "id" | "selectedSkillIds"
-> {
-  id: string;
-  selectedSkillIds: number[];
-}
-
-const mapBackendToFrontend = (p: PortfolioBackendResp): PortfolioConfig => ({
+/**
+ * The wire shape, and the view model the templates read.
+ *
+ * These used to be one declaration: `PortfolioBackendResp` was written as
+ * `PortfolioConfig` with two fields swapped out, which made the view model the
+ * definition of the response and left everything it got wrong invisible. It
+ * got five fields wrong that way — the template's id, name and colour, the
+ * portfolio's name and its "about me" all arrive nullable and were all
+ * declared non-null, the id as a `string` where the API sends a number — and a
+ * sixth on its own account, `shareExpiresAt`, which is a `Date` nowhere but in
+ * the API's process. Ten more were optional where the response always sends
+ * them: the nine `isShowX` flags and the share token. `PortfolioDetail` is the response now (#68), and the
+ * two are related by this function rather than by an `Omit`.
+ *
+ * All it converts is the skill ids: the templates carry them as strings
+ * because every other id they hold is one. The four nullable fields are handed
+ * over as they arrive, because each screen that reads one has a different
+ * default for it — the edit form wants "Standard" where the preview page wants
+ * ModernBlue — and coalescing here would take that choice away from all of
+ * them (ADR-0043 §5).
+ */
+const mapBackendToFrontend = (p: PortfolioDetail): PortfolioConfig => ({
   ...p,
-  id: p.id,
-  selectedSkillIds: p.selectedSkillIds?.map((id) => id.toString()) || [],
+  selectedSkillIds: p.selectedSkillIds.map((id) => id.toString()),
 });
 
 export const getAllPortfolios = async (
   userId: string,
 ): Promise<ResponseWrapper<PortfolioConfig[]>> => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioBackendResp[]>>(
+  const resp = await axiosInstance.get<ResponseWrapper<PortfolioDetail[]>>(
     endpoints.portfolio.root,
     {
       params: { user_id: userId },
@@ -61,7 +71,7 @@ export const getAllPortfolios = async (
 export const getPortfolioById = async (
   id: string,
 ): Promise<ResponseWrapper<PortfolioConfig>> => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioBackendResp>>(
+  const resp = await axiosInstance.get<ResponseWrapper<PortfolioDetail>>(
     endpoints.portfolio.detail(id as any),
   );
   if (resp.data.success) {
@@ -76,7 +86,7 @@ export const getPortfolioById = async (
 export const createPortfolio = async (
   data: CreatePortfolioReq,
 ): Promise<ResponseWrapper<PortfolioConfig>> => {
-  const resp = await axiosInstance.post<ResponseWrapper<PortfolioBackendResp>>(
+  const resp = await axiosInstance.post<ResponseWrapper<PortfolioDetail>>(
     endpoints.portfolio.root,
     data,
   );
@@ -93,7 +103,7 @@ export const updatePortfolio = async (
   id: string,
   data: Partial<CreatePortfolioReq>,
 ): Promise<ResponseWrapper<PortfolioConfig>> => {
-  const resp = await axiosInstance.patch<ResponseWrapper<PortfolioBackendResp>>(
+  const resp = await axiosInstance.patch<ResponseWrapper<PortfolioDetail>>(
     endpoints.portfolio.detail(id as any),
     data,
   );
@@ -115,11 +125,19 @@ export const deletePortfolio = async (
   return resp.data;
 };
 
+/**
+ * Mints a new share token, and forgets the one before it.
+ *
+ * Answers the whole portfolio rather than the token alone, which is why the
+ * type here is the same `PortfolioDetail` the reads answer. It was untyped —
+ * `response.data` with no argument at all — so the two callers reading
+ * `.data.publicShareToken` off it were reading `any` (ADR-0042 §1).
+ */
 export const generateShareLink = async (
   id: string,
   expiresAt: string | null,
-) => {
-  const response = await axiosInstance.post(
+): Promise<ResponseWrapper<PortfolioDetail>> => {
+  const response = await axiosInstance.post<ResponseWrapper<PortfolioDetail>>(
     `/portfolio/${id}/generate-share-link`,
     {
       expiresAt,
@@ -129,10 +147,10 @@ export const generateShareLink = async (
 };
 
 export const getAllTemplates = async (): Promise<
-  ResponseWrapper<PortfolioTemplate[]>
+  ResponseWrapper<PortfolioTemplateDetail[]>
 > => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioTemplate[]>>(
-    `${endpoints.portfolio.root}/templates`,
-  );
+  const resp = await axiosInstance.get<
+    ResponseWrapper<PortfolioTemplateDetail[]>
+  >(`${endpoints.portfolio.root}/templates`);
   return resp.data;
 };

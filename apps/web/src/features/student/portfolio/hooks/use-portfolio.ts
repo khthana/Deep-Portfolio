@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { SkillMapping } from "@deep-portfolio/api-types";
 import { getFile } from "../../../../utils/get-file";
 import { cleanNullStr } from "../../../../utils/clean-null-str";
 import type {
@@ -112,28 +113,35 @@ export const usePortfolio = (
           getAllPortfolioThesis(studentId),
         ]);
 
+        // Each of these is the section's own response type now, because
+        // cleanNullStr hands back what it was given (#68). They used to be
+        // eight `any[]` in a row, and the `|| []` after each looked like a
+        // guard for a list that might be absent — it is not. It guards the
+        // envelope: ResponseWrapper says `data` is always there and
+        // ApiResponse, which is what the API answers, says it is optional
+        // (#67), so the guard stays until that one is settled.
         const userData = cleanNullStr(userResponse.data);
         const portfolioPersonalData = cleanNullStr(portfolioResponse.data);
-        const educationData: any[] = cleanNullStr(educationResponse.data) || [];
-        const trainingData: any[] = cleanNullStr(trainingResponse.data) || [];
-        const certificateData: any[] =
-          cleanNullStr(certificateResponse.data) || [];
-        const internshipData: any[] =
-          cleanNullStr(internshipResponse.data) || [];
-        const awardData: any[] = cleanNullStr(awardResponse.data) || [];
-        const activityData: any[] = cleanNullStr(activityResponse.data) || [];
-        const skillsData: any[] = cleanNullStr(skillsResponse.data) || [];
-        const thesisData: any[] = cleanNullStr(thesisResponse.data) || [];
+        const educationData = cleanNullStr(educationResponse.data) || [];
+        const trainingData = cleanNullStr(trainingResponse.data) || [];
+        const certificateData = cleanNullStr(certificateResponse.data) || [];
+        const internshipData = cleanNullStr(internshipResponse.data) || [];
+        const awardData = cleanNullStr(awardResponse.data) || [];
+        const activityData = cleanNullStr(activityResponse.data) || [];
+        const skillsData = cleanNullStr(skillsResponse.data) || [];
+        const thesisData = cleanNullStr(thesisResponse.data) || [];
 
-        // Fetch details for each skill mapping to build the "works" list
+        // Fetch details for each skill mapping to build the "works" list.
+        // The first two of each triple are still Record<string, unknown>:
+        // /student/activities/details/:id and /student-activity/attachments
+        // both answer ResponseWrapper<any> in src/services/student.service.ts,
+        // and that file is the student feature's rather than this one's — the
+        // pass that moves it names them (ADR-0042 §1). The third is this
+        // feature's and is a SkillMapping.
         const workDetailsPromises: Promise<
-          [
-            Record<string, unknown>,
-            Record<string, unknown>,
-            Record<string, unknown>,
-          ]
+          [Record<string, unknown>, Record<string, unknown>, SkillMapping]
         >[] = [];
-        const skillMap: Record<number, Record<string, unknown>> = {};
+        const skillMap: Record<number, { id: number }> = {};
 
         for (const skill of skillsData) {
           if (skill.mappings && skill.mappings.length > 0) {
@@ -158,25 +166,14 @@ export const usePortfolio = (
           attachmentsRes,
           mappingItem,
         ] of workDetailsResults) {
-          const mapping = mappingItem as {
-            student_activity_id: number;
-            id: number;
-            repository?: string;
-            isShowRepo?: boolean;
-            role_and_resp?: string;
-            isShowRole?: boolean;
-            init_expect?: string;
-            isShowInit?: boolean;
-            reflection?: string;
-            isShowReflec?: boolean;
-          };
+          const mapping = mappingItem;
           if (detailsRes.success) {
             const activity = detailsRes.data as {
-              activities?: { activity_name?: string; section_id?: string };
+              activities?: { activity_name?: string; section_id?: number };
               course?: { course_name_en?: string; course_name_th?: string };
               feedback?: string;
             };
-            const skill = skillMap[mapping.id] as { id: number };
+            const skill = skillMap[mapping.id];
             const workId = String(mapping.student_activity_id);
 
             if (realWorksMap.has(workId)) {
@@ -210,13 +207,20 @@ export const usePortfolio = (
                   (attachmentsRes.data as Array<{
                     attachment_id: number;
                     original_filename: string;
-                    file_type?: string;
                     url?: string;
                   }>) || []
                 ).map((a) => ({
                   id: a.attachment_id.toString(),
                   fileName: a.original_filename,
-                  fileType: a.file_type || "file",
+                  // The constant, as it is on the API's own copy of this list:
+                  // /student-activity/attachments does not select file_type,
+                  // so the `a.file_type || "file"` that used to stand here
+                  // read undefined and fell through every time. The cast named
+                  // a key the endpoint has never sent (#68). Nothing renders
+                  // these: the work detail page fetches its own attachments on
+                  // the private route, and takes the public hook's on the
+                  // shared one.
+                  fileType: "file",
                   url: a.url,
                 })),
               });
@@ -229,8 +233,8 @@ export const usePortfolio = (
         // Map fetched data to PortfolioData structure
         const mappedData: PortfolioData = {
           ...matchedConfig,
-          selectedSkillIds: (matchedConfig.selectedSkillIds || []).map(
-            (id: any) => id.toString(),
+          selectedSkillIds: (matchedConfig.selectedSkillIds || []).map((id) =>
+            id.toString(),
           ),
           personalInfo: mapPersonalInfo(userData, portfolioPersonalData, {
             firstName: "",
@@ -273,7 +277,7 @@ export const usePortfolio = (
               name: t.name || "",
               description: t.description || "",
               country: t.country || "",
-              attachments: t.attachments.map((a: any) => {
+              attachments: t.attachments.map((a) => {
                 const ext = a.original_filename
                   ?.split(".")
                   .pop()
@@ -313,7 +317,7 @@ export const usePortfolio = (
                   })
                 : "",
               description: c.description || "",
-              attachments: c.attachments.map((a: any) => {
+              attachments: c.attachments.map((a) => {
                 const ext = a.original_filename
                   ?.split(".")
                   .pop()
@@ -371,7 +375,7 @@ export const usePortfolio = (
             isShowLearning: i.is_show_learning ?? true,
             reflection: i.reflection || "",
             isShowReflection: i.is_show_reflec ?? true,
-            attachments: i.attachments.map((a: any) => {
+            attachments: i.attachments.map((a) => {
               const ext = a.original_filename?.split(".").pop()?.toLowerCase();
               const isImg = [
                 "jpg",
@@ -409,7 +413,7 @@ export const usePortfolio = (
                   })
                 : "",
               isShow: a.is_show ?? true,
-              attachments: a.attachments.map((att: any) => {
+              attachments: a.attachments.map((att) => {
                 const ext = att.original_filename
                   ?.split(".")
                   .pop()
@@ -451,7 +455,7 @@ export const usePortfolio = (
                     day: "numeric",
                   })
                 : undefined,
-              attachments: (a.attachments || []).map((att: any) => {
+              attachments: (a.attachments || []).map((att) => {
                 const ext = att.original_filename
                   ?.split(".")
                   .pop()
@@ -489,7 +493,7 @@ export const usePortfolio = (
             isShowInitialExpectation: t.is_show_init ?? true,
             reflection: t.reflection || "",
             isShowReflection: t.is_show_reflec ?? true,
-            attachments: (t.attachments || []).map((a: any) => {
+            attachments: (t.attachments || []).map((a) => {
               const ext = a.original_filename?.split(".").pop()?.toLowerCase();
               const isImg = [
                 "jpg",

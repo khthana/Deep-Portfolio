@@ -7,28 +7,11 @@ export type CreatePortfolioReqBody = CreatePortfolioFields;
 
 export type UpdatePortfolioReqBody = UpdatePortfolioFields;
 
-export type PortfolioResp = {
-  id: string;
-  userId: string;
-  templateId: number | null;
-  portfolioName: string | null;
-  templateColor: string | null;
-  about_me: string | null;
-  isShowPersonal: boolean;
-  isShowEducation: boolean;
-  isShowTraining: boolean;
-  isShowCertificate: boolean;
-  isShowSkill: boolean;
-  isShowIntern: boolean;
-  isShowThesis: boolean;
-  isShowAward: boolean;
-  isShowActivity: boolean;
-  selectedSkillIds: number[];
-  templateName?: string | null;
-  publicShareToken?: string | null;
-  shareExpiresAt?: Date | null;
-};
-export type PortfolioTemplateResp = {
-  id: number;
-  name: string;
-};
+// PortfolioResp and PortfolioTemplateResp used to be declared here. They moved
+// to @deep-portfolio/api-types (#68) as `PortfolioDetail` and
+// `PortfolioTemplateDetail`, with the aggregate read behind the share link
+// beside them as `PublicPortfolioDetail` — import them from there. Three things
+// PortfolioResp said that the endpoints do not: `shareExpiresAt` was a `Date`,
+// which no caller of a JSON API ever receives; and `templateName`,
+// `publicShareToken` and `shareExpiresAt` were all optional, where one mapping
+// function builds every response in the file and sets all three every time.

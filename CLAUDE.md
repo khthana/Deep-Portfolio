@@ -35,10 +35,12 @@ mostly correctness work on top of it.
 - **Lint and formatting**: both workspaces have an ESLint flat config, and
   Prettier runs from the root with its defaults over everything but `*.md`
   (`.prettierignore` says why). Run `npm run format` before committing —
-  `format:check` is a CI step. `npm run lint` exits 0 and still carries 215
-  warnings: `no-explicit-any` (#63) and `react-hooks/exhaustive-deps` (#66).
-  #68's passes take that number down when they meet an `any` over a response
-  of their own feature, which is ADR-0042's rule rather than #63's work.
+  `format:check` is a CI step. `npm run lint` exits 0 and still carries 165
+  warnings: 91 `no-explicit-any` (#63) and 74 `react-hooks/exhaustive-deps`
+  (#66). #68's passes take the first number down when they meet an `any` over a
+  response of their own feature, which is ADR-0042's rule rather than #63's
+  work — the aggregate portfolio pass alone took 50 off it, because the utility
+  every section's response flowed through returned `any`.
   CI does not cap that number; the ceiling is a rule turned up to `error` once
   its ticket clears it. There is no git hook, on purpose — ADR-0027 §4.
 - **Auth is Google sign-in**, not the DEEP Core SSO cookie the hand-over
@@ -184,10 +186,20 @@ into one list rather than any of the copies. The skills section followed, and
 ADR-0042 came out of it: one of its nine endpoints answered a shape neither side
 had ever named, the web writing `ResponseWrapper<any>` over it, and an `any` like
 that is an unnamed shape rather than a decision not to name one — so a #68 pass
-fixes it where it stands instead of leaving it to #63.
-Nine of the e-Portfolio's ten routers have moved; 33 files and 1,620 lines are
-still web-side, though none of what is left in the portfolio's own fourteen is
-#68's work, and the aggregate read's web copy was never in that count.
+fixes it where it stands instead of leaving it to #63. The cover page and the
+aggregate read behind the share link closed the feature, and ADR-0043 came out
+of that one: its file imports the nine section files rather than restating them,
+`StudentDetail` moved ahead of the rest of the user feature because the
+aggregate embeds it, and where a nullable response meets a view model that
+refuses null, the view model widens — coalescing in the mapper would take each
+screen's own default away from it. Read its last rule before deciding a type
+error the compiler surfaces is invisible to users: proving that means following
+the value to every route that renders it, and this pass got it wrong first.
+All ten of the e-Portfolio's routers have moved; 33 files and 1,651 lines are
+still web-side, of which the portfolio's own 601 are request types, mock types,
+the runtime label constants the package cannot hold — it compiles to nothing
+(ADR-0028 §4) — and a 243-line template view model. None of it is #68's
+work.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

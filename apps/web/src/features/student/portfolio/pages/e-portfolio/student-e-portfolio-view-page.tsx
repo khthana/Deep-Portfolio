@@ -96,9 +96,13 @@ const StudentEPortfolioViewPage = () => {
       TemplateComponent = ModernBlueTemplate;
   }
 
-  const appliedTheme: PortfolioTheme = {
-    primaryColor: portfolioData.templateColor,
-  };
+  // No colour of its own is not the same as a colour of null: ThemeProvider
+  // owns the default and fills it in for a theme it was not given, so a
+  // portfolio saved without one is handed nothing rather than a null to
+  // coalesce (#68).
+  const appliedTheme: PortfolioTheme | undefined = portfolioData.templateColor
+    ? { primaryColor: portfolioData.templateColor }
+    : undefined;
 
   return (
     <>

@@ -1,3 +1,4 @@
+import type { PortfolioTemplateDetail } from "@deep-portfolio/api-types";
 import {
   Breadcrumb,
   Form,
@@ -19,7 +20,6 @@ import {
   createPortfolio,
   getAllTemplates,
   type CreatePortfolioReq,
-  type PortfolioTemplate,
 } from "../../../../../services/portfolio.service";
 
 type ConfigDataType = {
@@ -50,7 +50,7 @@ const StudentAddEPortfolioPage = () => {
   const [skills, setSkills] = useState<PortfolioSkillDetail[]>([]);
   const [selectedSkillIds, setSelectedSkillIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
-  const [templates, setTemplates] = useState<PortfolioTemplate[]>([]);
+  const [templates, setTemplates] = useState<PortfolioTemplateDetail[]>([]);
 
   useEffect(() => {
     // Initial config for new portfolio

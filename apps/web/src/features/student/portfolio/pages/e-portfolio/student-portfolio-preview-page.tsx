@@ -114,7 +114,7 @@ const StudentPortfolioPreviewPage: React.FC = () => {
 
   // ───── Resolve template ─────
   const TemplateComponent: TemplateComponentType =
-    TEMPLATE_MAP[portfolioData.templateName] ?? ModernBlueTemplate;
+    TEMPLATE_MAP[portfolioData.templateName ?? ""] ?? ModernBlueTemplate;
 
   const resolvedColor =
     previewColor ?? portfolioData.templateColor ?? "#1a2a5d";

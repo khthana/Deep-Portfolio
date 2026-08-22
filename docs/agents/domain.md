@@ -147,11 +147,19 @@ neighbours use, and
 features had each written out for themselves gets one name, that its
 nullability is read off the code that builds it rather than off any existing
 copy, and that counting copies by grepping a type's name misses the ones an
-import alias renames, and `0042-an-any-is-an-unnamed-shape.md`, which says an
+import alias renames, `0042-an-any-is-an-unnamed-shape.md`, which says an
 `any` written over a response is a shape nobody has read rather than a decision
 that the shape needs no name — the pass that is already reading that endpoint
 names it — and that a write endpoint's type comes from what its controller
-sends, which is not always what its service returns.
+sends, which is not always what its service returns, and
+`0043-the-aggregate-imports-nine.md`, which says the file for an aggregate read
+imports the files of what it aggregates rather than restating them, that a leaf
+belonging to another feature moves when the feature embedding it needs it, that
+a nullable response meeting a view model which refuses null widens the view
+model rather than coalescing in the mapper, and that a type error the compiler
+surfaces is not by itself a defect a user can see — follow it to every route
+that renders the value before deciding, and treat an incomplete search as
+proof that it is visible.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

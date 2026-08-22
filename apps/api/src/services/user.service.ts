@@ -1,5 +1,5 @@
 import prisma from "../config/prisma";
-import { StudentDetail } from "../models/user.model";
+import type { StudentDetail } from "@deep-portfolio/api-types";
 
 export default class UserService {
   async getUserDetail(userId: string) {

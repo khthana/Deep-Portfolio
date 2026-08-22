@@ -1,3 +1,4 @@
+import type { PortfolioTemplateDetail } from "@deep-portfolio/api-types";
 import {
   Breadcrumb,
   Form,
@@ -20,7 +21,6 @@ import {
   updatePortfolio,
   getAllTemplates,
   type CreatePortfolioReq,
-  type PortfolioTemplate,
 } from "../../../../../services/portfolio.service";
 import { paths } from "../../../../../routes/paths.config";
 
@@ -53,7 +53,7 @@ const StudentEditEPortfolioPage = () => {
   const [skills, setSkills] = useState<PortfolioSkillDetail[]>([]);
   const [selectedSkillIds, setSelectedSkillIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
-  const [templates, setTemplates] = useState<PortfolioTemplate[]>([]);
+  const [templates, setTemplates] = useState<PortfolioTemplateDetail[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {

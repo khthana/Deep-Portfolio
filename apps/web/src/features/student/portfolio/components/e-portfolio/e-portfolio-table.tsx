@@ -18,7 +18,8 @@ export type DataType = {
   id?: string;
   isNew?: boolean;
   publicShareToken?: string | null;
-  shareExpiresAt?: Date | null;
+  /** ISO 8601, as the API sends it. */
+  shareExpiresAt?: string | null;
 };
 
 type ColumnTypes = Exclude<TableProps<DataType>["columns"], undefined>;
@@ -41,7 +42,7 @@ const EPortfolioTable = () => {
     isOpen: boolean;
     portfolioId: string;
     portfolioName: string;
-    shareExpiresAt?: Date | null;
+    shareExpiresAt?: string | null;
   }>({
     isOpen: false,
     portfolioId: "",
@@ -62,7 +63,7 @@ const EPortfolioTable = () => {
         const formattedData: DataType[] = res.data.map((portfolio, index) => ({
           key: portfolio.id,
           no: index + 1,
-          name: portfolio.portfolioName,
+          name: portfolio.portfolioName ?? "",
           id: portfolio.id,
           publicShareToken: portfolio.publicShareToken,
           shareExpiresAt: portfolio.shareExpiresAt,

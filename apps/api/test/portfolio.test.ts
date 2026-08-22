@@ -6,6 +6,7 @@ import { BUCKET_NAME, minioClient } from "../src/config/minio";
 import {
   createFileAttachment,
   createPortfolio,
+  createPortfolioSkillActivityMapping,
   createPortfolioCertificate,
   createPortfolioEducation,
   createPortfolioPersonal,
@@ -13,6 +14,7 @@ import {
   createPortfolioTemplate,
   createPortfolioTraining,
   createStudent,
+  createSubmission,
 } from "./factories";
 import { sessionCookie } from "./helpers/session";
 import { signedFileKey } from "./helpers/file-url";
@@ -228,6 +230,49 @@ describe("GET /portfolio/:id", () => {
     });
   });
 
+  it("names every field it has, including the three that are null", async () => {
+    // The share token is not one of them: the column defaults to a fresh uuid,
+    // so a portfolio is shareable from the moment it exists. The other three a
+    // caller can leave unset are here as null rather than as missing keys,
+    // which is what `PortfolioDetail` says and what the API's own copy of the
+    // shape denied — it had templateName, publicShareToken and shareExpiresAt
+    // all optional, and one mapping function sets all three every time (#68).
+    const portfolio = await createPortfolio();
+
+    const response = await request(app)
+      .get(`/portfolio/${portfolio.id}`)
+      .set("Cookie", sessionCookie({ userId: portfolio.user_id }));
+
+    expect(response.status).toBe(200);
+    expect(Object.keys(response.body.data).sort()).toEqual([
+      "about_me",
+      "id",
+      "isShowActivity",
+      "isShowAward",
+      "isShowCertificate",
+      "isShowEducation",
+      "isShowIntern",
+      "isShowPersonal",
+      "isShowSkill",
+      "isShowThesis",
+      "isShowTraining",
+      "portfolioName",
+      "publicShareToken",
+      "selectedSkillIds",
+      "shareExpiresAt",
+      "templateColor",
+      "templateId",
+      "templateName",
+      "userId",
+    ]);
+    expect(response.body.data).toMatchObject({
+      templateId: null,
+      templateName: null,
+      shareExpiresAt: null,
+    });
+    expect(response.body.data.publicShareToken).toEqual(expect.any(String));
+  });
+
   it("refuses a request with no session", async () => {
     const portfolio = await createPortfolio();
 
@@ -406,6 +451,72 @@ describe("GET /portfolio/public/:token", () => {
     expect(
       response.body.data.trainingData.map((t: { name: string }) => t.name),
     ).toEqual(["อบรมของเจ้าของแฟ้ม"]);
+  });
+
+  it("gathers one entry per submission, with what was handed in", async () => {
+    // realWorks is the only part of this response assembled here rather than
+    // taken from a section endpoint, and it renames every field on the way
+    // out: a file is `fileName` and `url` here where the sections call the
+    // same two `original_filename` and `url`. That is what the public page
+    // reads, so the names are the contract (#68).
+    const student = await createStudent();
+    const token = "99999999-9999-4999-8999-999999999999";
+    await createPortfolio({
+      user_id: student.student_id,
+      public_share_token: token,
+    });
+    const skill = await createPortfolioSkill({
+      user_id: student.student_id,
+      name: "การเขียนโปรแกรม",
+    });
+    const evidence = await createFileAttachment({
+      original_filename: "screenshot.png",
+      file_path: "student-activity/screenshot.png",
+    });
+    const submission = await createSubmission({
+      student_id: student.student_id,
+      attachment_ids: [evidence.attachment_id],
+    });
+    await createPortfolioSkillActivityMapping({
+      skill_id: skill.id,
+      student_activity_id: submission.id,
+      repository: "https://example.test/repo",
+    });
+
+    const response = await request(app).get(`/portfolio/public/${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.realWorks).toHaveLength(1);
+    const [work] = response.body.data.realWorks;
+    expect(Object.keys(work).sort()).toEqual([
+      "attachments",
+      "feedback",
+      "id",
+      "initialExpectation",
+      "isShowExpectation",
+      "isShowReflection",
+      "isShowRepo",
+      "isShowRole",
+      "reflection",
+      "relatedSkillIds",
+      "repositoryUrl",
+      "roleAndResp",
+      "subjectId",
+      "subtitle",
+      "title",
+    ]);
+    expect(work).toMatchObject({
+      id: String(submission.id),
+      repositoryUrl: "https://example.test/repo",
+      relatedSkillIds: [String(skill.id)],
+    });
+    expect(work.attachments).toHaveLength(1);
+    expect(work.attachments[0]).toMatchObject({
+      id: String(evidence.attachment_id),
+      fileName: "screenshot.png",
+      fileType: "file",
+    });
+    expect(work.attachments[0].url).toEqual(expect.any(String));
   });
 
   it("answers 404 for a token that opens nothing", async () => {

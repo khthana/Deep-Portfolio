@@ -37,7 +37,7 @@ export const MOCK_USER_DATA: UserData = {
 export const MOCK_PORTFOLIO_CONFIG_1: PortfolioConfig = {
   id: "portfolio-1",
   userId: "user-1",
-  templateId: "template-1",
+  templateId: 1,
   portfolioName: "My e-Portfolio",
   templateName: "Modern Blue",
   templateColor: "#126855ff",
@@ -58,7 +58,7 @@ export const MOCK_PORTFOLIO_CONFIG_1: PortfolioConfig = {
 export const MOCK_PORTFOLIO_CONFIG_2: PortfolioConfig = {
   id: "portfolio-2",
   userId: "user-1",
-  templateId: "template-2",
+  templateId: 2,
   portfolioName: "Job Application Portfolio",
   templateName: "Modern Blue",
   templateColor: "#0e305cff",

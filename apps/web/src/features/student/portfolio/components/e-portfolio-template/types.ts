@@ -12,7 +12,6 @@ export interface ContactInfo {
   linkedin?: string;
   github?: string;
   phone?: string;
-  website?: string;
 }
 
 export interface PersonalInfo {
@@ -47,21 +46,39 @@ export interface Skill {
   userId?: string;
 }
 
+/**
+ * One submission shown on a portfolio, as the templates read it.
+ *
+ * The optional fields take null as well as undefined because the public hook
+ * spreads `PublicPortfolioWork` straight in and the API answers the mapping's
+ * columns as Prisma read them. Every template guards these with `&&`, which
+ * treats the two the same; the type used to say only one of them arrives.
+ */
 export interface Work {
   id: string;
   title: string;
   subtitle: string;
-  subjectId?: string;
-  repositoryUrl?: string;
-  roleAndResp?: string;
-  isShowRole?: boolean;
-  initialExpectation?: string;
-  isShowExpectation?: boolean;
-  reflection?: string;
-  isShowReflection?: boolean;
-  isShowRepo?: boolean;
-  feedback?: string;
+  /** `activities.section_id`. Both hooks have always put a number here. */
+  subjectId?: number | null;
+  repositoryUrl?: string | null;
+  roleAndResp?: string | null;
+  isShowRole?: boolean | null;
+  initialExpectation?: string | null;
+  isShowExpectation?: boolean | null;
+  reflection?: string | null;
+  isShowReflection?: boolean | null;
+  isShowRepo?: boolean | null;
+  feedback?: string | null;
   relatedSkillIds?: string[];
+  /**
+   * The same skills again, named. Only the public hook fills it in, and no
+   * template reads it — the work section resolves `relatedSkillIds` against
+   * `data.skills` instead. What does read it is the work detail page, which
+   * declares an `ExtendedWork` of its own to say so: on the private route it
+   * builds the list from its own fetch, and on the public one it takes this
+   * hook's work whole. Declared here because the key is really there (#68).
+   */
+  relatedSkills?: { id: string; name: string }[];
   attachments?: WorkAttachment[];
 }
 
@@ -155,14 +172,30 @@ export interface Activity {
   attachments?: ExperienceAttachment[];
 }
 
+/**
+ * The cover page as the templates read it.
+ *
+ * A view model, not a response: `selectedSkillIds` are strings here because
+ * every id a template holds is one, and `PortfolioDetail` in
+ * @deep-portfolio/api-types is what the API actually answers. The two used to
+ * be the same declaration, with the response written as this shape minus two
+ * fields — so what the API sends could not be written down without changing
+ * what the templates read, and six fields were wrong (#68).
+ *
+ * Five of these are nullable because the response is: nothing on the way in
+ * makes a portfolio name itself, pick a template, pick a colour or write an
+ * "about me", and a share link need not expire. Every screen that reads one of
+ * them already carried a `??` of its own, which is the shape of the code that
+ * knows a type is lying to it.
+ */
 export interface PortfolioConfig {
   id: string;
   userId: string;
-  templateId: string;
-  portfolioName: string;
-  templateName: string;
-  templateColor: string;
-  about_me?: string;
+  templateId: number | null;
+  portfolioName: string | null;
+  templateName: string | null;
+  templateColor: string | null;
+  about_me: string | null;
   isShowPersonal?: boolean;
   isShowEducation?: boolean;
   isShowTraining?: boolean;
@@ -174,7 +207,8 @@ export interface PortfolioConfig {
   isShowActivity?: boolean;
   selectedSkillIds?: string[];
   publicShareToken?: string | null;
-  shareExpiresAt?: Date | null;
+  /** ISO 8601. A `Date` here was a copy of the Prisma column, not the wire. */
+  shareExpiresAt?: string | null;
 }
 
 export interface UserData {

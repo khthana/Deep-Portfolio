@@ -9,7 +9,7 @@ import { getFile } from "../../../../../../utils/get-file";
 
 interface HeroSectionProps {
   personalInfo: PersonalInfo;
-  about_me?: string;
+  about_me?: string | null;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({

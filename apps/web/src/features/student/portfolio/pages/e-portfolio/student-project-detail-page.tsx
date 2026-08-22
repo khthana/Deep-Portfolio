@@ -87,17 +87,21 @@ const StudentProjectDetailPage: React.FC = () => {
           const t = cleanNullStr(res.data);
           const mapped: Project = {
             id: String(t.id),
-            title: t.name,
+            title: t.name ?? "",
             tag: "โครงงานปริญญาตรี",
             description: t.role_and_resp || "",
             repositoryUrl: t.repository || undefined,
             roleAndResp: t.role_and_resp || undefined,
-            isShowRole: t.is_show_role,
+            // ?? true, because the columns behind these three default to true
+            // and a null is a row written before anything set them — not a
+            // choice to hide the block. Without it this page hid what the
+            // public template and the edit modal both show (#68).
+            isShowRole: t.is_show_role ?? true,
             initialExpectation: t.init_expect || undefined,
-            isShowInitialExpectation: t.is_show_init,
+            isShowInitialExpectation: t.is_show_init ?? true,
             reflection: t.reflection || undefined,
-            isShowReflection: t.is_show_reflec,
-            attachments: t.attachments.map((a: any) => {
+            isShowReflection: t.is_show_reflec ?? true,
+            attachments: t.attachments.map((a) => {
               const ext = a.original_filename.split(".").pop()?.toLowerCase();
               const isImg = [
                 "jpg",

@@ -36,7 +36,10 @@
  * that hang files off themselves, which share one attachment shape between them
  * (docs/adr/0041-one-attachment-shape-for-six-sections.md), and then the skills
  * section, one of whose endpoints had never been named on either side
- * (docs/adr/0042-an-any-is-an-unnamed-shape.md).
+ * (docs/adr/0042-an-any-is-an-unnamed-shape.md), and then the cover page and
+ * the aggregate read behind the share link, which finishes that feature and
+ * imports the nine section files to do it
+ * (docs/adr/0043-the-aggregate-imports-nine.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -118,6 +121,14 @@ export type {
   LearningActivityType,
 } from "./learning-activity";
 
+export type {
+  PortfolioDetail,
+  PortfolioTemplateDetail,
+  PublicPortfolioDetail,
+  PublicPortfolioWork,
+  PublicPortfolioWorkAttachment,
+} from "./portfolio";
+
 export type { PortfolioActivityDetail } from "./portfolio-activity";
 
 export type { PortfolioSectionAttachment } from "./portfolio-attachment";
@@ -151,7 +162,11 @@ export type { RubricDetail, RubricLevel } from "./rubric";
 
 export type { ScoreWeightBrief, ScoreWeightDetail } from "./score-weight";
 
-export type { StudentFullNameTh, StudentNameBrief } from "./student";
+export type {
+  StudentDetail,
+  StudentFullNameTh,
+  StudentNameBrief,
+} from "./student";
 
 export type {
   ActivityGroupSubmission,

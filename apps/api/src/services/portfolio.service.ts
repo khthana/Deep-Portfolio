@@ -4,9 +4,13 @@ import { HttpError } from "../utils/http-error";
 import {
   CreatePortfolioReqBody,
   UpdatePortfolioReqBody,
-  PortfolioResp,
-  PortfolioTemplateResp,
 } from "../models/portfolio.model";
+import type {
+  PortfolioDetail,
+  PortfolioTemplateDetail,
+  PublicPortfolioDetail,
+  PublicPortfolioWork,
+} from "@deep-portfolio/api-types";
 
 import {
   portfolio,
@@ -34,37 +38,7 @@ type PortfolioWithRelations = portfolio & {
   portfolio_skill_mapping?: portfolio_skill_mapping[];
 };
 
-/**
- * One submission on the public page, with every skill that pointed at it.
- *
- * The names are the frontend's, not the database's: this shape is assembled
- * for the shared link and read straight by the template components, so it is
- * declared here rather than left to inference over a `Map<string, any>`.
- */
-type PublicWork = {
-  id: string;
-  title: string;
-  subtitle: string;
-  subjectId: number | null;
-  repositoryUrl: string | null;
-  isShowRepo: boolean | null;
-  roleAndResp: string | null;
-  isShowRole: boolean | null;
-  initialExpectation: string | null;
-  isShowExpectation: boolean | null;
-  reflection: string | null;
-  isShowReflection: boolean | null;
-  feedback: string | null;
-  relatedSkillIds: string[];
-  attachments: {
-    id: string;
-    fileName: string | null;
-    fileType: string;
-    url: string | null;
-  }[];
-};
-
-const mapToPortfolioResp = (p: PortfolioWithRelations): PortfolioResp => ({
+const mapToPortfolioResp = (p: PortfolioWithRelations): PortfolioDetail => ({
   id: p.id,
   userId: p.user_id,
   templateId: p.template_id,
@@ -83,7 +57,10 @@ const mapToPortfolioResp = (p: PortfolioWithRelations): PortfolioResp => ({
   selectedSkillIds: p.portfolio_skill_mapping?.map((m) => m.skill_id) || [],
   templateName: p.portfolio_template?.name || null,
   publicShareToken: p.public_share_token,
-  shareExpiresAt: p.share_expires_at,
+  // A Date in the column and an ISO string on the wire. Mapping it here rather
+  // than leaving JSON.stringify to call toJSON() changes no byte of the
+  // response and lets the declared type say what a caller actually parses.
+  shareExpiresAt: p.share_expires_at?.toISOString() ?? null,
 });
 
 export default class PortfolioService {
@@ -114,7 +91,7 @@ export default class PortfolioService {
     this.studentService = new StudentService();
     this.studentActivityService = new StudentActivityService();
   }
-  async getAllPortfolios(userId: string): Promise<PortfolioResp[]> {
+  async getAllPortfolios(userId: string): Promise<PortfolioDetail[]> {
     const portfolios = await prisma.portfolio.findMany({
       where: { user_id: userId },
       include: {
@@ -127,7 +104,7 @@ export default class PortfolioService {
     return portfolios.map(mapToPortfolioResp);
   }
 
-  async getPortfolioById(id: string): Promise<PortfolioResp | null> {
+  async getPortfolioById(id: string): Promise<PortfolioDetail | null> {
     const portfolio = await prisma.portfolio.findUnique({
       where: { id },
       include: {
@@ -141,7 +118,9 @@ export default class PortfolioService {
     return mapToPortfolioResp(portfolio);
   }
 
-  async getPublicPortfolioById(token: string) {
+  async getPublicPortfolioById(
+    token: string,
+  ): Promise<PublicPortfolioDetail | null> {
     const portfolioRecord = await prisma.portfolio.findFirst({
       where: { public_share_token: token },
       include: {
@@ -215,7 +194,7 @@ export default class PortfolioService {
       ),
     );
 
-    const realWorksMap = new Map<string, PublicWork>();
+    const realWorksMap = new Map<string, PublicPortfolioWork>();
 
     for (const { skill, mapping, activity, attachments } of workDetails) {
       if (!activity) continue;
@@ -258,9 +237,11 @@ export default class PortfolioService {
           // since it was written. Left alone rather than widened: the column
           // holds the extension in capitals ("PDF"), not one of the five words
           // the template matches on, and the same query answers
-          // /student-activity/attachments. Pinned in BEHAVIOR-CHANGES.md — the
+          // /student-activity/attachments. Pinned in BEHAVIOR-CHANGES.md. The
           // page is unaffected because it works the type out from the filename
-          // itself.
+          // itself — which is true since the aggregate pass, and was not before
+          // it: the web read that filename off a key this endpoint has never
+          // sent (ADR-0043).
           fileType: "file",
           url: a.url,
         })),
@@ -288,7 +269,7 @@ export default class PortfolioService {
   async createPortfolio(
     user_id: string,
     data: CreatePortfolioReqBody,
-  ): Promise<PortfolioResp> {
+  ): Promise<PortfolioDetail> {
     const {
       template_id,
       portfolio_name,
@@ -336,7 +317,7 @@ export default class PortfolioService {
   async updatePortfolio(
     id: string,
     data: UpdatePortfolioReqBody,
-  ): Promise<PortfolioResp> {
+  ): Promise<PortfolioDetail> {
     const { selectedSkillIds, ...portfolioData } = data;
 
     const result = await prisma.$transaction(async (tx) => {
@@ -389,7 +370,7 @@ export default class PortfolioService {
     });
   }
 
-  async getAllTemplates(): Promise<PortfolioTemplateResp[]> {
+  async getAllTemplates(): Promise<PortfolioTemplateDetail[]> {
     return prisma.portfolio_template.findMany({
       orderBy: { id: "asc" },
     });
@@ -398,7 +379,7 @@ export default class PortfolioService {
   async generateShareLink(
     id: string,
     expiresAt: Date | null,
-  ): Promise<PortfolioResp> {
+  ): Promise<PortfolioDetail> {
     const result = await prisma.portfolio.update({
       where: { id },
       data: {
