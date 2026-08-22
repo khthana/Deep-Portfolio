@@ -2,14 +2,14 @@ import { axiosInstance } from "../lib/axios";
 import { endpoints } from "../configs/endpoints.config";
 import type { ResponseWrapper } from "../types/global-type";
 import type {
-  PortfolioInternshipResp,
   CreatePortfolioInternshipReq,
   UpdatePortfolioInternshipReq,
 } from "../types/portfolio-internship-type.type";
+import type { PortfolioInternshipDetail } from "@deep-portfolio/api-types";
 
 export const getAllPortfolioInternship = async (userId: string) => {
   const resp = await axiosInstance.get<
-    ResponseWrapper<PortfolioInternshipResp[]>
+    ResponseWrapper<PortfolioInternshipDetail[]>
   >(endpoints.portfolio_internship.root, {
     params: { user_id: userId },
   });
@@ -19,7 +19,7 @@ export const getAllPortfolioInternship = async (userId: string) => {
 
 export const getPortfolioInternshipById = async (id: number) => {
   const resp = await axiosInstance.get<
-    ResponseWrapper<PortfolioInternshipResp>
+    ResponseWrapper<PortfolioInternshipDetail>
   >(endpoints.portfolio_internship.detail(id));
 
   return resp.data;
@@ -58,7 +58,7 @@ export const createPortfolioInternship = async (
   }
 
   const resp = await axiosInstance.post<
-    ResponseWrapper<PortfolioInternshipResp>
+    ResponseWrapper<PortfolioInternshipDetail>
   >(endpoints.portfolio_internship.root, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
@@ -104,7 +104,7 @@ export const updatePortfolioInternship = async (
   }
 
   const resp = await axiosInstance.put<
-    ResponseWrapper<PortfolioInternshipResp>
+    ResponseWrapper<PortfolioInternshipDetail>
   >(endpoints.portfolio_internship.detail(id), formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
@@ -113,9 +113,11 @@ export const updatePortfolioInternship = async (
 };
 
 export const deletePortfolioInternship = async (id: number) => {
-  const resp = await axiosInstance.delete<
-    ResponseWrapper<PortfolioInternshipResp>
-  >(endpoints.portfolio_internship.detail(id));
+  // `data: null`, not the row: the service reads the row it removed and the
+  // controller does not pass it on (#68).
+  const resp = await axiosInstance.delete<ResponseWrapper<null>>(
+    endpoints.portfolio_internship.detail(id),
+  );
 
   return resp.data;
 };

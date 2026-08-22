@@ -7,17 +7,17 @@ import {
   getAllPortfolioInternship,
   deletePortfolioInternship,
 } from "../../../../../services/portfolio-internship.service";
-import type { PortfolioInternshipResp } from "../../../../../types/portfolio-internship-type.type";
 import InternshipEditModal from "./internship-edit-modal";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../../../stores/stores";
+import type { PortfolioInternshipDetail } from "@deep-portfolio/api-types";
 
 const ExperienceSection = () => {
   const { studentId } = useSelector((state: RootState) => state.home);
-  const [data, setData] = useState<PortfolioInternshipResp[]>([]);
+  const [data, setData] = useState<PortfolioInternshipDetail[]>([]);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedInternship, setSelectedInternship] =
-    useState<PortfolioInternshipResp | null>(null);
+    useState<PortfolioInternshipDetail | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
 
   const fetchData = async () => {

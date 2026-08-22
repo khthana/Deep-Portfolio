@@ -3,13 +3,13 @@ import { endpoints } from "../configs/endpoints.config";
 import type { ResponseWrapper } from "../types/global-type";
 import type {
   CreatePortfolioCertificateReq,
-  PortfolioCertificateResp,
   UpdatePortfolioCertificateReq,
 } from "../types/portfolio-certificate-type.type";
+import type { PortfolioCertificateDetail } from "@deep-portfolio/api-types";
 
 export const getAllPortfolioCertificate = async (user_id: string) => {
   const resp = await axiosInstance.get<
-    ResponseWrapper<PortfolioCertificateResp[]>
+    ResponseWrapper<PortfolioCertificateDetail[]>
   >(endpoints.portfolio_certificate.root, {
     params: { user_id },
   });
@@ -19,7 +19,7 @@ export const getAllPortfolioCertificate = async (user_id: string) => {
 
 export const getPortfolioCertificateById = async (id: number) => {
   const resp = await axiosInstance.get<
-    ResponseWrapper<PortfolioCertificateResp>
+    ResponseWrapper<PortfolioCertificateDetail>
   >(endpoints.portfolio_certificate.detail(id));
 
   return resp.data;
@@ -47,7 +47,7 @@ export const createPortfolioCertificate = async (
   }
 
   const resp = await axiosInstance.post<
-    ResponseWrapper<PortfolioCertificateResp>
+    ResponseWrapper<PortfolioCertificateDetail>
   >(endpoints.portfolio_certificate.root, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
@@ -83,7 +83,7 @@ export const updatePortfolioCertificate = async (
   }
 
   const resp = await axiosInstance.put<
-    ResponseWrapper<PortfolioCertificateResp>
+    ResponseWrapper<PortfolioCertificateDetail>
   >(endpoints.portfolio_certificate.detail(id), formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
@@ -92,9 +92,11 @@ export const updatePortfolioCertificate = async (
 };
 
 export const deletePortfolioCertificate = async (id: number) => {
-  const resp = await axiosInstance.delete<
-    ResponseWrapper<PortfolioCertificateResp>
-  >(endpoints.portfolio_certificate.detail(id));
+  // `data: null`, not the row: the service reads the row it removed and the
+  // controller does not pass it on (#68).
+  const resp = await axiosInstance.delete<ResponseWrapper<null>>(
+    endpoints.portfolio_certificate.detail(id),
+  );
 
   return resp.data;
 };

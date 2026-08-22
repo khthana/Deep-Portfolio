@@ -23,11 +23,13 @@ response ของหน้ากลุ่มฝั่งนักศึกษ�
 response ของสัดส่วนคะแนน (ซึ่งรอบ activity เขียนไว้ให้ล่วงหน้าแล้ว),
 response ของประกาศ, response ของเอกสารประกอบการสอน,
 response ของแผนการสอนรายสัปดาห์ทั้งฝั่งอาจารย์และฝั่งนักศึกษา,
-response ของรายละเอียดส่วนตัวกับประวัติการศึกษาใน e-Portfolio,
+response ของ e-Portfolio แปด section (รายละเอียดส่วนตัว, ประวัติการศึกษา,
+การอบรม, ใบประกาศ, รางวัล, ปริญญานิพนธ์, กิจกรรม, ฝึกงาน) พร้อมรูปของไฟล์แนบ
+ที่หก section ในนั้นใช้ร่วมกัน,
 รูปของไฟล์แนบ (`AttachmentDetailResp`, `FileDetail`, `URLDetail`) และ
 `StudentActivityStatusDB`
-ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 33 ไฟล์ 1,746 บรรทัด (นับหลังรอบ
-portfolio-personal กับ portfolio-education 22 สิงหาคม 2569 ด้วย glob ที่ ADR-0028 ประกาศไว้ — ในนั้นมี type
+ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 33 ไฟล์ 1,650 บรรทัด (นับหลังรอบหก
+section ที่เหลือของ e-Portfolio 22 สิงหาคม 2569 ด้วย glob ที่ ADR-0028 ประกาศไว้ — ในนั้นมี type
 ของ request ปนอยู่ด้วย ซึ่งไม่ต้องย้าย) ซึ่งไล่ย้ายทีละ
 feature ที่ [#68](https://github.com/khthana/Deep-Portfolio/issues/68) ส่วน
 envelope ฝั่ง web (`ResponseWrapper`) อยู่ที่
@@ -60,7 +62,10 @@ learning-activity ซึ่งแยกคีย์ที่ไม่มีอ�
 เขียนคอลัมน์ซ้ำใหม่ทั้งแถว และ
 [ADR-0040](../docs/adr/0040-the-portfolio-is-ten-features.md) คือรอบแรกของ
 e-Portfolio ซึ่งตัดสินว่าชื่อที่ router สิบตัวใช้ร่วมกันเป็นคำนำหน้า URL ไม่ใช่
-feature เดียว จึงเดินเป็นหลายรอบ โดยรอบที่รวมทุกส่วนไปท้ายสุด
+feature เดียว จึงเดินเป็นหลายรอบ โดยรอบที่รวมทุกส่วนไปท้ายสุด และ
+[ADR-0041](../docs/adr/0041-one-attachment-shape-for-six-sections.md) คือรอบหก
+section ที่เหลือ ซึ่งตัดสินว่ารูปที่หลาย feature เขียนซ้ำกันเองมีชื่อเดียว และ
+ความ nullable ของมันอ่านจากโค้ดที่สร้างค่า ไม่ใช่จากสำเนาไหน
 
 ## เพิ่ม package ใหม่
 

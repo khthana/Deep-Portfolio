@@ -142,7 +142,12 @@ and `0040-the-portfolio-is-ten-features.md`, which says a name shared by ten
 routers is a URL prefix rather than one feature, so the e-Portfolio walks as
 several passes with the aggregate read last, and that a shape belonging to one
 row is given its own small type rather than forced into the list shape its
-neighbours use.
+neighbours use, and
+`0041-one-attachment-shape-for-six-sections.md`, which says a shape several
+features had each written out for themselves gets one name, that its
+nullability is read off the code that builds it rather than off any existing
+copy, and that counting copies by grepping a type's name misses the ones an
+import alias renames.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

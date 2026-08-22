@@ -1,9 +1,12 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
+import type {
+  PortfolioSectionAttachment,
+  PortfolioThesisDetail,
+} from "@deep-portfolio/api-types";
 import {
   CreatePortfolioThesisReqBody,
   UpdatePortfolioThesisReqBody,
-  PortfolioThesisResp,
 } from "../models/portfolio-thesis.model";
 import AttachmentsService from "./attachments.service";
 import MinIOService from "./upload.service";
@@ -26,7 +29,9 @@ export default class PortfolioThesisService {
     this.uploadService = new MinIOService();
   }
 
-  async getAllPortfolioThesis(userId: string): Promise<PortfolioThesisResp[]> {
+  async getAllPortfolioThesis(
+    userId: string,
+  ): Promise<PortfolioThesisDetail[]> {
     const theses = await prisma.portfolio_thesis.findMany({
       where: { user_id: userId },
       include: {
@@ -41,7 +46,7 @@ export default class PortfolioThesisService {
 
     return await Promise.all(
       theses.map(async (thesis: PortfolioThesisWithAttachments) => {
-        let attachments: NonNullable<PortfolioThesisResp["attachments"]> = [];
+        let attachments: PortfolioSectionAttachment[] = [];
         if (thesis.portfolio_thesis_attachments.length > 0) {
           const attachmentIds = thesis.portfolio_thesis_attachments.map(
             (pta) => ({ attachment_id: pta.attachments.attachment_id }),
@@ -89,7 +94,7 @@ export default class PortfolioThesisService {
 
   async getPortfolioThesisById(
     id: number,
-  ): Promise<PortfolioThesisResp | null> {
+  ): Promise<PortfolioThesisDetail | null> {
     const thesis: PortfolioThesisWithAttachments | null =
       await prisma.portfolio_thesis.findUnique({
         where: { id },
@@ -104,7 +109,7 @@ export default class PortfolioThesisService {
 
     if (!thesis) return null;
 
-    let attachments: NonNullable<PortfolioThesisResp["attachments"]> = [];
+    let attachments: PortfolioSectionAttachment[] = [];
     if (thesis.portfolio_thesis_attachments.length > 0) {
       const attachmentIds = thesis.portfolio_thesis_attachments.map((pta) => ({
         attachment_id: pta.attachments.attachment_id,
@@ -152,7 +157,7 @@ export default class PortfolioThesisService {
     userId: string,
     data: CreatePortfolioThesisReqBody,
     files: Express.Multer.File[] = [],
-  ): Promise<PortfolioThesisResp> {
+  ): Promise<PortfolioThesisDetail> {
     const { ...thesisData } = data;
 
     const thesis = await prisma.portfolio_thesis.create({
@@ -188,7 +193,7 @@ export default class PortfolioThesisService {
     id: number,
     data: UpdatePortfolioThesisReqBody,
     files: Express.Multer.File[] = [],
-  ): Promise<PortfolioThesisResp> {
+  ): Promise<PortfolioThesisDetail> {
     const { ids_to_delete, ...updateData } = data;
 
     await prisma.portfolio_thesis.update({
@@ -235,7 +240,7 @@ export default class PortfolioThesisService {
     return (await this.getPortfolioThesisById(id))!;
   }
 
-  async deletePortfolioThesis(id: number): Promise<PortfolioThesisResp> {
+  async deletePortfolioThesis(id: number): Promise<PortfolioThesisDetail> {
     const { result, objects } = await prisma.$transaction(async (tx) => {
       // Read what hangs off the project first: deleting it cascades the join
       // rows away, and they are the only record of which attachments were

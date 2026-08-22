@@ -3,12 +3,12 @@ import { endpoints } from "../configs/endpoints.config";
 import type { ResponseWrapper } from "../types/global-type";
 import type {
   CreatePortfolioAwardReq,
-  PortfolioAwardResp,
   UpdatePortfolioAwardReq,
 } from "../types/portfolio-award-type.type";
+import type { PortfolioAwardDetail } from "@deep-portfolio/api-types";
 
 export const getAllPortfolioAward = async (user_id: string) => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioAwardResp[]>>(
+  const resp = await axiosInstance.get<ResponseWrapper<PortfolioAwardDetail[]>>(
     endpoints.portfolio_award.root,
     {
       params: { user_id },
@@ -19,7 +19,7 @@ export const getAllPortfolioAward = async (user_id: string) => {
 };
 
 export const getPortfolioAwardById = async (id: number) => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioAwardResp>>(
+  const resp = await axiosInstance.get<ResponseWrapper<PortfolioAwardDetail>>(
     endpoints.portfolio_award.detail(id),
   );
 
@@ -48,7 +48,7 @@ export const createPortfolioAward = async (
     });
   }
 
-  const resp = await axiosInstance.post<ResponseWrapper<PortfolioAwardResp>>(
+  const resp = await axiosInstance.post<ResponseWrapper<PortfolioAwardDetail>>(
     endpoints.portfolio_award.root,
     formData,
     {
@@ -87,7 +87,7 @@ export const updatePortfolioAward = async (
     });
   }
 
-  const resp = await axiosInstance.put<ResponseWrapper<PortfolioAwardResp>>(
+  const resp = await axiosInstance.put<ResponseWrapper<PortfolioAwardDetail>>(
     endpoints.portfolio_award.detail(id),
     formData,
     {
@@ -99,7 +99,9 @@ export const updatePortfolioAward = async (
 };
 
 export const deletePortfolioAward = async (id: number) => {
-  const resp = await axiosInstance.delete<ResponseWrapper<PortfolioAwardResp>>(
+  // `data: null`, not the row: the service reads the row it removed and the
+  // controller does not pass it on (#68).
+  const resp = await axiosInstance.delete<ResponseWrapper<null>>(
     endpoints.portfolio_award.detail(id),
   );
 

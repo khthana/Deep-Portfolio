@@ -9,19 +9,8 @@ export type CreatePortfolioCertificateReqBody =
 export type UpdatePortfolioCertificateReqBody =
   UpdatePortfolioCertificateFields;
 
-export type PortfolioCertificateResp = {
-  id: number;
-  user_id: string;
-  date: Date | null;
-  organize: string | null;
-  name: string | null;
-  description: string | null;
-  is_show: boolean | null;
-  attachments?: {
-    attachment_id: number;
-    url: string | null;
-    file_path: string | null;
-    original_filename: string | null;
-    file_size: number | null;
-  }[];
-};
+// PortfolioCertificateResp used to be declared here. It moved to
+// @deep-portfolio/api-types (#68) as `PortfolioCertificateDetail`, with the shape its
+// attachments list holds beside it as `PortfolioSectionAttachment` — import
+// them from there. It said `attachments` was optional, where every endpoint that answers
+// a row answers that key, and `date` was a `Date`, where the wire says string.

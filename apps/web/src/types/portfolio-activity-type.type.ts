@@ -1,21 +1,9 @@
-export type PortfolioActivityAttachment = {
-  attachment_id: number;
-  url: string | null;
-  file_path: string | null;
-  original_filename: string | null;
-  file_size: number | null;
-};
-
-export type PortfolioActivityResp = {
-  id: number;
-  user_id: string;
-  name: string;
-  date: string | null;
-  role: string | null;
-  description: string | null;
-  is_show: boolean | null;
-  attachments: PortfolioActivityAttachment[];
-};
+// PortfolioActivityResp and the PortfolioActivityAttachment beside it used to
+// be declared here. They moved to @deep-portfolio/api-types (#68) as
+// `PortfolioActivityDetail` and `PortfolioSectionAttachment` — import them
+// from there. Thirteen copies of that attachment shape were written out by
+// hand across the two sides — twelve of them identical, and all twelve
+// wrong; ADR-0041 has what each got wrong.
 
 export type CreatePortfolioActivityReq = {
   name: string;

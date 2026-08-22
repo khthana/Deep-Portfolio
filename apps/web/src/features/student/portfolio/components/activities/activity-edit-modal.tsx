@@ -8,10 +8,8 @@ import buddhistEra from "dayjs/plugin/buddhistEra";
 import Button from "../../../../../components/button/button";
 import { updatePortfolioActivity } from "../../../../../services/portfolio-activity.service";
 import { getFile } from "../../../../../utils/get-file";
-import type {
-  PortfolioActivityType as PortfolioActivityResp,
-  UpdatePortfolioActivityReq,
-} from "../../types/activity-type.type";
+import type { UpdatePortfolioActivityReq } from "../../types/activity-type.type";
+import type { PortfolioActivityDetail } from "@deep-portfolio/api-types";
 
 dayjs.extend(buddhistEra);
 dayjs.locale("th");
@@ -20,7 +18,7 @@ type ActivityEditModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  data: PortfolioActivityResp | null;
+  data: PortfolioActivityDetail | null;
   messageApi: MessageInstance;
 };
 

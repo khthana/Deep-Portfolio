@@ -7,20 +7,24 @@ import PageLayout from "../../../../../components/container/page-layout";
 import { getAllPortfolioEducation } from "../../../../../services/portfolio-education.service";
 import { getAllPortfolioTraining } from "../../../../../services/portfolio-training.service";
 import { getAllPortfolioCertificate } from "../../../../../services/portfolio-certificate.service";
-import type { PortfolioTrainingResp } from "../../../../../types/portfolio-training-type.type";
-import type { PortfolioCertificateResp } from "../../../../../types/portfolio-certificate-type.type";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../../../stores/stores";
-import type { PortfolioEducationDetail } from "@deep-portfolio/api-types";
+import type {
+  PortfolioCertificateDetail,
+  PortfolioEducationDetail,
+  PortfolioTrainingDetail,
+} from "@deep-portfolio/api-types";
 
 const StudentEducationTrainingPage = () => {
   const { studentId } = useSelector((state: RootState) => state.home);
   const [educationList, setEducationList] = useState<
     PortfolioEducationDetail[]
   >([]);
-  const [trainingList, setTrainingList] = useState<PortfolioTrainingResp[]>([]);
+  const [trainingList, setTrainingList] = useState<PortfolioTrainingDetail[]>(
+    [],
+  );
   const [certificateList, setCertificateList] = useState<
-    PortfolioCertificateResp[]
+    PortfolioCertificateDetail[]
   >([]);
 
   const fetchData = async () => {

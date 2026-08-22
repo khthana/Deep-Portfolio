@@ -3,10 +3,7 @@ import { useEffect, useState } from "react";
 import type { UploadFile } from "antd";
 import Button from "../../../../../components/button/button";
 import { updatePortfolioCertificate } from "../../../../../services/portfolio-certificate.service";
-import type {
-  PortfolioCertificateResp,
-  UpdatePortfolioCertificateReq,
-} from "../../../../../types/portfolio-certificate-type.type";
+import type { UpdatePortfolioCertificateReq } from "../../../../../types/portfolio-certificate-type.type";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 import buddhistEra from "dayjs/plugin/buddhistEra";
@@ -16,12 +13,13 @@ dayjs.extend(buddhistEra);
 dayjs.locale("th");
 
 import type { MessageInstance } from "antd/es/message/interface";
+import type { PortfolioCertificateDetail } from "@deep-portfolio/api-types";
 
 type CertificateEditModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  data: PortfolioCertificateResp | null;
+  data: PortfolioCertificateDetail | null;
   messageApi: MessageInstance;
 };
 

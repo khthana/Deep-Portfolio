@@ -1,9 +1,12 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
+import type {
+  PortfolioActivityDetail,
+  PortfolioSectionAttachment,
+} from "@deep-portfolio/api-types";
 import {
   CreatePortfolioActivityReqBody,
   UpdatePortfolioActivityReqBody,
-  PortfolioActivityResp,
 } from "../models/portfolio-activity.model";
 import AttachmentsService from "./attachments.service";
 import MinIOService from "./upload.service";
@@ -17,10 +20,6 @@ type PortfolioActivityWithAttachments = Prisma.portfolio_activitiesGetPayload<{
   };
 }>;
 
-type PortfolioActivityAttachment = NonNullable<
-  PortfolioActivityResp["attachments"]
->[number];
-
 export default class PortfolioActivityService {
   private readonly attachmentsService: AttachmentsService;
   private readonly uploadService: MinIOService;
@@ -32,7 +31,7 @@ export default class PortfolioActivityService {
 
   async getAllPortfolioActivity(
     userId: string,
-  ): Promise<PortfolioActivityResp[]> {
+  ): Promise<PortfolioActivityDetail[]> {
     const activities = await prisma.portfolio_activities.findMany({
       where: { user_id: userId },
       include: {
@@ -47,7 +46,7 @@ export default class PortfolioActivityService {
 
     return await Promise.all(
       activities.map(async (activity: PortfolioActivityWithAttachments) => {
-        let attachments: PortfolioActivityAttachment[] = [];
+        let attachments: PortfolioSectionAttachment[] = [];
         if (activity.portfolio_activity_attachments.length > 0) {
           const attachmentIds = activity.portfolio_activity_attachments.map(
             (paa) => ({ attachment_id: paa.attachments.attachment_id }),
@@ -79,7 +78,7 @@ export default class PortfolioActivityService {
           id: activity.id,
           user_id: activity.user_id,
           name: activity.name,
-          date: activity.date,
+          date: activity.date?.toISOString() ?? null,
           role: activity.role,
           description: activity.description,
           is_show: activity.is_show,
@@ -91,7 +90,7 @@ export default class PortfolioActivityService {
 
   async getPortfolioActivityById(
     id: number,
-  ): Promise<PortfolioActivityResp | null> {
+  ): Promise<PortfolioActivityDetail | null> {
     const activity: PortfolioActivityWithAttachments | null =
       await prisma.portfolio_activities.findUnique({
         where: { id },
@@ -106,7 +105,7 @@ export default class PortfolioActivityService {
 
     if (!activity) return null;
 
-    let attachments: PortfolioActivityAttachment[] = [];
+    let attachments: PortfolioSectionAttachment[] = [];
     if (activity.portfolio_activity_attachments.length > 0) {
       const attachmentIds = activity.portfolio_activity_attachments.map(
         (paa) => ({ attachment_id: paa.attachments.attachment_id }),
@@ -138,7 +137,7 @@ export default class PortfolioActivityService {
       id: activity.id,
       user_id: activity.user_id,
       name: activity.name,
-      date: activity.date,
+      date: activity.date?.toISOString() ?? null,
       role: activity.role,
       description: activity.description,
       is_show: activity.is_show,
@@ -150,7 +149,7 @@ export default class PortfolioActivityService {
     userId: string,
     data: CreatePortfolioActivityReqBody,
     files: Express.Multer.File[] = [],
-  ): Promise<PortfolioActivityResp> {
+  ): Promise<PortfolioActivityDetail> {
     const { ...activityData } = data;
 
     const activity = await prisma.portfolio_activities.create({
@@ -186,7 +185,7 @@ export default class PortfolioActivityService {
     id: number,
     data: UpdatePortfolioActivityReqBody,
     files: Express.Multer.File[] = [],
-  ): Promise<PortfolioActivityResp> {
+  ): Promise<PortfolioActivityDetail> {
     const { ids_to_delete, ...updateData } = data;
 
     await prisma.portfolio_activities.update({
@@ -233,7 +232,7 @@ export default class PortfolioActivityService {
     return (await this.getPortfolioActivityById(id))!;
   }
 
-  async deletePortfolioActivity(id: number): Promise<PortfolioActivityResp> {
+  async deletePortfolioActivity(id: number): Promise<PortfolioActivityDetail> {
     const { result, objects } = await prisma.$transaction(async (tx) => {
       // Read what hangs off the activity first: deleting it cascades the join
       // rows away, and they are the only record of which attachments were
@@ -260,6 +259,7 @@ export default class PortfolioActivityService {
 
     return {
       ...result,
+      date: result.date?.toISOString() ?? null,
       attachments: [],
     };
   }

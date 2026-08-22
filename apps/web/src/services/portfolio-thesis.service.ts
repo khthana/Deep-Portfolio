@@ -3,23 +3,22 @@ import { endpoints } from "../configs/endpoints.config";
 import type { ResponseWrapper } from "../types/global-type";
 import type {
   CreatePortfolioThesisReq,
-  PortfolioThesisResp,
   UpdatePortfolioThesisReq,
 } from "../features/student/portfolio/types/portfolio-thesis-type.type";
+import type { PortfolioThesisDetail } from "@deep-portfolio/api-types";
 
 export const getAllPortfolioThesis = async (user_id: string) => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioThesisResp[]>>(
-    endpoints.portfolio_thesis.root,
-    {
-      params: { user_id },
-    },
-  );
+  const resp = await axiosInstance.get<
+    ResponseWrapper<PortfolioThesisDetail[]>
+  >(endpoints.portfolio_thesis.root, {
+    params: { user_id },
+  });
 
   return resp.data;
 };
 
 export const getPortfolioThesisById = async (id: number) => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioThesisResp>>(
+  const resp = await axiosInstance.get<ResponseWrapper<PortfolioThesisDetail>>(
     endpoints.portfolio_thesis.detail(id),
   );
 
@@ -53,7 +52,7 @@ export const createPortfolioThesis = async (
     });
   }
 
-  const resp = await axiosInstance.post<ResponseWrapper<PortfolioThesisResp>>(
+  const resp = await axiosInstance.post<ResponseWrapper<PortfolioThesisDetail>>(
     endpoints.portfolio_thesis.root,
     formData,
     {
@@ -98,7 +97,7 @@ export const updatePortfolioThesis = async (
     });
   }
 
-  const resp = await axiosInstance.put<ResponseWrapper<PortfolioThesisResp>>(
+  const resp = await axiosInstance.put<ResponseWrapper<PortfolioThesisDetail>>(
     endpoints.portfolio_thesis.detail(id),
     formData,
     {

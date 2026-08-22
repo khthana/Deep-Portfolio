@@ -13,19 +13,19 @@ import {
   updatePortfolioAward,
 } from "../../../../../services/portfolio-award.service";
 import type {
-  PortfolioAwardResp,
   CreatePortfolioAwardReq,
   UpdatePortfolioAwardReq,
 } from "../../../../../types/portfolio-award-type.type";
 import { getFile } from "../../../../../utils/get-file";
 
 import type { MessageInstance } from "antd/es/message/interface";
+import type { PortfolioAwardDetail } from "@deep-portfolio/api-types";
 
 type AwardEditModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  data: PortfolioAwardResp | null;
+  data: PortfolioAwardDetail | null;
   messageApi: MessageInstance;
 };
 

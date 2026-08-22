@@ -1,8 +1,11 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
+import type {
+  PortfolioInternshipDetail,
+  PortfolioSectionAttachment,
+} from "@deep-portfolio/api-types";
 import {
   CreatePortfolioInternshipReqBody,
-  PortfolioInternshipResp,
   UpdatePortfolioInternshipReqBody,
 } from "../models/portfolio-internship.model";
 import AttachmentsService from "./attachments.service";
@@ -18,10 +21,6 @@ type PortfolioInternshipWithAttachments =
     };
   }>;
 
-type PortfolioInternshipAttachment = NonNullable<
-  PortfolioInternshipResp["attachments"]
->[number];
-
 export default class PortfolioInternshipService {
   private readonly attachmentsService: AttachmentsService;
   private readonly uploadService: MinIOService;
@@ -33,7 +32,7 @@ export default class PortfolioInternshipService {
 
   async getAllPortfolioInternship(
     userId: string,
-  ): Promise<PortfolioInternshipResp[]> {
+  ): Promise<PortfolioInternshipDetail[]> {
     const internships = await prisma.portfolio_internship.findMany({
       where: { user_id: userId },
       include: {
@@ -49,7 +48,7 @@ export default class PortfolioInternshipService {
     return await Promise.all(
       internships.map(
         async (internship: PortfolioInternshipWithAttachments) => {
-          let attachments: PortfolioInternshipAttachment[] = [];
+          let attachments: PortfolioSectionAttachment[] = [];
           if (internship.portfolio_internship_attachments.length > 0) {
             const attachmentIds =
               internship.portfolio_internship_attachments.map((pia) => ({
@@ -86,8 +85,8 @@ export default class PortfolioInternshipService {
             company: internship.company,
             country: internship.country,
             province: internship.province,
-            start_date: internship.start_date,
-            end_date: internship.end_date,
+            start_date: internship.start_date?.toISOString() ?? null,
+            end_date: internship.end_date?.toISOString() ?? null,
             position: internship.position,
             resp: internship.resp,
             is_show_resp: internship.is_show_resp,
@@ -104,7 +103,7 @@ export default class PortfolioInternshipService {
 
   async getPortfolioInternshipById(
     id: number,
-  ): Promise<PortfolioInternshipResp | null> {
+  ): Promise<PortfolioInternshipDetail | null> {
     const internship: PortfolioInternshipWithAttachments | null =
       await prisma.portfolio_internship.findUnique({
         where: { id },
@@ -119,7 +118,7 @@ export default class PortfolioInternshipService {
 
     if (!internship) return null;
 
-    let attachments: PortfolioInternshipAttachment[] = [];
+    let attachments: PortfolioSectionAttachment[] = [];
     if (internship.portfolio_internship_attachments.length > 0) {
       const attachmentIds = internship.portfolio_internship_attachments.map(
         (pia) => ({ attachment_id: pia.attachments.attachment_id }),
@@ -155,8 +154,8 @@ export default class PortfolioInternshipService {
       company: internship.company,
       country: internship.country,
       province: internship.province,
-      start_date: internship.start_date,
-      end_date: internship.end_date,
+      start_date: internship.start_date?.toISOString() ?? null,
+      end_date: internship.end_date?.toISOString() ?? null,
       position: internship.position,
       resp: internship.resp,
       is_show_resp: internship.is_show_resp,
@@ -172,7 +171,7 @@ export default class PortfolioInternshipService {
     userId: string,
     data: CreatePortfolioInternshipReqBody,
     files: Express.Multer.File[] = [],
-  ): Promise<PortfolioInternshipResp> {
+  ): Promise<PortfolioInternshipDetail> {
     const internship = await prisma.portfolio_internship.create({
       data: {
         user_id: userId,
@@ -206,7 +205,7 @@ export default class PortfolioInternshipService {
     id: number,
     data: UpdatePortfolioInternshipReqBody,
     files: Express.Multer.File[] = [],
-  ): Promise<PortfolioInternshipResp> {
+  ): Promise<PortfolioInternshipDetail> {
     const { ids_to_delete, ...updateData } = data;
 
     await prisma.portfolio_internship.update({
@@ -255,7 +254,7 @@ export default class PortfolioInternshipService {
 
   async deletePortfolioInternship(
     id: number,
-  ): Promise<PortfolioInternshipResp> {
+  ): Promise<PortfolioInternshipDetail> {
     const { result, objects } = await prisma.$transaction(async (tx) => {
       // Read what hangs off the placement first: deleting it cascades the
       // join rows away, and they are the only record of which attachments
@@ -282,6 +281,8 @@ export default class PortfolioInternshipService {
 
     return {
       ...result,
+      start_date: result.start_date?.toISOString() ?? null,
+      end_date: result.end_date?.toISOString() ?? null,
       attachments: [],
     };
   }

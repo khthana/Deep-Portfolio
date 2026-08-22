@@ -1,11 +1,11 @@
-import type { PortfolioActivityType as PortfolioActivityResp } from "../../types/activity-type.type";
 import { Image, Popconfirm } from "antd";
 import WhiteContainer from "../../../../../components/container/white-container";
 import { getFile } from "../../../../../utils/get-file";
 import { convertToBE } from "../../../../../utils/year-utils";
+import type { PortfolioActivityDetail } from "@deep-portfolio/api-types";
 
 type Props = {
-  data: PortfolioActivityResp;
+  data: PortfolioActivityDetail;
   onEdit?: (id: number) => void;
   onDelete?: (id: number) => void;
 };

@@ -5,16 +5,14 @@ import { useEffect, useState } from "react";
 import Button from "../../../../../components/button/button";
 import TextAreaWithCheckbox from "../text-area-with-checkbox";
 import { updatePortfolioThesis } from "../../../../../services/portfolio-thesis.service";
-import type {
-  PortfolioThesisResp,
-  UpdatePortfolioThesisReq,
-} from "../../types/portfolio-thesis-type.type";
+import type { UpdatePortfolioThesisReq } from "../../types/portfolio-thesis-type.type";
+import type { PortfolioThesisDetail } from "@deep-portfolio/api-types";
 
 type ThesisEditModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  data: PortfolioThesisResp | null;
+  data: PortfolioThesisDetail | null;
 };
 
 const ThesisEditModal = ({
@@ -49,9 +47,17 @@ const ThesisEditModal = ({
         init_expect: data.init_expect,
         reflection: data.reflection,
       });
-      setShowRolesAndContributions(data.is_show_role);
-      setShowInitialExpectations(data.is_show_init);
-      setShowReflections(data.is_show_reflec);
+      // All four flags are nullable columns and `PortfolioThesisDetail` says so
+      // now (#68). `true` is the column's own default, and null cannot actually
+      // reach here: `optionalBool` only ever yields a boolean or undefined, and
+      // undefined leaves the column alone — so nothing in the system writes one.
+      // Coalescing rather than widening the state keeps the null out of the
+      // switches and out of the request the form sends back, which `optionalBool`
+      // would refuse — ADR-0039 §4 for that half, ADR-0036 §4 and ADR-0038 §2
+      // for coalescing at the map site and for why null cannot arrive.
+      setShowRolesAndContributions(data.is_show_role ?? true);
+      setShowInitialExpectations(data.is_show_init ?? true);
+      setShowReflections(data.is_show_reflec ?? true);
 
       // Initialize fileList with existing attachments
       const initialFiles: UploadFile[] = data.attachments.map((att) => ({

@@ -1,9 +1,12 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
+import type {
+  PortfolioCertificateDetail,
+  PortfolioSectionAttachment,
+} from "@deep-portfolio/api-types";
 import {
   CreatePortfolioCertificateReqBody,
   UpdatePortfolioCertificateReqBody,
-  PortfolioCertificateResp,
 } from "../models/portfolio-certificate.model";
 import AttachmentsService from "./attachments.service";
 import MinIOService from "./upload.service";
@@ -18,10 +21,6 @@ type PortfolioCertificateWithAttachments =
     };
   }>;
 
-type PortfolioCertificateAttachment = NonNullable<
-  PortfolioCertificateResp["attachments"]
->[number];
-
 export default class PortfolioCertificateService {
   private readonly attachmentsService: AttachmentsService;
   private readonly uploadService: MinIOService;
@@ -33,7 +32,7 @@ export default class PortfolioCertificateService {
 
   async getAllPortfolioCertificate(
     userId: string,
-  ): Promise<PortfolioCertificateResp[]> {
+  ): Promise<PortfolioCertificateDetail[]> {
     const certificates = await prisma.portfolio_certificate.findMany({
       where: { user_id: userId },
       include: {
@@ -49,7 +48,7 @@ export default class PortfolioCertificateService {
     return await Promise.all(
       certificates.map(
         async (certificate: PortfolioCertificateWithAttachments) => {
-          let attachments: PortfolioCertificateAttachment[] = [];
+          let attachments: PortfolioSectionAttachment[] = [];
           if (certificate.portfolio_certificate_attachments.length > 0) {
             const attachmentIds =
               certificate.portfolio_certificate_attachments.map((pca) => ({
@@ -81,7 +80,7 @@ export default class PortfolioCertificateService {
           return {
             id: certificate.id,
             user_id: certificate.user_id,
-            date: certificate.date,
+            date: certificate.date?.toISOString() ?? null,
             organize: certificate.organize,
             name: certificate.name,
             description: certificate.description,
@@ -95,7 +94,7 @@ export default class PortfolioCertificateService {
 
   async getPortfolioCertificateById(
     id: number,
-  ): Promise<PortfolioCertificateResp | null> {
+  ): Promise<PortfolioCertificateDetail | null> {
     const certificate: PortfolioCertificateWithAttachments | null =
       await prisma.portfolio_certificate.findUnique({
         where: { id },
@@ -110,7 +109,7 @@ export default class PortfolioCertificateService {
 
     if (!certificate) return null;
 
-    let attachments: PortfolioCertificateAttachment[] = [];
+    let attachments: PortfolioSectionAttachment[] = [];
     if (certificate.portfolio_certificate_attachments.length > 0) {
       const attachmentIds = certificate.portfolio_certificate_attachments.map(
         (pca) => ({ attachment_id: pca.attachments.attachment_id }),
@@ -141,7 +140,7 @@ export default class PortfolioCertificateService {
     return {
       id: certificate.id,
       user_id: certificate.user_id,
-      date: certificate.date,
+      date: certificate.date?.toISOString() ?? null,
       organize: certificate.organize,
       name: certificate.name,
       description: certificate.description,
@@ -154,7 +153,7 @@ export default class PortfolioCertificateService {
     userId: string,
     data: CreatePortfolioCertificateReqBody,
     files: Express.Multer.File[] = [],
-  ): Promise<PortfolioCertificateResp> {
+  ): Promise<PortfolioCertificateDetail> {
     const { date, ...certificateData } = data;
 
     const certificate = await prisma.portfolio_certificate.create({
@@ -191,7 +190,7 @@ export default class PortfolioCertificateService {
     id: number,
     data: UpdatePortfolioCertificateReqBody,
     files: Express.Multer.File[] = [],
-  ): Promise<PortfolioCertificateResp> {
+  ): Promise<PortfolioCertificateDetail> {
     const { ids_to_delete, ...updateData } = data;
 
     await prisma.portfolio_certificate.update({
@@ -240,7 +239,7 @@ export default class PortfolioCertificateService {
 
   async deletePortfolioCertificate(
     id: number,
-  ): Promise<PortfolioCertificateResp> {
+  ): Promise<PortfolioCertificateDetail> {
     const { result, objects } = await prisma.$transaction(async (tx) => {
       // Read what hangs off the certificate first: deleting it cascades the
       // join rows away, and they are the only record of which attachments
@@ -267,6 +266,7 @@ export default class PortfolioCertificateService {
 
     return {
       ...result,
+      date: result.date?.toISOString() ?? null,
       attachments: [],
     };
   }

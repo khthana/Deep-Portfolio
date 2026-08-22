@@ -49,7 +49,7 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1076 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 1077 API cases over
   40 files, 448 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
@@ -174,7 +174,12 @@ e-Portfolio started next, and ADR-0040 came out of opening it: what looks like
 one feature is ten routers and 58 endpoints, so it walks as several passes with
 the aggregate `/portfolio` last, because its service calls all nine sections.
 The first of those passes moved the student's personal details and their
-schooling. 33 files and 1,746 lines are still web-side.
+schooling, and the second took the six sections that hang files off themselves.
+ADR-0041 came out of that one: the shape of an attachment list had been written
+out by hand thirteen times across the two sides — twelve of them identical and
+all twelve wrong — and what settles it is the code that flattens files and links
+into one list rather than any of the copies.
+33 files and 1,650 lines are still web-side.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

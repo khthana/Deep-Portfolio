@@ -7,23 +7,8 @@ export type CreatePortfolioThesisReqBody = CreatePortfolioThesisFields;
 
 export type UpdatePortfolioThesisReqBody = UpdatePortfolioThesisFields;
 
-export type PortfolioThesisResp = {
-  id: number;
-  user_id: string;
-  name: string | null;
-  repository: string | null;
-  role_and_resp: string | null;
-  init_expect: string | null;
-  reflection: string | null;
-  is_show_repo: boolean | null;
-  is_show_role: boolean | null;
-  is_show_init: boolean | null;
-  is_show_reflec: boolean | null;
-  attachments?: {
-    attachment_id: number;
-    url: string | null;
-    file_path: string | null;
-    original_filename: string | null;
-    file_size: number | null;
-  }[];
-};
+// PortfolioThesisResp used to be declared here. It moved to
+// @deep-portfolio/api-types (#68) as `PortfolioThesisDetail`, with the shape its
+// attachments list holds beside it as `PortfolioSectionAttachment` — import
+// them from there. It said `attachments` was optional; every endpoint that answers a
+// row answers that key too.

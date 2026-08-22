@@ -3,19 +3,18 @@ import { message } from "antd";
 import { paths } from "../../../../../routes/paths.config";
 import SectionLayout from "../section-layout";
 import TrainingCard from "./training-card";
-import type { PortfolioTrainingResp } from "../../../../../types/portfolio-training-type.type";
 import { deletePortfolioTraining } from "../../../../../services/portfolio-training.service";
 import TrainingEditModal from "./training-edit-modal";
+import type { PortfolioTrainingDetail } from "@deep-portfolio/api-types";
 
 type TrainingSectionProps = {
-  data?: PortfolioTrainingResp[];
+  data?: PortfolioTrainingDetail[];
   onRefresh?: () => void;
 };
 
 const TrainingSection = ({ data, onRefresh }: TrainingSectionProps) => {
-  const [editingItem, setEditingItem] = useState<PortfolioTrainingResp | null>(
-    null,
-  );
+  const [editingItem, setEditingItem] =
+    useState<PortfolioTrainingDetail | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
 
   const handleEdit = (id: number) => {

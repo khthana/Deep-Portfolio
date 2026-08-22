@@ -7,20 +7,8 @@ export type CreatePortfolioTrainingReqBody = CreatePortfolioTrainingFields;
 
 export type UpdatePortfolioTrainingReqBody = UpdatePortfolioTrainingFields;
 
-export type PortfolioTrainingResp = {
-  id: number;
-  user_id: string;
-  year: number | null;
-  country: string | null;
-  organize: string | null;
-  name: string | null;
-  description: string | null;
-  is_show: boolean | null;
-  attachments?: {
-    attachment_id: number;
-    url: string | null;
-    file_path: string | null;
-    original_filename: string | null;
-    file_size: number | null;
-  }[];
-};
+// PortfolioTrainingResp used to be declared here. It moved to
+// @deep-portfolio/api-types (#68) as `PortfolioTrainingDetail`, with the shape its
+// attachments list holds beside it as `PortfolioSectionAttachment` — import
+// them from there. It said `attachments` was optional; every endpoint that answers a
+// row answers that key too.

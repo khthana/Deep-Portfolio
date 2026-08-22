@@ -1,9 +1,12 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
+import type {
+  PortfolioAwardDetail,
+  PortfolioSectionAttachment,
+} from "@deep-portfolio/api-types";
 import {
   CreatePortfolioAwardReqBody,
   UpdatePortfolioAwardReqBody,
-  PortfolioAwardResp,
 } from "../models/portfolio-award.model";
 import AttachmentsService from "./attachments.service";
 import MinIOService from "./upload.service";
@@ -17,10 +20,6 @@ type PortfolioAwardWithAttachments = Prisma.portfolio_awardGetPayload<{
   };
 }>;
 
-type PortfolioAwardAttachment = NonNullable<
-  PortfolioAwardResp["attachments"]
->[number];
-
 export default class PortfolioAwardService {
   private readonly attachmentsService: AttachmentsService;
   private readonly uploadService: MinIOService;
@@ -30,7 +29,7 @@ export default class PortfolioAwardService {
     this.uploadService = new MinIOService();
   }
 
-  async getAllPortfolioAward(userId: string): Promise<PortfolioAwardResp[]> {
+  async getAllPortfolioAward(userId: string): Promise<PortfolioAwardDetail[]> {
     const awards = await prisma.portfolio_award.findMany({
       where: { user_id: userId },
       include: {
@@ -45,7 +44,7 @@ export default class PortfolioAwardService {
 
     return await Promise.all(
       awards.map(async (award: PortfolioAwardWithAttachments) => {
-        let attachments: PortfolioAwardAttachment[] = [];
+        let attachments: PortfolioSectionAttachment[] = [];
         if (award.portfolio_award_attachments.length > 0) {
           const attachmentIds = award.portfolio_award_attachments.map(
             (paa) => ({
@@ -81,7 +80,7 @@ export default class PortfolioAwardService {
           organize: award.organize,
           name: award.name,
           award: award.award,
-          date: award.date,
+          date: award.date?.toISOString() ?? null,
           description: award.description,
           is_show: award.is_show,
           attachments,
@@ -90,7 +89,9 @@ export default class PortfolioAwardService {
     );
   }
 
-  async getPortfolioAwardById(id: number): Promise<PortfolioAwardResp | null> {
+  async getPortfolioAwardById(
+    id: number,
+  ): Promise<PortfolioAwardDetail | null> {
     const award: PortfolioAwardWithAttachments | null =
       await prisma.portfolio_award.findUnique({
         where: { id },
@@ -105,7 +106,7 @@ export default class PortfolioAwardService {
 
     if (!award) return null;
 
-    let attachments: PortfolioAwardAttachment[] = [];
+    let attachments: PortfolioSectionAttachment[] = [];
     if (award.portfolio_award_attachments.length > 0) {
       const attachmentIds = award.portfolio_award_attachments.map((paa) => ({
         attachment_id: paa.attachments.attachment_id,
@@ -139,7 +140,7 @@ export default class PortfolioAwardService {
       organize: award.organize,
       name: award.name,
       award: award.award,
-      date: award.date,
+      date: award.date?.toISOString() ?? null,
       description: award.description,
       is_show: award.is_show,
       attachments,
@@ -150,7 +151,7 @@ export default class PortfolioAwardService {
     userId: string,
     data: CreatePortfolioAwardReqBody,
     files: Express.Multer.File[] = [],
-  ): Promise<PortfolioAwardResp> {
+  ): Promise<PortfolioAwardDetail> {
     const { date, ...awardData } = data;
 
     // `is_show` rides along in `awardData` and is deliberately not touched.
@@ -192,7 +193,7 @@ export default class PortfolioAwardService {
     id: number,
     data: UpdatePortfolioAwardReqBody,
     files: Express.Multer.File[] = [],
-  ): Promise<PortfolioAwardResp> {
+  ): Promise<PortfolioAwardDetail> {
     const { ids_to_delete, ...updateData } = data;
 
     await prisma.portfolio_award.update({
@@ -239,7 +240,7 @@ export default class PortfolioAwardService {
     return (await this.getPortfolioAwardById(id))!;
   }
 
-  async deletePortfolioAward(id: number): Promise<PortfolioAwardResp> {
+  async deletePortfolioAward(id: number): Promise<PortfolioAwardDetail> {
     const { result, objects } = await prisma.$transaction(async (tx) => {
       // Read what hangs off the prize first: deleting it cascades the join
       // rows away, and they are the only record of which attachments were
@@ -267,6 +268,7 @@ export default class PortfolioAwardService {
     return {
       ...result,
       is_show: result.is_show,
+      date: result.date?.toISOString() ?? null,
       attachments: [],
     };
   }

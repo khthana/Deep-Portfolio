@@ -2,19 +2,19 @@ import { useState } from "react";
 import { message } from "antd";
 import { paths } from "../../../../../routes/paths.config";
 import SectionLayout from "../section-layout";
-import type { PortfolioCertificateResp } from "../../../../../types/portfolio-certificate-type.type";
 import { deletePortfolioCertificate } from "../../../../../services/portfolio-certificate.service";
 import CertificateEditModal from "./certificate-edit-modal";
 import CertificateCard from "./certificate-card";
+import type { PortfolioCertificateDetail } from "@deep-portfolio/api-types";
 
 type CertificateSectionProps = {
-  data?: PortfolioCertificateResp[];
+  data?: PortfolioCertificateDetail[];
   onRefresh?: () => void;
 };
 
 const CertificateSection = ({ data, onRefresh }: CertificateSectionProps) => {
   const [editingItem, setEditingItem] =
-    useState<PortfolioCertificateResp | null>(null);
+    useState<PortfolioCertificateDetail | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
 
   const handleEdit = (id: number) => {

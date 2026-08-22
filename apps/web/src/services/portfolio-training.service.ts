@@ -3,13 +3,13 @@ import { endpoints } from "../configs/endpoints.config";
 import type { ResponseWrapper } from "../types/global-type";
 import type {
   CreatePortfolioTrainingReq,
-  PortfolioTrainingResp,
   UpdatePortfolioTrainingReq,
 } from "../types/portfolio-training-type.type";
+import type { PortfolioTrainingDetail } from "@deep-portfolio/api-types";
 
 export const getAllPortfolioTraining = async (user_id: string) => {
   const resp = await axiosInstance.get<
-    ResponseWrapper<PortfolioTrainingResp[]>
+    ResponseWrapper<PortfolioTrainingDetail[]>
   >(endpoints.portfolio_training.root, {
     params: { user_id },
   });
@@ -18,9 +18,9 @@ export const getAllPortfolioTraining = async (user_id: string) => {
 };
 
 export const getPortfolioTrainingById = async (id: number) => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioTrainingResp>>(
-    endpoints.portfolio_training.detail(id),
-  );
+  const resp = await axiosInstance.get<
+    ResponseWrapper<PortfolioTrainingDetail>
+  >(endpoints.portfolio_training.detail(id));
 
   return resp.data;
 };
@@ -47,13 +47,11 @@ export const createPortfolioTraining = async (
     });
   }
 
-  const resp = await axiosInstance.post<ResponseWrapper<PortfolioTrainingResp>>(
-    endpoints.portfolio_training.root,
-    formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    },
-  );
+  const resp = await axiosInstance.post<
+    ResponseWrapper<PortfolioTrainingDetail>
+  >(endpoints.portfolio_training.root, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 
   return resp.data;
 };
@@ -86,21 +84,21 @@ export const updatePortfolioTraining = async (
     });
   }
 
-  const resp = await axiosInstance.put<ResponseWrapper<PortfolioTrainingResp>>(
-    endpoints.portfolio_training.detail(id),
-    formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    },
-  );
+  const resp = await axiosInstance.put<
+    ResponseWrapper<PortfolioTrainingDetail>
+  >(endpoints.portfolio_training.detail(id), formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 
   return resp.data;
 };
 
 export const deletePortfolioTraining = async (id: number) => {
-  const resp = await axiosInstance.delete<
-    ResponseWrapper<PortfolioTrainingResp>
-  >(endpoints.portfolio_training.detail(id));
+  // `data: null`, not the row: the service reads the row it removed and the
+  // controller does not pass it on (#68).
+  const resp = await axiosInstance.delete<ResponseWrapper<null>>(
+    endpoints.portfolio_training.detail(id),
+  );
 
   return resp.data;
 };

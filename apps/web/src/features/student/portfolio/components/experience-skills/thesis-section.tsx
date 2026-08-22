@@ -9,19 +9,19 @@ import {
   getAllPortfolioThesis,
   deletePortfolioThesis,
 } from "../../../../../services/portfolio-thesis.service";
-import type { PortfolioThesisResp } from "../../types/portfolio-thesis-type.type";
 import ThesisEditModal from "./thesis-edit-modal";
 import { message } from "antd";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../../../stores/stores";
+import type { PortfolioThesisDetail } from "@deep-portfolio/api-types";
 
 const ThesisSection = () => {
   const { studentId } = useSelector((state: RootState) => state.home);
   // const navigate = useNavigate();
-  const [thesisList, setThesisList] = useState<PortfolioThesisResp[]>([]);
+  const [thesisList, setThesisList] = useState<PortfolioThesisDetail[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedThesis, setSelectedThesis] =
-    useState<PortfolioThesisResp | null>(null);
+    useState<PortfolioThesisDetail | null>(null);
 
   const fetchThesis = useCallback(async () => {
     if (!studentId) return;

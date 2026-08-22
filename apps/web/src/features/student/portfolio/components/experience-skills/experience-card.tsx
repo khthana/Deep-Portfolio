@@ -1,10 +1,10 @@
 import { Image, Popconfirm } from "antd";
 import WhiteContainer from "../../../../../components/container/white-container";
-import type { PortfolioInternshipResp } from "../../../../../types/portfolio-internship-type.type";
 import { getFile } from "../../../../../utils/get-file";
+import type { PortfolioInternshipDetail } from "@deep-portfolio/api-types";
 
 type Props = {
-  data: PortfolioInternshipResp;
+  data: PortfolioInternshipDetail;
   onDelete?: (id: number) => void;
   onEdit?: (id: number) => void;
 };

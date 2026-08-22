@@ -4,21 +4,19 @@ import type { UploadFile } from "antd";
 import Button from "../../../../../components/button/button";
 import { updatePortfolioTraining } from "../../../../../services/portfolio-training.service";
 import CountryInput from "../../../../../components/input/country-input";
-import type {
-  PortfolioTrainingResp,
-  UpdatePortfolioTrainingReq,
-} from "../../../../../types/portfolio-training-type.type";
+import type { UpdatePortfolioTrainingReq } from "../../../../../types/portfolio-training-type.type";
 import { getFile } from "../../../../../utils/get-file";
 import { convertToBE, convertToCE } from "../../../../../utils/year-utils";
 
 import type { MessageInstance } from "antd/es/message/interface";
 import dayjs from "dayjs";
+import type { PortfolioTrainingDetail } from "@deep-portfolio/api-types";
 
 type TrainingEditModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  data: PortfolioTrainingResp | null;
+  data: PortfolioTrainingDetail | null;
   messageApi: MessageInstance;
 };
 

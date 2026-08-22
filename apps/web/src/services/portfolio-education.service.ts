@@ -37,8 +37,10 @@ export const updatePortfolioEducation = async (
 };
 
 export const deletePortfolioEducation = async (id: number) => {
-  const resp = await axiosInstance.delete<
-    ResponseWrapper<PortfolioEducationDetail>
-  >(endpoints.portfolio_education.detail(id));
+  // `data: null`, not the row: the service reads the row it removed and the
+  // controller does not pass it on (#68).
+  const resp = await axiosInstance.delete<ResponseWrapper<null>>(
+    endpoints.portfolio_education.detail(id),
+  );
   return resp.data;
 };

@@ -5,10 +5,7 @@ import Button from "../../../../../components/button/button";
 import { updatePortfolioInternship } from "../../../../../services/portfolio-internship.service";
 import CountryInput from "../../../../../components/input/country-input";
 import ProvinceInput from "../../../../../components/input/province-input";
-import type {
-  PortfolioInternshipResp,
-  UpdatePortfolioInternshipReq,
-} from "../../../../../types/portfolio-internship-type.type";
+import type { UpdatePortfolioInternshipReq } from "../../../../../types/portfolio-internship-type.type";
 import TextAreaWithCheckbox from "../text-area-with-checkbox";
 import {
   programOptions,
@@ -24,12 +21,13 @@ dayjs.locale("th");
 import { getFile } from "../../../../../utils/get-file";
 
 import type { MessageInstance } from "antd/es/message/interface";
+import type { PortfolioInternshipDetail } from "@deep-portfolio/api-types";
 
 type InternshipEditModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  data: PortfolioInternshipResp | null;
+  data: PortfolioInternshipDetail | null;
   messageApi: MessageInstance;
 };
 

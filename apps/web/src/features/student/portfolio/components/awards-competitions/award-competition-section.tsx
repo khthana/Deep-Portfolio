@@ -3,7 +3,6 @@ import { message } from "antd";
 import { paths } from "../../../../../routes/paths.config";
 import SectionLayout from "../section-layout";
 import AwardCompetitionCard from "./award-competition-card";
-import type { PortfolioAwardResp } from "../../../../../types/portfolio-award-type.type";
 import {
   deletePortfolioAward,
   getAllPortfolioAward,
@@ -12,11 +11,12 @@ import AwardEditModal from "./award-edit-modal";
 
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../../../stores/stores";
+import type { PortfolioAwardDetail } from "@deep-portfolio/api-types";
 
 const AwardCompetitionSection = () => {
   const { studentId } = useSelector((state: RootState) => state.home);
-  const [data, setData] = useState<PortfolioAwardResp[]>([]);
-  const [editingItem, setEditingItem] = useState<PortfolioAwardResp | null>(
+  const [data, setData] = useState<PortfolioAwardDetail[]>([]);
+  const [editingItem, setEditingItem] = useState<PortfolioAwardDetail | null>(
     null,
   );
   const [refreshKey, setRefreshKey] = useState(0);

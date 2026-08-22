@@ -1,25 +1,10 @@
-export type PortfolioThesisResp = {
-  id: number;
-  user_id: string;
-  name: string;
-  repository: string | null;
-  role_and_resp: string | null;
-  init_expect: string | null;
-  reflection: string | null;
-  is_show_repo: boolean;
-  is_show_role: boolean;
-  is_show_init: boolean;
-  is_show_reflec: boolean;
-  attachments: PortfolioThesisAttachment[];
-};
-
-export type PortfolioThesisAttachment = {
-  attachment_id: number;
-  url: string;
-  file_path: string | null;
-  original_filename: string;
-  file_size: string | null;
-};
+// PortfolioThesisResp and PortfolioThesisAttachment used to be declared here.
+// They moved to @deep-portfolio/api-types (#68) as `PortfolioThesisDetail` and
+// `PortfolioSectionAttachment` — import them from there. This copy and the
+// API's were each right about a half the other had wrong: this one knew `url`
+// and `original_filename` are never null, and had `file_size` as a string and
+// `name` and the four `is_show_*` flags as non-nullable, which the columns are
+// not.
 
 export type CreatePortfolioThesisReq = {
   name: string;

@@ -1,9 +1,12 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
+import type {
+  PortfolioTrainingDetail,
+  PortfolioSectionAttachment,
+} from "@deep-portfolio/api-types";
 import {
   CreatePortfolioTrainingReqBody,
   UpdatePortfolioTrainingReqBody,
-  PortfolioTrainingResp,
 } from "../models/portfolio-training.model";
 import AttachmentsService from "./attachments.service";
 import MinIOService from "./upload.service";
@@ -17,10 +20,6 @@ type PortfolioTrainingWithAttachments = Prisma.portfolio_trainingGetPayload<{
   };
 }>;
 
-type PortfolioTrainingAttachment = NonNullable<
-  PortfolioTrainingResp["attachments"]
->[number];
-
 export default class PortfolioTrainingService {
   private readonly attachmentsService: AttachmentsService;
   private readonly uploadService: MinIOService;
@@ -32,7 +31,7 @@ export default class PortfolioTrainingService {
 
   async getAllPortfolioTraining(
     userId: string,
-  ): Promise<PortfolioTrainingResp[]> {
+  ): Promise<PortfolioTrainingDetail[]> {
     const trainings = await prisma.portfolio_training.findMany({
       where: { user_id: userId },
       include: {
@@ -47,7 +46,7 @@ export default class PortfolioTrainingService {
 
     return await Promise.all(
       trainings.map(async (training: PortfolioTrainingWithAttachments) => {
-        let attachments: PortfolioTrainingAttachment[] = [];
+        let attachments: PortfolioSectionAttachment[] = [];
         if (training.portfolio_training_attachments.length > 0) {
           const attachmentIds = training.portfolio_training_attachments.map(
             (pta) => ({ attachment_id: pta.attachments.attachment_id }),
@@ -92,7 +91,7 @@ export default class PortfolioTrainingService {
 
   async getPortfolioTrainingById(
     id: number,
-  ): Promise<PortfolioTrainingResp | null> {
+  ): Promise<PortfolioTrainingDetail | null> {
     const training: PortfolioTrainingWithAttachments | null =
       await prisma.portfolio_training.findUnique({
         where: { id },
@@ -107,7 +106,7 @@ export default class PortfolioTrainingService {
 
     if (!training) return null;
 
-    let attachments: PortfolioTrainingAttachment[] = [];
+    let attachments: PortfolioSectionAttachment[] = [];
     if (training.portfolio_training_attachments.length > 0) {
       const attachmentIds = training.portfolio_training_attachments.map(
         (pta) => ({ attachment_id: pta.attachments.attachment_id }),
@@ -152,7 +151,7 @@ export default class PortfolioTrainingService {
     userId: string,
     data: CreatePortfolioTrainingReqBody,
     files: Express.Multer.File[] = [],
-  ): Promise<PortfolioTrainingResp> {
+  ): Promise<PortfolioTrainingDetail> {
     const { ...trainingData } = data;
 
     const training = await prisma.portfolio_training.create({
@@ -188,7 +187,7 @@ export default class PortfolioTrainingService {
     id: number,
     data: UpdatePortfolioTrainingReqBody,
     files: Express.Multer.File[] = [],
-  ): Promise<PortfolioTrainingResp> {
+  ): Promise<PortfolioTrainingDetail> {
     const { ids_to_delete, ...updateData } = data;
 
     await prisma.portfolio_training.update({
@@ -235,7 +234,7 @@ export default class PortfolioTrainingService {
     return (await this.getPortfolioTrainingById(id))!;
   }
 
-  async deletePortfolioTraining(id: number): Promise<PortfolioTrainingResp> {
+  async deletePortfolioTraining(id: number): Promise<PortfolioTrainingDetail> {
     const { result, objects } = await prisma.$transaction(async (tx) => {
       // Read what hangs off the entry first: deleting it cascades the join
       // rows away, and they are the only record of which attachments were

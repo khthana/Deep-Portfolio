@@ -1,10 +1,10 @@
 import { Image, Popconfirm } from "antd";
 import WhiteContainer from "../../../../../components/container/white-container";
-import type { PortfolioCertificateResp } from "../../../../../types/portfolio-certificate-type.type";
 import { getFile } from "../../../../../utils/get-file";
+import type { PortfolioCertificateDetail } from "@deep-portfolio/api-types";
 
 type Props = {
-  data: PortfolioCertificateResp;
+  data: PortfolioCertificateDetail;
   onEdit?: (id: number) => void;
   onDelete?: (id: number) => void;
 };
@@ -16,7 +16,10 @@ const CertificateCard = (props: Props) => {
     return ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(ext || "");
   };
 
-  const formatDate = (date: Date | null) => {
+  // The endpoint sends a string, and always has; this said `Date` because the
+  // web's copy of the type did (#68). `new Date()` below took either, so the
+  // screen never noticed.
+  const formatDate = (date: string | null) => {
     if (!date) return "-";
     const year = new Date(date).getFullYear();
     const buddhistYear = year + 543;

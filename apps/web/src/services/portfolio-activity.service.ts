@@ -3,13 +3,13 @@ import { endpoints } from "../configs/endpoints.config";
 import type { ResponseWrapper } from "../types/global-type";
 import type {
   CreatePortfolioActivityReq,
-  PortfolioActivityResp,
   UpdatePortfolioActivityReq,
 } from "../types/portfolio-activity-type.type";
+import type { PortfolioActivityDetail } from "@deep-portfolio/api-types";
 
 export const getAllPortfolioActivity = async (user_id: string) => {
   const resp = await axiosInstance.get<
-    ResponseWrapper<PortfolioActivityResp[]>
+    ResponseWrapper<PortfolioActivityDetail[]>
   >(endpoints.portfolio_activity.root, {
     params: { user_id },
   });
@@ -18,9 +18,9 @@ export const getAllPortfolioActivity = async (user_id: string) => {
 };
 
 export const getPortfolioActivityById = async (id: number) => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioActivityResp>>(
-    endpoints.portfolio_activity.detail(id),
-  );
+  const resp = await axiosInstance.get<
+    ResponseWrapper<PortfolioActivityDetail>
+  >(endpoints.portfolio_activity.detail(id));
 
   return resp.data;
 };
@@ -44,13 +44,11 @@ export const createPortfolioActivity = async (
     });
   }
 
-  const resp = await axiosInstance.post<ResponseWrapper<PortfolioActivityResp>>(
-    endpoints.portfolio_activity.root,
-    formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    },
-  );
+  const resp = await axiosInstance.post<
+    ResponseWrapper<PortfolioActivityDetail>
+  >(endpoints.portfolio_activity.root, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 
   return resp.data;
 };
@@ -82,21 +80,21 @@ export const updatePortfolioActivity = async (
     });
   }
 
-  const resp = await axiosInstance.put<ResponseWrapper<PortfolioActivityResp>>(
-    endpoints.portfolio_activity.detail(id),
-    formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    },
-  );
+  const resp = await axiosInstance.put<
+    ResponseWrapper<PortfolioActivityDetail>
+  >(endpoints.portfolio_activity.detail(id), formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 
   return resp.data;
 };
 
 export const deletePortfolioActivity = async (id: number) => {
-  const resp = await axiosInstance.delete<
-    ResponseWrapper<PortfolioActivityResp>
-  >(endpoints.portfolio_activity.detail(id));
+  // `data: null`, not the row: the service reads the row it removed and the
+  // controller does not pass it on (#68).
+  const resp = await axiosInstance.delete<ResponseWrapper<null>>(
+    endpoints.portfolio_activity.detail(id),
+  );
 
   return resp.data;
 };

@@ -4,6 +4,7 @@ import app from "../src/app";
 import prisma from "../src/config/prisma";
 import {
   createFileAttachment,
+  createLinkAttachment,
   createPortfolioCertificate,
   createStudent,
 } from "./factories";
@@ -163,6 +164,36 @@ describe("GET /portfolio-certificate/:id", () => {
         file_path: signedFileUrl("portfolio-certificate/1-2-certificate.pdf"),
         original_filename: "certificate.pdf",
         file_size: 1024,
+      },
+    ]);
+  });
+
+  it("says the same thing about a link, in the two fields a link fills", async () => {
+    // The other five sections each pin both branches of the flattened list;
+    // this one pinned only the file. `PortfolioSectionAttachment` says `url`
+    // and `original_filename` are never null while `file_path` and `file_size`
+    // are null for exactly the links, and this is the half of that claim the
+    // section was missing (#68).
+    const link = await createLinkAttachment({
+      title: "หน้าใบประกาศออนไลน์",
+      url: "https://example.test/certificate",
+    });
+    const entry = await createPortfolioCertificate({
+      attachment_ids: [link.attachment_id],
+    });
+
+    const response = await request(app)
+      .get(`/portfolio-certificate/${entry.id}`)
+      .set("Cookie", sessionCookie({ userId: entry.user_id }));
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.attachments).toEqual([
+      {
+        attachment_id: link.attachment_id,
+        url: "https://example.test/certificate",
+        file_path: null,
+        original_filename: "หน้าใบประกาศออนไลน์",
+        file_size: null,
       },
     ]);
   });

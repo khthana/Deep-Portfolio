@@ -1,11 +1,11 @@
 import WhiteContainer from "../../../../../components/container/white-container";
 
-import type { PortfolioThesisResp } from "../../types/portfolio-thesis-type.type";
 import { Image, Popconfirm } from "antd";
 import { getFile } from "../../../../../utils/get-file";
+import type { PortfolioThesisDetail } from "@deep-portfolio/api-types";
 
 type Props = {
-  data: PortfolioThesisResp;
+  data: PortfolioThesisDetail;
   onEdit?: (id: number) => void;
   onDelete?: (id: number) => void;
 };

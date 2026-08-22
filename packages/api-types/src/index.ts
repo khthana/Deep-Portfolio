@@ -32,7 +32,9 @@
  * (docs/adr/0039-the-row-and-what-is-added-to-it.md), and then the first two
  * sections of the e-Portfolio — the student's personal details and their
  * schooling — which is where that feature turned out to be ten of them
- * (docs/adr/0040-the-portfolio-is-ten-features.md).
+ * (docs/adr/0040-the-portfolio-is-ten-features.md), and then the six sections
+ * that hang files off themselves, which share one attachment shape between them
+ * (docs/adr/0041-one-attachment-shape-for-six-sections.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -114,13 +116,27 @@ export type {
   LearningActivityType,
 } from "./learning-activity";
 
+export type { PortfolioActivityDetail } from "./portfolio-activity";
+
+export type { PortfolioSectionAttachment } from "./portfolio-attachment";
+
+export type { PortfolioAwardDetail } from "./portfolio-award";
+
+export type { PortfolioCertificateDetail } from "./portfolio-certificate";
+
 export type { PortfolioEducationDetail } from "./portfolio-education";
+
+export type { PortfolioInternshipDetail } from "./portfolio-internship";
 
 export type {
   PortfolioPersonalDetail,
   PortfolioPersonalPicture,
   PortfolioPersonalRow,
 } from "./portfolio-personal";
+
+export type { PortfolioThesisDetail } from "./portfolio-thesis";
+
+export type { PortfolioTrainingDetail } from "./portfolio-training";
 
 export type { RubricDetail, RubricLevel } from "./rubric";
 

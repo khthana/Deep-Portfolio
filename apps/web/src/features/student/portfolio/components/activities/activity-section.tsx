@@ -1,4 +1,3 @@
-import type { PortfolioActivityType as PortfolioActivityResp } from "../../types/activity-type.type";
 import { useState, useEffect } from "react";
 import { message } from "antd";
 import { paths } from "../../../../../routes/paths.config";
@@ -12,13 +11,13 @@ import ActivityEditModal from "./activity-edit-modal";
 
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../../../stores/stores";
+import type { PortfolioActivityDetail } from "@deep-portfolio/api-types";
 
 const ActivitySection = () => {
   const { studentId } = useSelector((state: RootState) => state.home);
-  const [data, setData] = useState<PortfolioActivityResp[]>([]);
-  const [editingItem, setEditingItem] = useState<PortfolioActivityResp | null>(
-    null,
-  );
+  const [data, setData] = useState<PortfolioActivityDetail[]>([]);
+  const [editingItem, setEditingItem] =
+    useState<PortfolioActivityDetail | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [messageApi, contextHolder] = message.useMessage();
 
