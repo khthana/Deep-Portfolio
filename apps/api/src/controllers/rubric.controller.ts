@@ -18,9 +18,9 @@ export default class RubricController {
     try {
       const { program_id } = validated(req, sharedRubricQuery);
 
-      const courses = await this.rubricService.getSharedRubric(program_id);
+      const rubrics = await this.rubricService.getSharedRubric(program_id);
 
-      successResponse(res, courses, "Fetched rubric successfully");
+      successResponse(res, rubrics, "Fetched rubric successfully");
     } catch (err) {
       next(err);
     }
@@ -30,9 +30,10 @@ export default class RubricController {
     try {
       const { rubric_id } = validated(req, sharedRubricDetailQuery);
 
-      const courses = await this.rubricService.getSharedRubricDetail(rubric_id);
+      const criteria =
+        await this.rubricService.getSharedRubricDetail(rubric_id);
 
-      successResponse(res, courses, "Fetched rubric successfully");
+      successResponse(res, criteria, "Fetched rubric successfully");
     } catch (err) {
       next(err);
     }

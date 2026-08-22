@@ -45,7 +45,10 @@
  * (docs/adr/0044-a-response-is-what-was-selected.md), and then what a student
  * reads about their own studies — ten endpoints read by five web features,
  * which is one pass because they share one service
- * (docs/adr/0045-one-service-many-screens.md).
+ * (docs/adr/0045-one-service-many-screens.md), and then the programme's shared
+ * rubrics, the first pass to find both web copies already correct and so the
+ * one that had to say what a pass still owes when there is nothing to fix
+ * (docs/adr/0046-a-select-that-narrows-nothing.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -164,7 +167,12 @@ export type { PortfolioThesisDetail } from "./portfolio-thesis";
 
 export type { PortfolioTrainingDetail } from "./portfolio-training";
 
-export type { RubricDetail, RubricLevel } from "./rubric";
+export type {
+  RubricDetail,
+  RubricLevel,
+  SharedRubric,
+  SharedRubricCriterion,
+} from "./rubric";
 
 export type { ScoreWeightBrief, ScoreWeightDetail } from "./score-weight";
 

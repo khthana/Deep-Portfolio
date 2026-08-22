@@ -177,7 +177,14 @@ type becomes `Partial` rather than gaining a word somebody guessed, that a
 `select` missing a column the shape promises is the pass's debt exactly as much
 as a query with no `select`, and that a `?` on a response key must be proved by
 naming the input that drops it — a `?.` in the code is only evidence the
-compiler could not prove otherwise.
+compiler could not prove otherwise, and
+`0046-a-select-that-narrows-nothing.md`, which says a pass owes its query a
+`select` even when the shape it writes down is every column the table has —
+the case with nothing to report is the one nothing else would catch — that a
+`Resp` suffix in the package says nothing the export list does not, that a name
+which reads as "the detail of X" when the row is one criterion of X gets
+renamed on the way in, and that a service method nobody calls is deleted rather
+than annotated, because it answers nobody and so has no shape.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

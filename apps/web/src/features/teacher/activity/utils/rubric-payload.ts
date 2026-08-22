@@ -1,11 +1,14 @@
-import type { RubricDetailForm, RubricLevel } from "../types/rubric-type.type";
+import type {
+  RubricDetailForm,
+  RubricLevelForm,
+} from "../types/rubric-type.type";
 
 /** One criterion in the shape `POST`/`PUT /activity` is sent it. */
 export type RubricPayload = {
   id?: number;
   criteria: string;
   weight: number;
-  levels: RubricLevel[];
+  levels: RubricLevelForm[];
 };
 
 /**

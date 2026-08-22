@@ -1,13 +1,13 @@
+import type {
+  SharedRubric,
+  SharedRubricCriterion,
+} from "@deep-portfolio/api-types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import type { Options, ResponseWrapper } from "../../../../types/global-type";
 import {
   getSharedRubric,
   getSharedRubricDetail,
 } from "../services/rubric-service.service";
-import type {
-  SharedRubricDetailResp,
-  SharedRubricResp,
-} from "../types/rubric-type.type";
 import {
   bookmarkStudentActivity,
   createActivity,
@@ -34,12 +34,12 @@ import type {
 import { getStudentActivityDetail } from "../../../../services/student-activity-service.service";
 
 export const fetchSharedRubric = createAsyncThunk<
-  ResponseWrapper<SharedRubricResp[]>,
+  ResponseWrapper<SharedRubric[]>,
   string
 >("shared-rubric", getSharedRubric);
 
 export const fetchSharedRubricDetail = createAsyncThunk<
-  ResponseWrapper<SharedRubricDetailResp[]>,
+  ResponseWrapper<SharedRubricCriterion[]>,
   number
 >("shared-rubric/detail", getSharedRubricDetail);
 

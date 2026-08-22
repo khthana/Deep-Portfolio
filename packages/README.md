@@ -29,10 +29,11 @@ response ของ e-Portfolio ครบทั้งสิบ router (ราย�
 `StudentDetail` ที่เส้นรวมฝังไว้, response ของ `/user` กับ `GET /auth`,
 response ของ `/student` ทั้งสิบเส้น (รายวิชาของเทอม, รายการงานสองแบบ, ปฏิทิน,
 ตัวเลือกงานของ e-Portfolio และ roster ที่อาจารย์อ่าน),
+response ของ shared rubric ทั้งสองเส้น,
 รูปของไฟล์แนบ (`AttachmentDetailResp`, `FileDetail`, `URLDetail`) และ
 `StudentActivityStatusDB`
-ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 31 ไฟล์ 1,597 บรรทัด (นับหลังรอบ
-student 22 สิงหาคม 2569 ด้วย glob ที่ ADR-0028 ประกาศไว้ — ในนั้นมี type
+ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 31 ไฟล์ 1,586 บรรทัด (นับหลังรอบ
+rubric 22 สิงหาคม 2569 ด้วย glob ที่ ADR-0028 ประกาศไว้ — ในนั้นมี type
 ของ request กับ mock ปนอยู่ด้วย ซึ่งไม่ต้องย้าย และมี view model ของเทมเพลต
 246 บรรทัดที่ ADR-0040 ข้อ 7 ตัดออกจากขอบเขตไว้แล้ว) ซึ่งไล่ย้ายทีละ
 feature ที่ [#68](https://github.com/khthana/Deep-Portfolio/issues/68) ส่วน
@@ -84,7 +85,11 @@ view model ที่ไม่รับ null ให้ขยาย view model ไ
 ตัดสินว่าหน่วยของรอบคือ service ไม่ใช่หน้าจอ (รอบนี้กิน feature ฝั่ง web ห้าตัว),
 `select` ที่ *ขาด* คอลัมน์ที่รูปสัญญาไว้เป็นหนี้ของรอบเท่ากับ query ที่ไม่มี
 `select` เลย และ `?` บนคีย์ของ response ต้องพิสูจน์ว่าคีย์หายได้จริง ไม่ใช่
-อนุมานจาก `?.` ที่เห็นในโค้ด
+อนุมานจาก `?.` ที่เห็นในโค้ด และ
+[ADR-0046](../docs/adr/0046-a-select-that-narrows-nothing.md) คือรอบ shared
+rubric ซึ่งตัดสินว่า `select` ยังต้องใส่ถึงจะไม่ตัดคอลัมน์ไหนออกเลย, ชื่อที่ลงท้าย
+`Resp` ไม่ได้บอกอะไรที่ export list ไม่ได้บอก และเมธอดที่ไม่มีใครเรียกให้ลบ
+ไม่ใช่หา type ให้
 
 ## เพิ่ม package ใหม่
 

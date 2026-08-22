@@ -73,6 +73,34 @@ describe("GET /rubric/shared-rubric", () => {
     ]);
   });
 
+  it("sends the eight columns of the row, and no others", async () => {
+    // toEqual on the key set, not toMatchObject: since #68 the query names its
+    // eight columns instead of taking whatever `rubrics` happens to hold, and
+    // this is what says the two lists stay the same length. Nothing was over-
+    // answered before — the table has exactly these eight — but the query had
+    // no `select`, so the next column added to it would have gone out too
+    // (ADR-0044 §1, ADR-0046 §1).
+    const teacher = await createTeacher();
+    await createSharedRubric();
+
+    const response = await request(app)
+      .get("/rubric/shared-rubric")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .query({ program_id: BASELINE.program.program_id });
+
+    expect(response.status).toBe(200);
+    expect(Object.keys(response.body.data[0]).sort()).toEqual([
+      "created_by",
+      "display_order",
+      "id",
+      "program_id",
+      "rubric_code",
+      "rubric_name_en",
+      "rubric_name_th",
+      "updated_by",
+    ]);
+  });
+
   it("returns only this programme's rubrics", async () => {
     const teacher = await createTeacher();
     const mine = await createSharedRubric();
@@ -212,6 +240,37 @@ describe("GET /rubric/shared-rubric/detail", () => {
         criteria_name_th: "ความสมบูรณ์",
         display_order: 2,
       }),
+    ]);
+  });
+
+  it("sends the twelve columns of a criterion, and no others", async () => {
+    // The twin of the case one describe up, and the same reason. One row is one
+    // criterion with its four level descriptions beside it as columns — which
+    // is what `SharedRubricCriterion` is named for, rather than "the detail" of
+    // a rubric (ADR-0046 §2).
+    const teacher = await createTeacher();
+    const rubric = await createSharedRubric();
+    await createSharedRubricDetail({ rubric_id: rubric.id });
+
+    const response = await request(app)
+      .get("/rubric/shared-rubric/detail")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .query({ rubric_id: rubric.id });
+
+    expect(response.status).toBe(200);
+    expect(Object.keys(response.body.data[0]).sort()).toEqual([
+      "created_by",
+      "criteria_name_en",
+      "criteria_name_th",
+      "display_order",
+      "id",
+      "level_1_description",
+      "level_2_description",
+      "level_3_description",
+      "level_4_description",
+      "rubric_id",
+      "updated_by",
+      "weight",
     ]);
   });
 

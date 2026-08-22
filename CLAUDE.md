@@ -53,7 +53,7 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1088 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 1090 API cases over
   40 files, 450 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
@@ -149,7 +149,7 @@ a key sent as `null`, so the list row's `week_no` is optional rather than
 nullable. What the students hand in against both followed, as one pass rather
 than two — the two submission features share the group a roster reports, so
 splitting them would have been one pass under two names (ADR-0034) — and it is
-the first of the two passes of #68 that change what a caller sees: a detail
+the first pass of #68 to change what a caller sees: a detail
 endpoint asked for an id matching no row used to answer a body holding one key,
 and now answers no data at all. The group half of those same two features followed, and
 ADR-0035 is the other side of ADR-0034's coin: where the submissions genuinely
@@ -171,8 +171,7 @@ materials hang off followed, and ADR-0039 came out of it: three of its four
 shapes are the same row with something added or nothing added, so the row is a
 type of its own and the other two are intersections over it, rather than nine
 columns written out three times. That pass is the second to change what a
-caller sees, and the only one so far to change it on the web rather than at the
-API: a week added without a description could not be edited at all, because the
+caller sees, and the first to change it on the web rather than at the API: a week added without a description could not be edited at all, because the
 edit form handed the null straight back and `optionalText` refuses null. The
 e-Portfolio started next, and ADR-0040 came out of opening it: what looks like
 one feature is ten routers and 58 endpoints, so it walks as several passes with
@@ -208,8 +207,15 @@ column the shape promises is the pass's debt exactly as much as a query with no
 `select` at all, and this one found three such columns across two queries, each
 hidden behind an `as` and each invisible only because the screen that reads
 that field is fed by the *other* endpoint.
-All ten of the e-Portfolio's routers have moved, and so have `/user` and
-`/student`; 31 files and 1,597 lines are
+The programme's shared rubrics followed, which is the smallest pass #68 has
+had and the first whose two web copies were right field for field, so ADR-0046
+is about what a pass owes when there is nothing to correct: the `select` goes
+in anyway. A query that answers every column its type names is keeping the
+promise by coincidence, and stops the day someone adds a column. Read §4 before
+annotating a service method — a method with no caller answers nobody, so it has
+no shape to name and gets deleted instead.
+All ten of the e-Portfolio's routers have moved, and so have `/user`,
+`/student` and `/rubric`; 31 files and 1,586 lines are
 still web-side, of which the portfolio's own 604 are request types, mock types,
 the runtime label constants the package cannot hold — it compiles to nothing
 (ADR-0028 §4) — and a 246-line template view model. None of it is #68's
