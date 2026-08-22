@@ -6,14 +6,12 @@ import type { AppDispatch, RootState } from "../../../../stores/stores";
 import { fetchActivityOptions } from "../../activity/stores/teacher-activity-action";
 import type { Options } from "../../../../types/global-type";
 import AddActivityForm from "./add-activity-form";
-import type {
-  ActivityFormType,
-  ActivityMappingDetailResp,
-} from "../types/mapping-type.type";
+import type { CLOMappedActivity } from "@deep-portfolio/api-types";
+import type { ActivityFormType } from "../types/mapping-type.type";
 
 type Props = {
   onAddActivity: (values: ActivityFormType) => void;
-  activityData: ActivityMappingDetailResp[];
+  activityData: CLOMappedActivity[];
 };
 
 const ActivitySection = (props: Props) => {
@@ -53,7 +51,7 @@ const ActivitySection = (props: Props) => {
       {props.activityData.length > 0 && (
         <div className="flex flex-col gap-4">
           {props.activityData.map((activity) => (
-            <ActivityCard activity={activity} />
+            <ActivityCard key={activity.id} activity={activity} />
           ))}
         </div>
       )}

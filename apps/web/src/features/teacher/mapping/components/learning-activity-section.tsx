@@ -5,15 +5,13 @@ import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../../../stores/stores";
 import type { Options } from "../../../../types/global-type";
 import { fetchLearningActivityOptions } from "../../learning-activity/stores/teacher-learning-activity-action";
-import type {
-  LearningActivityDetail,
-  LearningActivityFormType,
-} from "../types/mapping-type.type";
+import type { CLOMappedLearningActivity } from "@deep-portfolio/api-types";
+import type { LearningActivityFormType } from "../types/mapping-type.type";
 import AddLearningActivityForm from "./add-learning-activity-form";
 
 type Props = {
   onAddLearningActivity: (values: LearningActivityFormType) => void;
-  learningActivityData: LearningActivityDetail[];
+  learningActivityData: CLOMappedLearningActivity[];
 };
 
 const LearningActivitySection = (props: Props) => {
@@ -49,7 +47,10 @@ const LearningActivitySection = (props: Props) => {
       {props.learningActivityData.length > 0 && (
         <div className="flex flex-col gap-4">
           {props.learningActivityData.map((learningActivity) => (
-            <LearningActivityCard learningActivity={learningActivity} />
+            <LearningActivityCard
+              key={learningActivity.id}
+              learningActivity={learningActivity}
+            />
           ))}
         </div>
       )}

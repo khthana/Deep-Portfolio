@@ -184,7 +184,15 @@ the case with nothing to report is the one nothing else would catch — that a
 `Resp` suffix in the package says nothing the export list does not, that a name
 which reads as "the detail of X" when the row is one criterion of X gets
 renamed on the way in, and that a service method nobody calls is deleted rather
-than annotated, because it answers nobody and so has no shape.
+than annotated, because it answers nobody and so has no shape, and
+`0047-narrow-to-the-card.md`, the last #68 pass, which says a read with no
+`select` and exactly one reader narrows to what that reader draws, that the
+criterion for splitting a pass is what would be declared twice rather than how
+many services there are, that shrinking what a create answers is a redesign and
+not the same debt as a missing `select` — the shape it already answers gets
+written down instead — and that a `findUnique` whose null is unreachable
+because a real foreign key says so becomes `findUniqueOrThrow`, so the type can
+say what is true.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

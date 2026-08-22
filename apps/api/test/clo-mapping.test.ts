@@ -111,6 +111,36 @@ describe("POST /mapping/activity", () => {
     expect(Number(mapping.score)).toBe(5);
   });
 
+  it("answers the created row, all ten columns of it", async () => {
+    // The created row is the response, which #68 wrote down as
+    // ActivityCLOMapping rather than the `{ id: number }` the frontend had
+    // declared over it. `detail` is in the list and always null: nothing in
+    // the system writes that column.
+    const teacher = await createTeacher();
+    const activity = await mappableActivity();
+    const clo = await createCLO({ section_id: activity.section_id! });
+
+    const response = await request(app)
+      .post("/mapping/activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ activity_id: activity.id, clo_id: clo.clo_id, weight: 25 });
+
+    expect(response.status).toBe(200);
+    expect(Object.keys(response.body.data).sort()).toEqual([
+      "activity_id",
+      "clo_id",
+      "created_at",
+      "detail",
+      "id",
+      "score",
+      "score_ratio_id",
+      "sequence_order",
+      "updated_at",
+      "weight",
+    ]);
+    expect(typeof response.body.data.created_at).toBe("string");
+  });
+
   it("sends the share of the mark back as a number", async () => {
     // activity_clo_mapping.score is Decimal(5,2) and the whole created row is
     // the response, so the score used to leave as the string "2.5" (#33).
@@ -333,7 +363,10 @@ describe("GET /mapping/activity", () => {
     // Another CLO's work, which must not show up here.
     await mapActivityToCLO();
 
-    // No cookie: the student's outcome page reads this.
+    // No cookie, because the route asks for none — GET is `validate` only
+    // where POST is `requireRole("TEACHER")`. Nothing on the student's side
+    // reads it: the CLO table on the course page reads GET /course/clo, and
+    // the only caller of this one is the teacher's mapping screen (#68).
     const response = await request(app)
       .get("/mapping/activity")
       .query({ clo_id: clo.clo_id });
@@ -348,6 +381,32 @@ describe("GET /mapping/activity", () => {
         // criterion only.
         level_no: 3,
       }),
+    ]);
+  });
+
+  it("sends four columns off the activity, and the two beside them", async () => {
+    // Until #68 the query had no `select` and answered all sixteen columns of
+    // `activities` — `activity_type` among them, which this endpoint sends as
+    // the column stores it, lower case, where GET /activity upper-cases on the
+    // way out. The card reads a name, a description and the level it aims at,
+    // and nothing else ever did (ADR-0044 §1, ADR-0047).
+    const course = await createCourse();
+    const clo = await createCLO({ section_id: course.section_id });
+    const activity = await createActivity({ section_id: course.section_id });
+    await mapActivityToCLO({ activity_id: activity.id, clo_id: clo.clo_id });
+
+    const response = await request(app)
+      .get("/mapping/activity")
+      .query({ clo_id: clo.clo_id });
+
+    expect(response.status).toBe(200);
+    expect(Object.keys(response.body.data[0]).sort()).toEqual([
+      "activity_name",
+      "detail",
+      "expected_level",
+      "id",
+      "level_no",
+      "weight",
     ]);
   });
 
@@ -493,6 +552,31 @@ describe("POST /mapping/learning-activity", () => {
     });
   });
 
+  it("answers the created row, all six columns of it", async () => {
+    // Six against the activity half's ten: a learning activity is not marked,
+    // so its mapping has no weight, no cached score and no score category to
+    // point at (#68).
+    const teacher = await createTeacher();
+    const activity = await createLearningActivity();
+    const clo = await createCLO({ section_id: activity.section_id });
+
+    const response = await request(app)
+      .post("/mapping/learning-activity")
+      .set("Cookie", sessionCookie({ userId: teacher.user_id }))
+      .send({ learning_activity_id: activity.id, clo_id: clo.clo_id });
+
+    expect(response.status).toBe(200);
+    expect(Object.keys(response.body.data).sort()).toEqual([
+      "clo_id",
+      "created_at",
+      "id",
+      "learning_activity_id",
+      "sequence_order",
+      "updated_at",
+    ]);
+    expect(typeof response.body.data.updated_at).toBe("string");
+  });
+
   it("numbers the next mapping after the ones already there", async () => {
     const teacher = await createTeacher();
     const activity = await createLearningActivity();
@@ -597,6 +681,32 @@ describe("GET /mapping/learning-activity", () => {
         id: activity.id,
         learning_activity_name: "ใบงานที่ 1",
       }),
+    ]);
+  });
+
+  it("sends three columns off the learning activity, and no others", async () => {
+    // The twin of the case in GET /mapping/activity, and one column narrower:
+    // there is no expected level to draw, because a learning activity has no
+    // rubric and no mark (ADR-0047).
+    const course = await createCourse();
+    const clo = await createCLO({ section_id: course.section_id });
+    const activity = await createLearningActivity({
+      section_id: course.section_id,
+    });
+    await mapLearningActivityToCLO({
+      learning_activity_id: activity.id,
+      clo_id: clo.clo_id,
+    });
+
+    const response = await request(app)
+      .get("/mapping/learning-activity")
+      .query({ clo_id: clo.clo_id });
+
+    expect(response.status).toBe(200);
+    expect(Object.keys(response.body.data[0]).sort()).toEqual([
+      "detail",
+      "id",
+      "learning_activity_name",
     ]);
   });
 

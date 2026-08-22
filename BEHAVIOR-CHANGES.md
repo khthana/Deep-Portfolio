@@ -2864,6 +2864,42 @@ Prisma ไม่ต้องรู้จักค่า)"* ควบคู่ไ
   ความต่างนี้จึงเป็นการออกแบบ ไม่ใช่ drift — หน้าหนึ่งอ่านสถานะ อีกหน้าอ่านว่าแถว
   มาถึงในถังไหน ดู ADR-0045 ข้อ 3
 
+## #68 (รอบ clo-mapping) — สองเส้นที่ตอบทั้งแถวให้การ์ดที่อ่านห้าฟิลด์กับสองฟิลด์
+
+รอบสุดท้ายของ #68 ที่ย้าย `/mapping/activity` กับ `/mapping/learning-activity`
+เข้า `@deep-portfolio/api-types` ทั้งสองเส้นเป็นเส้นอ่านของหน้าจอผูก CLO ฝั่ง
+อาจารย์ และทั้งสองอ่านตารางกิจกรรมด้วย `findUnique` ที่ไม่มี `select` เลย
+
+เหตุผลอยู่ใน [ADR-0047](docs/adr/0047-narrow-to-the-card.md) และกติกาต้นทางอยู่ที่
+[ADR-0044](docs/adr/0044-a-response-is-what-was-selected.md) ข้อ 1
+
+### 1. `GET /mapping/activity` ตอบหกคีย์ ไม่ใช่สิบแปด
+
+| | |
+| --- | --- |
+| **ของเดิม** | `getActivity` วน `findUnique` ตาราง `activities` ทีละแถวโดยไม่มี `select` แล้ว spread ทั้งแถวลง response พร้อม `level_no` กับ `weight` ต่อท้าย ผู้เรียกจึงได้สิบหกคอลัมน์ของ `activities` — `activity_type`, `description`, `score_number`, `score_ratio_id`, `course_syllabus_id`, `section_id`, `is_average_score`, `is_self_assessment`, `announcement_date`, `deadline_date`, `created_at`, `updated_at` — บวกอีกสอง |
+| **ของใหม่** | `select` สี่คอลัมน์: `id`, `activity_name`, `detail`, `expected_level` แล้วต่อ `level_no` กับ `weight` เหมือนเดิม รวมหกคีย์ |
+| **เหตุผล** | `ActivityCard` ซึ่งเป็นที่เดียวที่แถวนี้ไปถึง อ่านห้าฟิลด์: `activity_name`, `weight`, `detail`, `level_no`, `expected_level` (คีย์ `id` เพิ่มเข้ามาในรอบนี้ เพราะ `.map()` ของ `activity-section.tsx` ไม่มี `key` prop เลย) · การไม่ใส่ `select` ไม่ใช่การตัดสินใจว่าจะตอบทุกคอลัมน์ มันคือการไม่ได้ตัดสินใจ (ADR-0044 ข้อ 1) และคอลัมน์ที่ตัดออกมีตัวหนึ่งเป็นหลักฐาน: `activity_type` เส้นนี้ส่งดิบตามที่คอลัมน์เก็บ ซึ่งเป็นตัวพิมพ์เล็ก ต่างจาก `GET /activity` ที่แปลงเป็นตัวพิมพ์ใหญ่ก่อนตอบ (ADR-0037) ฝั่ง web ประกาศไว้เป็น `activityType` ที่มีแต่ `"INDIVIDUAL" \| "GROUP"` มาตลอด และไม่มีใครสังเกตเพราะไม่มีใครอ่าน |
+| **ผู้เรียกฝั่ง web ที่ต้องตาม** | **ไม่มี** `ActivityMappingDetailResp` ถูกลบและผู้เรียกทั้งห้าไฟล์อ่าน `CLOMappedActivity` จาก package แทน · คอมเมนต์ใน `clo-mapping.test.ts` ที่เขียนไว้ว่า "หน้าผลการเรียนรู้ของนักศึกษาอ่านเส้นนี้" ไม่จริง — ตาราง CLO บนหน้ารายวิชาของนักศึกษาอ่าน `GET /course/clo` รอบนี้แก้คอมเมนต์นั้นด้วย |
+
+### 2. `GET /mapping/learning-activity` ตอบสามคีย์ ไม่ใช่สิบ
+
+| | |
+| --- | --- |
+| **ของเดิม** | `getLearningActivity` คืนแถว `learning_activities` ทั้งแถวจาก `findUnique` ที่ไม่มี `select` — สิบคอลัมน์ |
+| **ของใหม่** | `select` สามคอลัมน์: `id`, `learning_activity_name`, `detail` |
+| **เหตุผล** | เหมือนข้อ 1 `LearningActivityCard` อ่านสองฟิลด์ และ `id` เข้ามาด้วยเหตุผลเดียวกันคือ `key` prop ที่ขาดไป · แคบกว่าข้อ 1 อยู่หนึ่งคอลัมน์ เพราะกิจกรรมการเรียนรู้ไม่มีเกณฑ์และไม่มีคะแนน จึงไม่มีระดับความคาดหวังให้วาด |
+| **ผู้เรียกฝั่ง web ที่ต้องตาม** | **ไม่มี** `LearningActivityDetail` ถูกลบและผู้เรียกทั้งห้าไฟล์อ่าน `CLOMappedLearningActivity` จาก package แทน type เดิมประกาศ `week_no` ไว้ด้วย ซึ่งเส้นนี้ไม่เคยส่ง — คีย์นั้นจึงเป็น `undefined` เสมอมา ไม่ใช่ของที่หายไปรอบนี้ |
+
+### สิ่งที่ **ไม่ได้** ทำใน ticket นี้
+
+- **ไม่ได้แคบ response ของ POST ทั้งสองเส้น** ทั้งคู่ยังตอบแถวที่เพิ่งสร้างทั้งแถว
+  (สิบคีย์ และหกคีย์) ทั้งที่ฝั่ง web ประกาศไว้ว่า `{ id: number }` และอ่านแค่ว่า
+  body มาถึงหรือไม่ ที่แก้คือฝั่งที่ผิด: package ได้ `ActivityCLOMapping` กับ
+  `LearningActivityCLOMapping` ที่เขียนแถวจริงลงไป การหด response ของ create
+  ให้เหลือ id เป็นการเปลี่ยนสิ่งที่ caller เห็นโดยไม่มีใครร้องขอ ซึ่งเป็นคนละ
+  เรื่องกับ `select` ที่หายไปจาก query — ดู ADR-0047 ข้อ 3
+
 ## หมายเหตุ: สิ่งที่ **ไม่ได้** เปลี่ยน
 
 รายการนี้ถูกไล่ตรวจกับโค้ดจริงทีละข้อเมื่อ **11 สิงหาคม 2569** หลัง #41 ทุกข้อที่

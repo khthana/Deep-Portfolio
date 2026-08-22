@@ -48,11 +48,20 @@
  * (docs/adr/0045-one-service-many-screens.md), and then the programme's shared
  * rubrics, the first pass to find both web copies already correct and so the
  * one that had to say what a pass still owes when there is nothing to fix
- * (docs/adr/0046-a-select-that-narrows-nothing.md).
+ * (docs/adr/0046-a-select-that-narrows-nothing.md), and last the two halves of
+ * the screen that maps work onto a CLO, whose reads answered a whole activity
+ * row to cards that draw five fields and two
+ * (docs/adr/0047-narrow-to-the-card.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
- * has to do. The rest are still written twice, one feature at a time (#68).
+ * had to do. #68 is finished: no file under the type-file glob ADR-0028 names
+ * declares an API response any more — what is left there is request bodies,
+ * form types, mock types, view models and the runtime label maps this package
+ * cannot hold (ADR-0028 §4). Twenty response shapes are still written inline
+ * in web service and thunk generics (`ResponseWrapper<{ id: number }>` and
+ * friends), which were never in #68's count; ADR-0047's last note says where
+ * they stand. The envelope they all arrive in is #67.
  */
 export type {
   ApiError,
@@ -74,6 +83,13 @@ export type {
 } from "./announcement";
 
 export type { AttachmentDetailResp, FileDetail, URLDetail } from "./attachment";
+
+export type {
+  ActivityCLOMapping,
+  CLOMappedActivity,
+  CLOMappedLearningActivity,
+  LearningActivityCLOMapping,
+} from "./clo-mapping";
 
 export type {
   CLOResp,

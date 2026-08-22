@@ -53,7 +53,7 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1090 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 1094 API cases over
   40 files, 450 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
@@ -108,8 +108,9 @@ the API's own services bound to it (ADR-0028); **#62** component and E2E tests;
 and **#63** the `any` sweep and the long files.
 
 #1 closed with them filed, so the open list is what is left of #55–#63 plus
-whatever they spun off: **#58, #62, #63 and #64–#68**, and nothing else is
-outstanding anywhere. **#64** is the first of those: #56
+whatever they spun off: **#58, #62, #63 and #64–#67**, and nothing else is
+outstanding anywhere — #68's last feature moved on 2026-08-22 and the ticket
+closes with the commit carrying this sentence. **#64** is the first of those: #56
 put a row on the teacher's marking table for a student who is in no group at
 all, and the only link that row offers leads to a grading page that cannot
 mark it. Whether such a student should be markable is a course decision, not a
@@ -128,8 +129,8 @@ every web warning, not the `any` ones, which are 140 (plus 2 in `apps/api`).
 feature on purpose: #68 carries the 38 web type files that still hold copies of
 what the API answers, one feature at a time, and #67 carries `ResponseWrapper`, the web's
 own envelope, which disagrees with the `ApiResponse`/`ApiError` the API
-actually answers and is read in 283 places across 51 files. **#68 is open and being worked
-through**: the gradebook moved on 2026-08-15, which is where ADR-0029 came
+actually answers and is read in 283 places across 51 files. **#68 has moved
+every feature it named**: the gradebook moved on 2026-08-15, which is where ADR-0029 came
 from — read it before starting the next pass, because the five things it
 decides are the ones a second feature runs into and the first one did not —
 and the student's evaluation list followed on 2026-08-19, which is where
@@ -214,12 +215,28 @@ in anyway. A query that answers every column its type names is keeping the
 promise by coincidence, and stops the day someone adds a column. Read §4 before
 annotating a service method — a method with no caller answers nobody, so it has
 no shape to name and gets deleted instead.
+The screen that maps work onto a CLO closed the list, and ADR-0047 came out of
+it: both its reads answered a whole activity row to cards that draw five
+fields and two, so a read with no `select` and exactly one reader narrows to
+what that reader draws. Its §3 is the boundary that rule stops at — shrinking what a
+`create` answers is a redesign nobody asked for, so the row it already answers
+was written down instead. It is the sixth and last of the passes with a section
+in `BEHAVIOR-CHANGES.md`.
 All ten of the e-Portfolio's routers have moved, and so have `/user`,
-`/student` and `/rubric`; 31 files and 1,586 lines are
-still web-side, of which the portfolio's own 604 are request types, mock types,
+`/student`, `/rubric` and both halves of `/mapping`. **No file under the type
+glob ADR-0028 names declares an API response any more.** The 31 files and 1,558
+lines still there are request bodies, form types, mock types, view models and
 the runtime label constants the package cannot hold — it compiles to nothing
-(ADR-0028 §4) — and a 246-line template view model. None of it is #68's
-work.
+(ADR-0028 §4) — including a 246-line template view model. None of that is
+#68's work.
+
+Twenty response shapes *are* still written inline, in web service and thunk
+generics — `ResponseWrapper<{ id: number }>` and two siblings, over `/activity`,
+`/course/clo` and `/learning-activity` — and at least the `/activity` ones are
+wrong the way the mapping pass's were: `createActivity` and `deleteActivity`
+answer the whole 16-column row. They were never in #68's count, which was of
+type files, and ADR-0047's last note is where they are recorded. Every one of
+them sits on a line #67 has to rewrite anyway.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on

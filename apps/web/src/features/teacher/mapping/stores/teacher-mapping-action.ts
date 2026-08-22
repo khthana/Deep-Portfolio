@@ -1,10 +1,14 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import type { ResponseWrapper } from "../../../../types/global-type";
 import type {
-  ActivityMappingDetailResp,
+  ActivityCLOMapping,
+  CLOMappedActivity,
+  CLOMappedLearningActivity,
+  LearningActivityCLOMapping,
+} from "@deep-portfolio/api-types";
+import type {
   CreateActivityCLOMappingBodyReq,
   CreateLearningActivityCLOMappingBodyReq,
-  LearningActivityDetail,
 } from "../types/mapping-type.type";
 import {
   createActivityCLOMapping,
@@ -14,23 +18,23 @@ import {
 } from "../services/teacher-mapping.service";
 
 export const postActivityCLOMapping = createAsyncThunk<
-  ResponseWrapper<{ id: number }>,
+  ResponseWrapper<ActivityCLOMapping>,
   CreateActivityCLOMappingBodyReq
 >("mapping/activity/add", createActivityCLOMapping);
 
 export const fetchActivity = createAsyncThunk<
-  ResponseWrapper<ActivityMappingDetailResp[]>,
+  ResponseWrapper<CLOMappedActivity[]>,
   number
 >("mapping/activity", getActivity);
 
 //-----------------------------------------------------------------
 
 export const postLearningActivityCLOMapping = createAsyncThunk<
-  ResponseWrapper<{ id: number }>,
+  ResponseWrapper<LearningActivityCLOMapping>,
   CreateLearningActivityCLOMappingBodyReq
 >("mapping/learning-activity/add", createLearningActivityCLOMapping);
 
 export const fetchLearningActivity = createAsyncThunk<
-  ResponseWrapper<LearningActivityDetail[]>,
+  ResponseWrapper<CLOMappedLearningActivity[]>,
   number
 >("mapping/learning-activity", getLearningActivity);

@@ -1,3 +1,7 @@
+import type {
+  ActivityCLOMapping,
+  CLOMappedActivity,
+} from "@deep-portfolio/api-types";
 import prisma from "../config/prisma";
 import { CreateActivityCLOMappingBodyReq } from "../models/activity-clo-mapping.model";
 import { HttpError } from "../utils/http-error";
@@ -22,9 +26,12 @@ const NO_SCORE = () =>
   new HttpError(400, "กิจกรรมนี้ยังไม่มีคะแนนให้แบ่งตามผลการเรียนรู้");
 
 export default class ActivityCLOMappingService {
-  async createActivityCLOMapping(data: CreateActivityCLOMappingBodyReq) {
+  async createActivityCLOMapping(
+    data: CreateActivityCLOMappingBodyReq,
+  ): Promise<ActivityCLOMapping> {
     const activity = await prisma.activities.findUnique({
       where: { id: data.activity_id },
+      select: { score_ratio_id: true, score_number: true },
     });
 
     if (!activity) throw NOT_FOUND();
@@ -67,23 +74,41 @@ export default class ActivityCLOMappingService {
 
     // The created row is the response, and score is Decimal(5,2) — a string on
     // the wire unless it is converted here (#33).
-    return { ...result, score: Number(result.score) };
+    return {
+      ...result,
+      score: Number(result.score),
+      created_at: result.created_at?.toISOString() ?? null,
+      updated_at: result.updated_at?.toISOString() ?? null,
+    };
   }
 
-  async getActivity(clo_id: number) {
+  async getActivity(clo_id: number): Promise<CLOMappedActivity[]> {
     const activities = await prisma.activity_clo_mapping.findMany({
       where: { clo_id: clo_id },
       orderBy: { sequence_order: "asc" },
+      select: { activity_id: true, weight: true },
     });
 
     const result = await Promise.all(
       activities.map(async (activity) => {
-        const activityDetail = await prisma.activities.findUnique({
+        // Four columns rather than the row: the card reads a name, a
+        // description and the level it is aiming at, and until #68 this
+        // answered all sixteen (ADR-0047). Not optional — the mapping's
+        // activity_id is a foreign key with ON DELETE CASCADE, so the row it
+        // names is always there.
+        const activityDetail = await prisma.activities.findUniqueOrThrow({
           where: { id: activity.activity_id },
+          select: {
+            id: true,
+            activity_name: true,
+            detail: true,
+            expected_level: true,
+          },
         });
 
         const rubric = await prisma.rubric_activity_mapping.findFirst({
           where: { activity_id: activity.activity_id },
+          select: { id: true },
         });
 
         // Guarded rather than relying on `rubric?.id`: an undefined value in a
@@ -114,8 +139,14 @@ export default class ActivityCLOMappingService {
   }
 
   async validateActivityCLOMapping(activity_id: number): Promise<boolean> {
+    // One column, because the caller only counts the rows. The answer is a
+    // bare boolean and so has no shape in the package (ADR-0036), but
+    // ADR-0046 §1 is about the query rather than the name: a `findMany` with
+    // no `select` was reading all ten columns of every mapping to work out
+    // whether there was one.
     const activities = await prisma.activity_clo_mapping.findMany({
       where: { activity_id: activity_id },
+      select: { id: true },
     });
 
     return activities.length > 0;

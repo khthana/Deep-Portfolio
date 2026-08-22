@@ -1,5 +1,16 @@
-import type { JSONContent } from "@tiptap/react";
-import type { activityType } from "../../activity/types/activity-type.type";
+// ActivityMappingDetailResp and LearningActivityDetail used to be declared
+// here. They moved to @deep-portfolio/api-types (#68) as `CLOMappedActivity`
+// and `CLOMappedLearningActivity` — import them from there. Both copies had
+// drifted: four dates typed `Date` where JSON carries strings, three keys the
+// endpoints never send (`sequence_order`, `score_category`, `week_no`), and
+// `expected_level`, `weight` and `level_no` marked optional over columns that
+// are always sent. The endpoints narrowed to what the cards read in the same
+// pass — see ADR-0047.
+//
+// What stays is what the two add-forms collect and what the two POSTs are sent.
+// The responses those POSTs answer are `ActivityCLOMapping` and
+// `LearningActivityCLOMapping` in the package; nothing here reads them beyond
+// checking that a body arrived.
 
 export type ActivityFormType = {
   activity: string;
@@ -12,31 +23,6 @@ export type CreateActivityCLOMappingBodyReq = {
   weight: number;
 };
 
-export type ActivityMappingDetailResp = {
-  id: number;
-  activity_type: activityType;
-  activity_name: string;
-  description: string | null;
-  created_at: Date | null;
-  updated_at: Date | null;
-  score_number: number | null;
-  announcement_date: Date | null;
-  deadline_date: Date | null;
-  course_syllabus_id: number | null;
-  is_average_score: boolean;
-  is_self_assessment: boolean;
-  detail: JSONContent | null;
-  section_id: number | null;
-  score_ratio_id: number | null;
-
-  sequence_order?: number;
-  score_category?: string;
-  weight?: number | null;
-  expected_level?: number;
-
-  level_no?: number | null;
-};
-
 //----------------------------------------------------------
 
 export type LearningActivityFormType = {
@@ -46,18 +32,4 @@ export type LearningActivityFormType = {
 export type CreateLearningActivityCLOMappingBodyReq = {
   learning_activity_id: number;
   clo_id: number;
-};
-
-export type LearningActivityDetail = {
-  week_no: number | undefined;
-  learning_activity_type: string;
-  learning_activity_name: string;
-  created_at: Date | null;
-  updated_at: Date | null;
-  announcement_date: Date | null;
-  deadline_date: Date | null;
-  course_syllabus_id: number | null;
-  section_id: number;
-  detail: JSONContent | null;
-  id: number;
 };

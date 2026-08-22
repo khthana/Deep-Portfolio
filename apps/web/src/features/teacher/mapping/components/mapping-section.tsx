@@ -5,11 +5,13 @@ import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../../../stores/stores";
 import { useState, useEffect } from "react";
 import type {
+  CLOMappedActivity,
+  CLOMappedLearningActivity,
+} from "@deep-portfolio/api-types";
+import type {
   ActivityFormType,
-  ActivityMappingDetailResp,
   CreateActivityCLOMappingBodyReq,
   CreateLearningActivityCLOMappingBodyReq,
-  LearningActivityDetail,
   LearningActivityFormType,
 } from "../types/mapping-type.type";
 import {
@@ -46,11 +48,9 @@ const MappingSection = (props: Props) => {
 
   const [messageApi, contextHolder] = message.useMessage();
 
-  const [activityData, setActivityData] = useState<ActivityMappingDetailResp[]>(
-    [],
-  );
+  const [activityData, setActivityData] = useState<CLOMappedActivity[]>([]);
   const [learningActivityData, setLearningActivityData] = useState<
-    LearningActivityDetail[]
+    CLOMappedLearningActivity[]
   >([]);
 
   const onAddActivity = async (values: ActivityFormType) => {

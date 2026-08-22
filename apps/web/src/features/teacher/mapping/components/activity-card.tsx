@@ -1,14 +1,19 @@
-import { generateHTML } from "@tiptap/react";
+import { generateHTML, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import type { ActivityMappingDetailResp } from "../types/mapping-type.type";
+import type { CLOMappedActivity } from "@deep-portfolio/api-types";
 
 type Props = {
-  activity: ActivityMappingDetailResp;
+  activity: CLOMappedActivity;
 };
 
 const ActivityCard = (props: Props) => {
-  const html =
-    props.activity.detail && generateHTML(props.activity.detail, [StarterKit]);
+  // The package types `detail` as `unknown` because the column is `Json?` and
+  // the API genuinely does not know its shape — the narrowing belongs to the
+  // reader that decides what it is looking at, which is here. Same cast as
+  // announcement-card.tsx.
+  const html = props.activity.detail
+    ? generateHTML(props.activity.detail as JSONContent, [StarterKit])
+    : "";
 
   const levels = () => {
     if (!props.activity.level_no) return [];

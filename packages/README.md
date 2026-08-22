@@ -30,14 +30,21 @@ response ของ e-Portfolio ครบทั้งสิบ router (ราย�
 response ของ `/student` ทั้งสิบเส้น (รายวิชาของเทอม, รายการงานสองแบบ, ปฏิทิน,
 ตัวเลือกงานของ e-Portfolio และ roster ที่อาจารย์อ่าน),
 response ของ shared rubric ทั้งสองเส้น,
+response ของหน้าผูกกิจกรรมเข้ากับ CLO ทั้งสองครึ่ง,
 รูปของไฟล์แนบ (`AttachmentDetailResp`, `FileDetail`, `URLDetail`) และ
 `StudentActivityStatusDB`
-ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 31 ไฟล์ 1,586 บรรทัด (นับหลังรอบ
-rubric 22 สิงหาคม 2569 ด้วย glob ที่ ADR-0028 ประกาศไว้ — ในนั้นมี type
-ของ request กับ mock ปนอยู่ด้วย ซึ่งไม่ต้องย้าย และมี view model ของเทมเพลต
-246 บรรทัดที่ ADR-0040 ข้อ 7 ตัดออกจากขอบเขตไว้แล้ว) ซึ่งไล่ย้ายทีละ
-feature ที่ [#68](https://github.com/khthana/Deep-Portfolio/issues/68) ส่วน
-envelope ฝั่ง web (`ResponseWrapper`) อยู่ที่
+**#68 ย้ายครบทุก feature แล้ว** ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 31 ไฟล์
+1,558 บรรทัด (นับหลังรอบ clo-mapping 22 สิงหาคม 2569 ด้วย glob ที่ ADR-0028
+ประกาศไว้) แต่ไม่มีไฟล์ไหน**ในกลุ่มนั้น**ประกาศ response ของ API แล้ว — ที่เหลือ
+คือ type ของ request, ของ form, ของ mock, view model และตารางคำที่เป็นค่า runtime
+ซึ่ง package ถือไม่ได้ (ADR-0028 ข้อ 4) รวมถึง view model ของเทมเพลต 246 บรรทัด
+ที่ ADR-0040 ข้อ 7 ตัดออกจากขอบเขตไว้แล้ว
+
+ที่ยังเหลืออยู่นอก glob คือรูปที่เขียนคาไว้ใน generic ของ service กับ thunk ฝั่ง
+web อีก 20 จุด (`ResponseWrapper<{ id: number }>` และพี่น้องอีกสองแบบ) ซึ่งไม่เคย
+อยู่ในจำนวนที่ #68 นับ — ดูหมายเหตุท้าย
+[ADR-0047](../docs/adr/0047-narrow-to-the-card.md) ส่วน envelope ฝั่ง web
+(`ResponseWrapper`) เองอยู่ที่
 [#67](https://github.com/khthana/Deep-Portfolio/issues/67)
 
 เหตุผลทั้งหมดอยู่ใน [ADR-0028](../docs/adr/0028-shared-api-types.md) — อ่านก่อน
@@ -89,7 +96,11 @@ view model ที่ไม่รับ null ให้ขยาย view model ไ
 [ADR-0046](../docs/adr/0046-a-select-that-narrows-nothing.md) คือรอบ shared
 rubric ซึ่งตัดสินว่า `select` ยังต้องใส่ถึงจะไม่ตัดคอลัมน์ไหนออกเลย, ชื่อที่ลงท้าย
 `Resp` ไม่ได้บอกอะไรที่ export list ไม่ได้บอก และเมธอดที่ไม่มีใครเรียกให้ลบ
-ไม่ใช่หา type ให้
+ไม่ใช่หา type ให้ และ
+[ADR-0047](../docs/adr/0047-narrow-to-the-card.md) คือรอบ clo-mapping ซึ่งเป็น
+รอบสุดท้าย และตัดสินว่าเส้นที่ไม่มี `select` และมีผู้อ่านคนเดียว ให้แคบลงเท่าที่
+ผู้อ่านอ่าน ส่วน response ของ create ที่ตอบแถวทั้งแถวไม่ใช่คำถามเดียวกันและไม่หด
+— เขียนแถวนั้นลง package แทน
 
 ## เพิ่ม package ใหม่
 
