@@ -39,7 +39,10 @@
  * (docs/adr/0042-an-any-is-an-unnamed-shape.md), and then the cover page and
  * the aggregate read behind the share link, which finishes that feature and
  * imports the nine section files to do it
- * (docs/adr/0043-the-aggregate-imports-nine.md).
+ * (docs/adr/0043-the-aggregate-imports-nine.md), and then who the caller is —
+ * `/user` and the one `/auth` route that answers a shape, which the pass
+ * before had already taken half of
+ * (docs/adr/0044-a-response-is-what-was-selected.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -167,6 +170,8 @@ export type {
   StudentFullNameTh,
   StudentNameBrief,
 } from "./student";
+
+export type { SessionUser, UserDetail } from "./user";
 
 export type {
   ActivityGroupSubmission,

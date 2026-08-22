@@ -46,6 +46,57 @@ describe("GET /user", () => {
     });
   });
 
+  it("sends thirteen fields, and not the four beside them", async () => {
+    // See BEHAVIOR-CHANGES.md. The service used to call findUnique with no
+    // `select`, so this answered every scalar the table has — including the
+    // caller's own password hash and their own verification token. Nothing on
+    // the frontend has ever read any of the four; this is the case that keeps
+    // them off the wire.
+    const user = await createTeacher();
+
+    const response = await request(app)
+      .get("/user")
+      .set("Cookie", sessionCookie({ userId: user.user_id }))
+      .query({ id: user.user_id });
+
+    expect(response.status).toBe(200);
+    expect(Object.keys(response.body.data).sort()).toEqual([
+      "created_at",
+      "department_id",
+      "email",
+      "first_name_en",
+      "first_name_th",
+      "last_name_en",
+      "last_name_th",
+      "phone",
+      "program_id",
+      "title_en",
+      "title_th",
+      "updated_at",
+      "user_id",
+    ]);
+  });
+
+  it("dates a row seven hours after it was written", async () => {
+    // Pinned, not fixed. `users.created_at` is a `timestamp` with no zone and
+    // its default is CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Bangkok', so what
+    // Postgres stores is Bangkok local time and what Prisma reads back is that
+    // same clock reading labelled UTC. Twenty-seven columns across the schema
+    // carry that default, so the fix is a migration and a decision about every
+    // one of them, not a change to this endpoint. See BEHAVIOR-CHANGES.md.
+    const before = Date.now();
+    const user = await createTeacher();
+
+    const response = await request(app)
+      .get("/user")
+      .set("Cookie", sessionCookie({ userId: user.user_id }))
+      .query({ id: user.user_id });
+
+    const drift = Date.parse(response.body.data.created_at) - before;
+
+    expect(drift / (60 * 60 * 1000)).toBeCloseTo(7, 1);
+  });
+
   it("answers for a student too, not only a teacher", async () => {
     // requireUser rather than requireRole: the row is `users`, which everybody
     // signed in has one of, and reading your own is not a teacher's privilege.

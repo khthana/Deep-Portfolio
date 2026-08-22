@@ -134,6 +134,34 @@ describe("requireUser", () => {
   });
 });
 
+/**
+ * What GET /auth answers, as opposed to who it lets through.
+ *
+ * The cases above use this route as requireUser's subject and pin the whole
+ * body while they are at it; this one is about the body itself, which is
+ * `SessionUser` since #68 and is assembled rather than selected. Its failure
+ * case is up there too and there is only one: the sole way to fail this route
+ * is for requireUser to refuse you, so the 404 the controller carries for a
+ * user who has vanished is unreachable — the middleware re-reads `users` on
+ * every guarded route (#55) and answers 401 first.
+ */
+describe("GET /auth", () => {
+  it("leaves out the parts of a name that are not there", async () => {
+    // See BEHAVIOR-CHANGES.md. The three columns are nullable and used to be
+    // joined by a template literal, which writes the four letters "null" into
+    // the string for each one that is empty — and the teacher navbar draws
+    // this field.
+    const user = await createUser({ title_th: null });
+
+    const response = await request(app)
+      .get("/auth")
+      .set("Cookie", sessionCookie({ userId: user.user_id }));
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.name).toBe("สมชาย ใจดี");
+  });
+});
+
 describe("requireRole", () => {
   it("rejects a request with no cookie", async () => {
     const response = await request(app).get("/user/student");

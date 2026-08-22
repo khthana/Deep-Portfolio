@@ -195,12 +195,29 @@ export default class CourseService {
     // (#48). See docs/adr/0021-section-without-teacher.md. The subject cannot
     // be missing — both relations walked to reach it are required — so the
     // check that used to stand here has gone with the rest.
+    // Both names are joined by filtering, not by template literal. All six
+    // columns are nullable, and a template literal writes the four letters
+    // "null" into the string for each one that is — a teacher with no title
+    // came out as "null สมชาย ใจดี". Same defect and same fix as GET /auth's
+    // `name` (#68, ADR-0044 §5, and BEHAVIOR-CHANGES.md). null still means
+    // there is no teacher at all, which is what the caller tests for.
+    const joinName = (...parts: (string | null)[]) =>
+      parts.filter(Boolean).join(" ");
+
     return {
       teacher_name_th: teacherDetail
-        ? `${teacherDetail.title_th} ${teacherDetail.first_name_th} ${teacherDetail.last_name_th}`
+        ? joinName(
+            teacherDetail.title_th,
+            teacherDetail.first_name_th,
+            teacherDetail.last_name_th,
+          )
         : null,
       teacher_name_en: teacherDetail
-        ? `${teacherDetail.title_en} ${teacherDetail.first_name_en} ${teacherDetail.last_name_en}`
+        ? joinName(
+            teacherDetail.title_en,
+            teacherDetail.first_name_en,
+            teacherDetail.last_name_en,
+          )
         : null,
       teacher_email: teacherDetail?.email ?? null,
       // Still "" for a teacher who has not given a phone number, so that null

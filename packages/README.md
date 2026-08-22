@@ -26,13 +26,13 @@ response ของแผนการสอนรายสัปดาห์ท�
 response ของ e-Portfolio ครบทั้งสิบ router (รายละเอียดส่วนตัว, ประวัติการศึกษา,
 การอบรม, ใบประกาศ, รางวัล, ปริญญานิพนธ์, กิจกรรม, ฝึกงาน, ทักษะ และหน้าปกกับ
 เส้นรวมที่อยู่หลังลิงก์แชร์) พร้อมรูปของไฟล์แนบที่หก section ในนั้นใช้ร่วมกัน,
-`StudentDetail` ที่เส้นรวมฝังไว้,
+`StudentDetail` ที่เส้นรวมฝังไว้, response ของ `/user` กับ `GET /auth`,
 รูปของไฟล์แนบ (`AttachmentDetailResp`, `FileDetail`, `URLDetail`) และ
 `StudentActivityStatusDB`
-ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 33 ไฟล์ 1,651 บรรทัด (นับหลังรอบรวม
-/portfolio 22 สิงหาคม 2569 ด้วย glob ที่ ADR-0028 ประกาศไว้ — ในนั้นมี type
+ฝั่ง web ยังเหลือไฟล์ type ที่เขียนเองอีก 32 ไฟล์ 1,639 บรรทัด (นับหลังรอบ
+user 22 สิงหาคม 2569 ด้วย glob ที่ ADR-0028 ประกาศไว้ — ในนั้นมี type
 ของ request กับ mock ปนอยู่ด้วย ซึ่งไม่ต้องย้าย และมี view model ของเทมเพลต
-243 บรรทัดที่ ADR-0040 ข้อ 7 ตัดออกจากขอบเขตไว้แล้ว) ซึ่งไล่ย้ายทีละ
+246 บรรทัดที่ ADR-0040 ข้อ 7 ตัดออกจากขอบเขตไว้แล้ว) ซึ่งไล่ย้ายทีละ
 feature ที่ [#68](https://github.com/khthana/Deep-Portfolio/issues/68) ส่วน
 envelope ฝั่ง web (`ResponseWrapper`) อยู่ที่
 [#67](https://github.com/khthana/Deep-Portfolio/issues/67)
@@ -74,7 +74,10 @@ section ที่เหลือ ซึ่งตัดสินว่ารู�
 [ADR-0043](../docs/adr/0043-the-aggregate-imports-nine.md) คือรอบรวมที่ปิด
 e-Portfolio ซึ่งตัดสินว่าไฟล์ของเส้นรวม import ไฟล์ของ section แทนที่จะเขียนซ้ำ,
 leaf ของ feature อื่นย้ายตอนที่คนฝังมันต้องใช้ และ response ที่ null ได้ซึ่งไหลเข้า
-view model ที่ไม่รับ null ให้ขยาย view model ไม่ใช่ coalesce ที่ mapper
+view model ที่ไม่รับ null ให้ขยาย view model ไม่ใช่ coalesce ที่ mapper และ
+[ADR-0044](../docs/adr/0044-a-response-is-what-was-selected.md) คือรอบ `/user`
+ซึ่งตัดสินว่า query ที่ไม่มี `select` ไม่ใช่การเลือกจะตอบทุกคอลัมน์ แต่คือการยัง
+ไม่ได้เลือก — และรอบที่ตั้งชื่อ response ต้อง `select` ให้ตรงกับชื่อที่ตั้ง
 
 ## เพิ่ม package ใหม่
 

@@ -2,7 +2,7 @@ import { Modal, Form, Input, DatePicker, message, Upload, Image } from "antd";
 import { useEffect, useState } from "react";
 import { upsertPortfolioPersonal } from "../../../../../services/portfolio-personal.service";
 import type { UpsertPortfolioPersonalReq } from "../../../../../types/portfolio-personal-type.type";
-import type { UserResp } from "../../../../../types/user-type.type";
+import type { UserDetail } from "@deep-portfolio/api-types";
 import dayjs from "dayjs";
 import type { UploadFile } from "antd/es/upload/interface";
 import Button from "../../../../../components/button/button";
@@ -17,7 +17,7 @@ type PersonalDetailsEditModalProps = {
   onClose: () => void;
   onSuccess: () => void;
   initialData: {
-    user: UserResp | null;
+    user: UserDetail | null;
     portfolioPersonal: PortfolioPersonalDetail | null;
   };
 };

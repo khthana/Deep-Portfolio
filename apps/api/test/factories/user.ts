@@ -16,13 +16,20 @@ import { nextStudentId, nextUserId } from "./ids";
 export interface UserOptions {
   user_id?: string;
   email?: string;
-  title_th?: string;
-  first_name_th?: string;
-  last_name_th?: string;
-  title_en?: string;
-  first_name_en?: string;
-  last_name_en?: string;
-  phone?: string;
+  /**
+   * The six name parts and the phone take null as well as a string, because
+   * their columns do and a case about an empty one cannot be written
+   * otherwise. `?? "อ."` would turn the null straight back into a default and
+   * take the case with it — the same trap ADR-0038 named, in the factory that
+   * predates it.
+   */
+  title_th?: string | null;
+  first_name_th?: string | null;
+  last_name_th?: string | null;
+  title_en?: string | null;
+  first_name_en?: string | null;
+  last_name_en?: string | null;
+  phone?: string | null;
   department_id?: string;
   program_id?: string;
   /**
@@ -40,13 +47,17 @@ export async function createUser(options: UserOptions = {}) {
     data: {
       user_id,
       email: options.email ?? `${user_id}@example.test`,
-      phone: options.phone ?? "020000000",
-      title_th: options.title_th ?? "อ.",
-      first_name_th: options.first_name_th ?? "สมชาย",
-      last_name_th: options.last_name_th ?? "ใจดี",
-      title_en: options.title_en ?? "Mr.",
-      first_name_en: options.first_name_en ?? "Somchai",
-      last_name_en: options.last_name_en ?? "Jaidee",
+      phone: options.phone === undefined ? "020000000" : options.phone,
+      title_th: options.title_th === undefined ? "อ." : options.title_th,
+      first_name_th:
+        options.first_name_th === undefined ? "สมชาย" : options.first_name_th,
+      last_name_th:
+        options.last_name_th === undefined ? "ใจดี" : options.last_name_th,
+      title_en: options.title_en === undefined ? "Mr." : options.title_en,
+      first_name_en:
+        options.first_name_en === undefined ? "Somchai" : options.first_name_en,
+      last_name_en:
+        options.last_name_en === undefined ? "Jaidee" : options.last_name_en,
       department_id: options.department_id ?? BASELINE.department.department_id,
       program_id: options.program_id ?? BASELINE.program.program_id,
       user_roles_user_roles_user_idTousers: {
@@ -68,9 +79,20 @@ export function createTeacher(options: UserOptions = {}) {
   return createUser({ roles: ["TEACHER"], ...options });
 }
 
-export interface StudentOptions extends Omit<UserOptions, "user_id"> {
+export interface StudentOptions extends Omit<
+  UserOptions,
+  "user_id" | "first_name_th" | "last_name_th"
+> {
   student_id?: string;
   status?: "active" | "inactive" | "graduated" | "suspended";
+  /**
+   * Not widened to null the way the rest of the name parts are: these two go
+   * into `student` as well as `users`, and `student` refuses null for both. A
+   * case wanting a student with no first name is a case about a row the
+   * database will not hold.
+   */
+  first_name_th?: string;
+  last_name_th?: string;
 }
 
 /**
@@ -90,18 +112,22 @@ export async function createStudent(options: StudentOptions = {}) {
   const first_name_th = options.first_name_th ?? "สมหญิง";
   const last_name_th = options.last_name_th ?? "เรียนดี";
 
+  // `=== undefined` rather than `??` for the four that take null, so a case
+  // asking for an empty title gets one instead of the default (ADR-0038).
   await createUser({
     ...options,
     user_id: student_id,
     department_id,
     program_id,
     roles: options.roles ?? ["STUDENT"],
-    title_th: options.title_th ?? "น.ส.",
+    title_th: options.title_th === undefined ? "น.ส." : options.title_th,
     first_name_th,
     last_name_th,
-    title_en: options.title_en ?? "Ms.",
-    first_name_en: options.first_name_en ?? "Somying",
-    last_name_en: options.last_name_en ?? "Riandee",
+    title_en: options.title_en === undefined ? "Ms." : options.title_en,
+    first_name_en:
+      options.first_name_en === undefined ? "Somying" : options.first_name_en,
+    last_name_en:
+      options.last_name_en === undefined ? "Riandee" : options.last_name_en,
   });
 
   return prisma.student.create({

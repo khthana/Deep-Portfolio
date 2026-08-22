@@ -264,6 +264,25 @@ describe("GET /course", () => {
     });
   });
 
+  it("leaves out the parts of a teacher's name that are not there", async () => {
+    // See BEHAVIOR-CHANGES.md. Both names were joined by a template literal
+    // over six nullable columns, which writes the four letters "null" into the
+    // string for each one that is empty. Same defect and same fix as
+    // GET /auth's `name` (ADR-0044 §5).
+    const teacher = await createTeacher({ title_th: null, title_en: null });
+    const course = await createCourse({ teacher_id: teacher.user_id });
+
+    const response = await request(app)
+      .get("/course")
+      .query({ section_id: course.section_id });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toMatchObject({
+      teacher_name_th: "สมชาย ใจดี",
+      teacher_name_en: "Somchai Jaidee",
+    });
+  });
+
   it("returns a section whose teacher is not a user, with the teacher unnamed", async () => {
     // course_sections_teacher.user_id has no foreign key to users, so "the
     // section has a teacher row" and "the section has a teacher" are different

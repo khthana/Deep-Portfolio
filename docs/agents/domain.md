@@ -159,7 +159,14 @@ a nullable response meeting a view model which refuses null widens the view
 model rather than coalescing in the mapper, and that a type error the compiler
 surfaces is not by itself a defect a user can see — follow it to every route
 that renders the value before deciding, and treat an incomplete search as
-proof that it is visible.
+proof that it is visible, and
+`0044-a-response-is-what-was-selected.md`, which says a Prisma query with no
+`select` is not a decision to answer every column but the absence of one, that
+two endpoints answering the same question are still two shapes when their
+fields are assembled differently, that a controller writing its own envelope
+is not bound to `ApiResponse` and should call `successResponse`, and that a
+template literal spanning nullable columns writes the word "null" into a
+response with nothing to warn you.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

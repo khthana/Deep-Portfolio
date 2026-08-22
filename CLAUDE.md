@@ -53,7 +53,7 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1077 API cases over
+- **Tests**: `npm test` at the root runs both workspaces. 1083 API cases over
   40 files, 448 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
@@ -128,7 +128,7 @@ every web warning, not the `any` ones, which are 140 (plus 2 in `apps/api`).
 feature on purpose: #68 carries the 38 web type files that still hold copies of
 what the API answers, one feature at a time, and #67 carries `ResponseWrapper`, the web's
 own envelope, which disagrees with the `ApiResponse`/`ApiError` the API
-actually answers and is read in 277 places. **#68 is open and being worked
+actually answers and is read in 283 places across 51 files. **#68 is open and being worked
 through**: the gradebook moved on 2026-08-15, which is where ADR-0029 came
 from — read it before starting the next pass, because the five things it
 decides are the ones a second feature runs into and the first one did not —
@@ -195,10 +195,15 @@ refuses null, the view model widens — coalescing in the mapper would take each
 screen's own default away from it. Read its last rule before deciding a type
 error the compiler surfaces is invisible to users: proving that means following
 the value to every route that renders it, and this pass got it wrong first.
-All ten of the e-Portfolio's routers have moved; 33 files and 1,651 lines are
-still web-side, of which the portfolio's own 601 are request types, mock types,
+Who the caller is followed, closing the half ADR-0043 had already taken, and
+ADR-0044 came out of it: a `findUnique` with no `select` is not a decision to
+answer every column, and this one was answering the caller their own password
+hash. Read it before naming a response whose query you have not opened.
+All ten of the e-Portfolio's routers have moved, and so has `/user`; 32 files
+and 1,639 lines are
+still web-side, of which the portfolio's own 604 are request types, mock types,
 the runtime label constants the package cannot hold — it compiles to nothing
-(ADR-0028 §4) — and a 243-line template view model. None of it is #68's
+(ADR-0028 §4) — and a 246-line template view model. None of it is #68's
 work.
 
 **The database has real data in it.** One faculty, 14 departments, 3

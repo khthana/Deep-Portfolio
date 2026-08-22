@@ -1,4 +1,5 @@
 import prisma from "../config/prisma";
+import type { SessionUser } from "@deep-portfolio/api-types";
 
 export default class AuthService {
   /**
@@ -39,7 +40,14 @@ export default class AuthService {
     return user !== null;
   }
 
-  async getUserDetail(user_id: string) {
+  /**
+   * `GET /auth` — the session, answered as the person holding it.
+   *
+   * Two of the four fields are assembled rather than selected, which is why
+   * this is not `UserDetail` with columns removed: `name` is three columns
+   * joined and `roles` is a lookup through `user_roles`.
+   */
+  async getUserDetail(user_id: string): Promise<SessionUser | null> {
     try {
       const user = await prisma.users.findUnique({
         where: { user_id },
@@ -67,7 +75,13 @@ export default class AuthService {
       return {
         user_id: user.user_id,
         email: user.email,
-        name: `${user.title_th} ${user.first_name_th} ${user.last_name_th}`,
+        // Joined by filtering rather than by template literal. All three
+        // columns are nullable, and a template literal writes the four letters
+        // "null" into the string for each one that is — which the teacher
+        // navbar then draws (#68, and BEHAVIOR-CHANGES.md).
+        name: [user.title_th, user.first_name_th, user.last_name_th]
+          .filter(Boolean)
+          .join(" "),
         roles: user.user_roles_user_roles_user_idTousers.map((r) => r.role_id),
       };
     } catch {

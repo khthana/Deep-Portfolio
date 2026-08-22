@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import UserService from "../services/user.service";
+import { successResponse } from "../utils/response";
 import { sessionUserId } from "../middlewares/auth.middleware";
 import { validated } from "../validation/validate";
 import { userQuery } from "../validation/identity.schema";
@@ -14,13 +15,9 @@ export default class UserController {
   async getUser(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = validated(req, userQuery);
-      const courses = await this.userService.getUserDetail(id);
+      const user = await this.userService.getUserDetail(id);
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched user successfully",
-        data: courses,
-      });
+      successResponse(res, user, "Fetched user successfully");
     } catch (err) {
       next(err);
     }
@@ -29,13 +26,9 @@ export default class UserController {
   async getStudentDetail(req: Request, res: Response, next: NextFunction) {
     try {
       const student_id = sessionUserId(req);
-      const courses = await this.userService.getStudentDetail(student_id);
+      const student = await this.userService.getStudentDetail(student_id);
 
-      res.status(200).json({
-        success: true,
-        message: "Fetched student successfully",
-        data: courses,
-      });
+      successResponse(res, student, "Fetched student successfully");
     } catch (err) {
       next(err);
     }

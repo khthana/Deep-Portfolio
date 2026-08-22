@@ -1,13 +1,54 @@
 import prisma from "../config/prisma";
-import type { StudentDetail } from "@deep-portfolio/api-types";
+import type { StudentDetail, UserDetail } from "@deep-portfolio/api-types";
 
 export default class UserService {
-  async getUserDetail(userId: string) {
-    const result = await prisma.users.findUnique({
+  /**
+   * One `users` row, named column by column.
+   *
+   * The `select` is the point. This used to be a bare `findUnique`, which
+   * hands back every scalar the table has — so `GET /user` answered a caller
+   * `password`, `verification_token`, `is_verified` and `status` along with
+   * the profile they asked for. Nothing here writes the first two, sign-in
+   * being Google's, so what went out was two nulls; what was wrong is that the
+   * response carried the keys at all. No screen has ever read any of the four
+   * (#68, and BEHAVIOR-CHANGES.md).
+   *
+   * `course.service.ts` calls this too, for a section's teacher, and reads
+   * nine of the thirteen. It never passes the row on whole.
+   */
+  async getUserDetail(userId: string): Promise<UserDetail | null> {
+    const user = await prisma.users.findUnique({
       where: { user_id: userId },
+      select: {
+        user_id: true,
+        email: true,
+        phone: true,
+        title_th: true,
+        first_name_th: true,
+        last_name_th: true,
+        title_en: true,
+        first_name_en: true,
+        last_name_en: true,
+        department_id: true,
+        program_id: true,
+        created_at: true,
+        updated_at: true,
+      },
     });
 
-    return result;
+    if (!user) {
+      return null;
+    }
+
+    return {
+      ...user,
+      // ISO strings, as JSON.stringify would have made them anyway. Both are
+      // seven hours ahead of the moment they record, because the column is a
+      // `timestamp` without a zone and its default writes Bangkok local time
+      // into it — pinned in BEHAVIOR-CHANGES.md, not this ticket's to fix.
+      created_at: user.created_at?.toISOString() ?? null,
+      updated_at: user.updated_at?.toISOString() ?? null,
+    };
   }
 
   async getStudentDetail(student_id: string): Promise<StudentDetail | null> {
