@@ -2,15 +2,18 @@ import { axiosInstance } from "../lib/axios";
 import { endpoints } from "../configs/endpoints.config";
 import type { ResponseWrapper } from "../types/global-type";
 import type {
-  PortfolioSkillResp,
   CreatePortfolioSkillReq,
   UpdatePortfolioSkillReq,
   AssignWorkToSkillsReq,
-  PortfolioWorkResp,
 } from "../types/portfolio-skill-type.type";
+import type {
+  PortfolioSkillDetail,
+  PortfolioWorkDetail,
+  SkillMappingDetail,
+} from "@deep-portfolio/api-types";
 
 export const getAllPortfolioSkill = async (userId: string) => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioSkillResp[]>>(
+  const resp = await axiosInstance.get<ResponseWrapper<PortfolioSkillDetail[]>>(
     endpoints.portfolio_skill.root,
     { params: { user_id: userId } },
   );
@@ -18,7 +21,7 @@ export const getAllPortfolioSkill = async (userId: string) => {
 };
 
 export const getPortfolioWorks = async (userId: string) => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioWorkResp[]>>(
+  const resp = await axiosInstance.get<ResponseWrapper<PortfolioWorkDetail[]>>(
     endpoints.portfolio_skill.works,
     { params: { user_id: userId } },
   );
@@ -26,14 +29,14 @@ export const getPortfolioWorks = async (userId: string) => {
 };
 
 export const getPortfolioSkillById = async (id: number) => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioSkillResp>>(
+  const resp = await axiosInstance.get<ResponseWrapper<PortfolioSkillDetail>>(
     endpoints.portfolio_skill.detail(id),
   );
   return resp.data;
 };
 
 export const createPortfolioSkill = async (data: CreatePortfolioSkillReq) => {
-  const resp = await axiosInstance.post<ResponseWrapper<PortfolioSkillResp>>(
+  const resp = await axiosInstance.post<ResponseWrapper<PortfolioSkillDetail>>(
     endpoints.portfolio_skill.root,
     data,
   );
@@ -44,7 +47,7 @@ export const updatePortfolioSkill = async (
   id: number,
   data: UpdatePortfolioSkillReq,
 ) => {
-  const resp = await axiosInstance.put<ResponseWrapper<PortfolioSkillResp>>(
+  const resp = await axiosInstance.put<ResponseWrapper<PortfolioSkillDetail>>(
     endpoints.portfolio_skill.detail(id),
     data,
   );
@@ -52,14 +55,18 @@ export const updatePortfolioSkill = async (
 };
 
 export const deletePortfolioSkill = async (id: number) => {
-  const resp = await axiosInstance.delete<ResponseWrapper<PortfolioSkillResp>>(
+  // `data: null`, not the skill: the service builds a row for its caller and
+  // the controller does not pass it on (#68).
+  const resp = await axiosInstance.delete<ResponseWrapper<null>>(
     endpoints.portfolio_skill.detail(id),
   );
   return resp.data;
 };
 
 export const getPortfolioSkillMappingById = async (id: number) => {
-  const resp = await axiosInstance.get<ResponseWrapper<any>>(
+  // Was `any` until #68, because neither side had a name for what this
+  // answers: the mapping row with the skill it hangs off nested inside it.
+  const resp = await axiosInstance.get<ResponseWrapper<SkillMappingDetail>>(
     endpoints.portfolio_skill.mapping(id),
   );
   return resp.data;

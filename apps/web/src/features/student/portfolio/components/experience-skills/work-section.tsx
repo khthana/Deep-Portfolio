@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { message } from "antd";
-import type { PortfolioWorkResp } from "../../../../../types/portfolio-skill-type.type";
 import { getPortfolioWorks } from "../../../../../services/portfolio-skill.service";
 import { paths } from "../../../../../routes/paths.config";
 import SectionLayout from "../section-layout";
@@ -8,10 +7,11 @@ import WorkCard from "./work-card";
 
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../../../stores/stores";
+import type { PortfolioWorkDetail } from "@deep-portfolio/api-types";
 
 const WorkSection = () => {
   const { studentId } = useSelector((state: RootState) => state.home);
-  const [works, setWorks] = useState<PortfolioWorkResp[]>([]);
+  const [works, setWorks] = useState<PortfolioWorkDetail[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchWorks = useCallback(async () => {

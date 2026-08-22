@@ -69,6 +69,15 @@ describe("GET /portfolio-skill", () => {
       first.id,
       second.id,
     ]);
+    // Four keys and no more, and `mappings` is one of them on every skill —
+    // the second one below has none and still carries the key as an empty
+    // list, which is what `PortfolioSkillDetail` says (#68).
+    expect(Object.keys(response.body.data[0]).sort()).toEqual([
+      "id",
+      "mappings",
+      "name",
+      "user_id",
+    ]);
     expect(response.body.data[0]).toMatchObject({
       id: first.id,
       user_id: student.student_id,
@@ -838,11 +847,23 @@ describe("GET /portfolio-skill/mapping/:id", () => {
       .set("Cookie", sessionCookie({ userId: skill.user_id }));
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toMatchObject({
+    expect(response.body.data).toEqual({
       id: mapping.id,
       skill_id: skill.id,
+      student_activity_id: mapping.student_activity_id,
+      repository: null,
+      role_and_resp: null,
+      init_expect: null,
       reflection: "ได้เรียนรู้การแบ่งงาน",
-      portfolio_skill: { id: skill.id, name: "การเขียนโปรแกรม" },
+      isShowRepo: false,
+      isShowRole: false,
+      isShowInit: false,
+      isShowReflec: false,
+      portfolio_skill: {
+        id: skill.id,
+        name: "การเขียนโปรแกรม",
+        user_id: skill.user_id,
+      },
     });
   });
 

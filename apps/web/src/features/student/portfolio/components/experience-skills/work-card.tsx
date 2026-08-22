@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { Popconfirm, message, Image } from "antd";
 import { getFile } from "../../../../../utils/get-file";
 import WhiteContainer from "../../../../../components/container/white-container";
-import type { PortfolioWorkResp } from "../../../../../types/portfolio-skill-type.type";
 import { deleteSkillMapping } from "../../../../../services/portfolio-skill.service";
 import {
   getActivityDetails,
   getStudentActivityAttachments,
 } from "../../../../../services/student.service";
 import WorkEditModal from "./work-edit-modal";
+import type { PortfolioWorkDetail } from "@deep-portfolio/api-types";
 
 const isImage = (filename: string | null) => {
   if (!filename) return false;
@@ -17,7 +17,7 @@ const isImage = (filename: string | null) => {
 };
 
 type Props = {
-  work: PortfolioWorkResp;
+  work: PortfolioWorkDetail;
   onSuccess: () => void;
 };
 

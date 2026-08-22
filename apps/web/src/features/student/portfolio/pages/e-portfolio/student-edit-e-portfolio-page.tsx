@@ -22,7 +22,6 @@ import {
   type CreatePortfolioReq,
   type PortfolioTemplate,
 } from "../../../../../services/portfolio.service";
-import type { PortfolioSkillResp } from "../../../../../types/portfolio-skill-type.type";
 import { paths } from "../../../../../routes/paths.config";
 
 type ConfigDataType = {
@@ -42,6 +41,7 @@ interface FormValues {
 
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../../../stores/stores";
+import type { PortfolioSkillDetail } from "@deep-portfolio/api-types";
 
 const StudentEditEPortfolioPage = () => {
   const { studentId } = useSelector((state: RootState) => state.home);
@@ -50,7 +50,7 @@ const StudentEditEPortfolioPage = () => {
   const [form] = Form.useForm<FormValues>();
   const [messageApi, contextHolder] = message.useMessage();
   const [configData, setConfigData] = useState<ConfigDataType[]>([]);
-  const [skills, setSkills] = useState<PortfolioSkillResp[]>([]);
+  const [skills, setSkills] = useState<PortfolioSkillDetail[]>([]);
   const [selectedSkillIds, setSelectedSkillIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [templates, setTemplates] = useState<PortfolioTemplate[]>([]);

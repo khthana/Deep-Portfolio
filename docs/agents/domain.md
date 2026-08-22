@@ -147,7 +147,11 @@ neighbours use, and
 features had each written out for themselves gets one name, that its
 nullability is read off the code that builds it rather than off any existing
 copy, and that counting copies by grepping a type's name misses the ones an
-import alias renames.
+import alias renames, and `0042-an-any-is-an-unnamed-shape.md`, which says an
+`any` written over a response is a shape nobody has read rather than a decision
+that the shape needs no name — the pass that is already reading that endpoint
+names it — and that a write endpoint's type comes from what its controller
+sends, which is not always what its service returns.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

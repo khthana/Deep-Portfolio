@@ -20,22 +20,22 @@ import {
   createPortfolioSkill,
   assignWorkToSkills,
 } from "../../../../../services/portfolio-skill.service";
-import type {
-  PortfolioWorkResp,
-  PortfolioSkillResp,
-} from "../../../../../types/portfolio-skill-type.type";
 
 type WorkEditModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  work: PortfolioWorkResp | null;
+  work: PortfolioWorkDetail | null;
   activityName: string;
   subjectInfo: string;
 };
 
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../../../stores/stores";
+import type {
+  PortfolioSkillDetail,
+  PortfolioWorkDetail,
+} from "@deep-portfolio/api-types";
 
 const WorkEditModal = ({
   isOpen,
@@ -51,7 +51,7 @@ const WorkEditModal = ({
   const [loading, setLoading] = useState(false);
 
   // Skills state
-  const [allSkills, setAllSkills] = useState<PortfolioSkillResp[]>([]);
+  const [allSkills, setAllSkills] = useState<PortfolioSkillDetail[]>([]);
   const [skillsLoading, setSkillsLoading] = useState(false);
 
   // Inline create-skill

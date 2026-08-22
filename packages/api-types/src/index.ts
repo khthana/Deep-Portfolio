@@ -34,7 +34,9 @@
  * schooling — which is where that feature turned out to be ten of them
  * (docs/adr/0040-the-portfolio-is-ten-features.md), and then the six sections
  * that hang files off themselves, which share one attachment shape between them
- * (docs/adr/0041-one-attachment-shape-for-six-sections.md).
+ * (docs/adr/0041-one-attachment-shape-for-six-sections.md), and then the skills
+ * section, one of whose endpoints had never been named on either side
+ * (docs/adr/0042-an-any-is-an-unnamed-shape.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -133,6 +135,13 @@ export type {
   PortfolioPersonalPicture,
   PortfolioPersonalRow,
 } from "./portfolio-personal";
+
+export type {
+  PortfolioSkillDetail,
+  PortfolioWorkDetail,
+  SkillMapping,
+  SkillMappingDetail,
+} from "./portfolio-skill";
 
 export type { PortfolioThesisDetail } from "./portfolio-thesis";
 

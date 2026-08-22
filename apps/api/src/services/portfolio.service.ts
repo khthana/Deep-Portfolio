@@ -197,7 +197,10 @@ export default class PortfolioService {
     // keyed by mapping id and read back out.
     const workDetails = await Promise.all(
       skillsData.flatMap((skill) =>
-        (skill.mappings ?? []).map(async (mapping) => {
+        // No `?? []` any more: every endpoint that answers a skill answers
+        // `mappings` too, empty list and all, and `PortfolioSkillDetail` says
+        // so since #68. The guard was reading an optional the type invented.
+        skill.mappings.map(async (mapping) => {
           const [activity, attachments] = await Promise.all([
             this.studentService.getActivityDetailsByStudentActivityId(
               mapping.student_activity_id,

@@ -29,11 +29,11 @@ import {
   type ActivityOption,
 } from "../../../../../services/student.service";
 import { paths } from "../../../../../routes/paths.config";
-import type { PortfolioSkillResp } from "../../../../../types/portfolio-skill-type.type";
 
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../../../stores/stores";
 import { getFile } from "../../../../../utils/get-file";
+import type { PortfolioSkillDetail } from "@deep-portfolio/api-types";
 
 const CreateWorkForm = () => {
   const { studentId } = useSelector((state: RootState) => state.home);
@@ -53,7 +53,7 @@ const CreateWorkForm = () => {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   // Skills multi-select
-  const [skills, setSkills] = useState<PortfolioSkillResp[]>([]);
+  const [skills, setSkills] = useState<PortfolioSkillDetail[]>([]);
   const [skillsLoading, setSkillsLoading] = useState(false);
 
   // Inline "create new skill" modal

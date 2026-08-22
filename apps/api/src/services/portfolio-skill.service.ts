@@ -1,13 +1,16 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import { HttpError } from "../utils/http-error";
+import type {
+  PortfolioSkillDetail,
+  PortfolioWorkDetail,
+  SkillMappingDetail,
+} from "@deep-portfolio/api-types";
 import {
   AssignWorkToSkillsReqBody,
   CreatePortfolioSkillReqBody,
   SkillMappingReqBody,
   UpdatePortfolioSkillReqBody,
-  PortfolioSkillResp,
-  PortfolioWorkResp,
 } from "../models/portfolio-skill.model";
 
 /**
@@ -99,7 +102,7 @@ const mapToMappingData = (skillId: number, m: SkillMappingReqBody) => ({
 });
 
 export default class PortfolioSkillService {
-  async getPortfolioWorks(userId: string): Promise<PortfolioWorkResp[]> {
+  async getPortfolioWorks(userId: string): Promise<PortfolioWorkDetail[]> {
     // Fetch all mapping rows owned by this user, including parent skill info
     const mappings = await prisma.portfolio_skill_activity_mapping.findMany({
       where: {
@@ -124,7 +127,7 @@ export default class PortfolioSkillService {
     );
 
     // Group by student_activity_id — metadata is shared, skills accumulate
-    const grouped = new Map<number, PortfolioWorkResp>();
+    const grouped = new Map<number, PortfolioWorkDetail>();
 
     for (const row of mappings) {
       const aid = row.student_activity_id;
@@ -155,7 +158,7 @@ export default class PortfolioSkillService {
     return Array.from(grouped.values());
   }
 
-  async getAllPortfolioSkill(userId: string): Promise<PortfolioSkillResp[]> {
+  async getAllPortfolioSkill(userId: string): Promise<PortfolioSkillDetail[]> {
     const skills = await prisma.portfolio_skill.findMany({
       where: { user_id: userId },
       include: {
@@ -172,7 +175,9 @@ export default class PortfolioSkillService {
     }));
   }
 
-  async getPortfolioSkillById(id: number): Promise<PortfolioSkillResp | null> {
+  async getPortfolioSkillById(
+    id: number,
+  ): Promise<PortfolioSkillDetail | null> {
     const skill = await prisma.portfolio_skill.findUnique({
       where: { id },
       include: {
@@ -193,7 +198,7 @@ export default class PortfolioSkillService {
   async createPortfolioSkill(
     userId: string,
     data: CreatePortfolioSkillReqBody,
-  ): Promise<PortfolioSkillResp> {
+  ): Promise<PortfolioSkillDetail> {
     const { name, mappings = [] } = data;
 
     const result = await prisma.$transaction(async (tx) => {
@@ -239,7 +244,7 @@ export default class PortfolioSkillService {
     userId: string,
     id: number,
     data: UpdatePortfolioSkillReqBody,
-  ): Promise<PortfolioSkillResp> {
+  ): Promise<PortfolioSkillDetail> {
     const { name, mappings } = data;
 
     const result = await prisma.$transaction(async (tx) => {
@@ -285,7 +290,7 @@ export default class PortfolioSkillService {
     };
   }
 
-  async deletePortfolioSkill(id: number): Promise<PortfolioSkillResp> {
+  async deletePortfolioSkill(id: number): Promise<PortfolioSkillDetail> {
     const skill = await prisma.portfolio_skill.delete({
       where: { id },
     });
@@ -298,7 +303,9 @@ export default class PortfolioSkillService {
     };
   }
 
-  async getPortfolioSkillMappingById(id: number) {
+  async getPortfolioSkillMappingById(
+    id: number,
+  ): Promise<SkillMappingDetail | null> {
     return prisma.portfolio_skill_activity_mapping.findUnique({
       where: { id },
       include: {
