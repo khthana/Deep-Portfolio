@@ -1,6 +1,9 @@
 import type { JSONContent } from "@tiptap/react";
 import type {
   AttachmentDetailResp,
+  ClassworkCategory,
+  ClassworkStatus as ClassworkStatusUnion,
+  ClassworkType as ClassworkTypeUnion,
   GroupRole,
   RubricDetail,
   StudentActivityDetailResp,
@@ -18,29 +21,13 @@ export type CourseDetailSummary = {
   teacher: string;
 };
 
-export type ClassworkDetail = {
-  id: number;
-  name: string;
-  category: ClassworkCategory;
-  type: ClassworkType;
-  point: number | null;
-  received_point: number | null;
-  date: Date | null;
-  status: ClassworkStatus;
-  course: string;
-  score_weight_id: number;
-  subject_id: string;
-  detail: JSON;
-  section_id: number;
-  deadline_date: Date;
-};
-
-export type ClassworkDetailResp = {
-  today: ClassworkDetail[];
-  other: { title: string; classworks: ClassworkDetail[] }[];
-};
-
-export type ClassworkCategory = "activity" | "learning_activity";
+// ClassworkDetail, ClassworkDetailResp and ClassworkCategory used to be
+// declared here. They moved to @deep-portfolio/api-types (#68) — import them
+// from there. Five things this copy said were wrong: the three dates are
+// strings on the wire and not Dates, `score_weight_id` is null for a learning
+// activity, `deadline_date` is null for work with no deadline, `detail` was
+// typed as the global `JSON` object rather than as a value, and
+// `announcement_date` was missing altogether. See ADR-0045.
 
 export const classworkCategoryLabel: Record<ClassworkCategory, string> = {
   activity: "กิจกรรมการประเมิน",
@@ -64,7 +51,7 @@ export const ClassworkStatus = {
   LATE: "LATE",
 } as const;
 
-export const classworkStatusLabel: Record<ClassworkStatus, string> = {
+export const classworkStatusLabel: Partial<Record<ClassworkStatus, string>> = {
   NOT_SUBMITTED: "ยังไม่ส่ง",
   SUBMITTED: "ส่งแล้ว",
   GRADED: "ให้คะแนนแล้ว",
@@ -81,36 +68,57 @@ export const classworkTypeTextColor: Record<ClassworkType, string> = {
   GROUP: "#3B8B5C", // เขียว
 };
 
-export const classworkStatusIcon: Record<ClassworkStatus, string> = {
+export const classworkStatusIcon: Partial<Record<ClassworkStatus, string>> = {
   NOT_SUBMITTED: "/assets/course/not-submitted-icon.svg",
   SUBMITTED: "/assets/course/submitted-icon.svg",
   GRADED: "/assets/course/graded-icon.svg",
   LATE: "/assets/course/late-icon.svg",
 };
 
-export const learningActivityStatusIcon: Record<ClassworkStatus, string> = {
+export const learningActivityStatusIcon: Partial<
+  Record<ClassworkStatus, string>
+> = {
   NOT_SUBMITTED: "/assets/course/not-submitted-green-icon.svg",
   SUBMITTED: "/assets/course/submitted-icon.svg",
   GRADED: "/assets/course/graded-icon.svg",
   LATE: "/assets/course/late-icon.svg",
 };
 
-export const classworkStatusColor: Record<ClassworkStatus, string> = {
+export const classworkStatusColor: Partial<Record<ClassworkStatus, string>> = {
   NOT_SUBMITTED: "#3068D9", // ฟ้า
   SUBMITTED: "#7C7C7C", // ดำ
   GRADED: "#2C3142", // ดำ
   LATE: "#E02929", // แดง
 };
 
-export const learningActivityStatusColor: Record<ClassworkStatus, string> = {
+export const learningActivityStatusColor: Partial<
+  Record<ClassworkStatus, string>
+> = {
   NOT_SUBMITTED: "#3B8B5C", // ฟ้า
   SUBMITTED: "#7C7C7C", // ดำ
   GRADED: "#2C3142", // ดำ
   LATE: "#E02929", // แดง
 };
 
-export type ClassworkStatus = keyof typeof ClassworkStatus;
-export type ClassworkType = keyof typeof ClassworkType;
+// The two unions used to be `keyof typeof` over the objects above. They come
+// from @deep-portfolio/api-types now (#68) and are re-exported under the names
+// the objects already carry, because both are read as values as well —
+// `ClassworkStatus.SUBMITTED` is in five components. The objects stay here for
+// the same reason: a runtime value cannot live in a types-only package
+// (ADR-0028 §4).
+//
+// ClassworkStatus no longer matches its object. The union has five values and
+// the object has four, and that gap is the next paragraph.
+export type ClassworkStatus = ClassworkStatusUnion;
+export type ClassworkType = ClassworkTypeUnion;
+//
+// The five status maps are Partial now, and that is the point rather than a
+// concession: ClassworkStatus has five values, because getDisplayStatus adds
+// LATE to the column's four and passes GRADING through. None of these five maps
+// has a GRADING entry, so a row in that state draws no word, no icon and no
+// colour. Nothing in the API writes GRADING today and what it should say in
+// Thai is a wording decision, which is #69 — the same gap it already records on
+// the evaluation table. The type says so now instead of promising a string.
 
 // todo: change boolean to File
 export type AnnouncementDetail = {

@@ -1,3 +1,4 @@
+import type { ClassworkDetail } from "@deep-portfolio/api-types";
 import {
   classworkStatusColor,
   classworkStatusIcon,
@@ -5,7 +6,6 @@ import {
   classworkTypeBGColor,
   classworkTypeLabel,
   classworkTypeTextColor,
-  type ClassworkDetail,
 } from "../types/course-type";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { paths } from "../../../../routes/paths.config";

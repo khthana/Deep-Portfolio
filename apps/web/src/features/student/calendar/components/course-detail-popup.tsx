@@ -1,7 +1,7 @@
+import type { CalendarCourseEvent } from "@deep-portfolio/api-types";
 import { type Dispatch, type SetStateAction } from "react";
 import { weekdayLabel } from "../../../../constants/date";
 import DetailPopup from "./detail-popup";
-import type { CalendarCourseEvent } from "../types/calendar-type";
 
 type Props = {
   openPopup: boolean;
@@ -27,7 +27,15 @@ const CourseDetailPopup = (props: Props) => {
             </div>
 
             <div className="flex gap-4 caption-regular">
-              <div>{weekdayLabel[props.courseDetail.day_of_week]}</div>
+              {/* All four schedule fields are nullable, because a section with
+                  no timetable row has none of them — which the old copy of this
+                  shape denied (#68). A missing day draws nothing rather than
+                  indexing on null. */}
+              <div>
+                {props.courseDetail.day_of_week
+                  ? weekdayLabel[props.courseDetail.day_of_week]
+                  : ""}
+              </div>
               <div>{`${props.courseDetail.start_time} - ${props.courseDetail.end_time}`}</div>
             </div>
           </div>

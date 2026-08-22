@@ -1,3 +1,7 @@
+import type {
+  AllClassworkDetailResp,
+  StudentDetail,
+} from "@deep-portfolio/api-types";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
 import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
@@ -6,7 +10,6 @@ import {
   fetchPortfolioPersonal,
   fetchStudentDetail,
 } from "./home-action";
-import type { AllClassworkDetailResp, StudentDetail } from "../types/home-type";
 import type { PortfolioPersonalDetail } from "@deep-portfolio/api-types";
 
 type HomeSlice = {

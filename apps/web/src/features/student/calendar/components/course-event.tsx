@@ -1,6 +1,6 @@
+import type { CalendarCourseEvent } from "@deep-portfolio/api-types";
 import { useState } from "react";
 import CourseDetailPopup from "./course-detail-popup";
-import type { CalendarCourseEvent } from "../types/calendar-type";
 
 type Props = {
   courseDetail: CalendarCourseEvent;

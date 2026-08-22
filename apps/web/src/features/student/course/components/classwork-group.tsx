@@ -1,4 +1,4 @@
-import type { ClassworkDetail } from "../types/course-type";
+import type { ClassworkDetail } from "@deep-portfolio/api-types";
 import ClassworkCard from "./classwork-card";
 
 type Props = {

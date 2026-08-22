@@ -1,3 +1,4 @@
+import type { CalendarClassworkEvent } from "@deep-portfolio/api-types";
 import type { Dispatch, SetStateAction } from "react";
 import {
   ClassworkStatus,
@@ -7,7 +8,6 @@ import {
 } from "../../course/types/course-type";
 import DetailPopup from "./detail-popup";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
-import type { CalendarClassworkEvent } from "../types/calendar-type";
 
 type Props = {
   openPopup: boolean;

@@ -1,3 +1,7 @@
+import type {
+  EnrolledSubject,
+  SectionActivityOption,
+} from "@deep-portfolio/api-types";
 import {
   Form,
   Input,
@@ -25,8 +29,6 @@ import {
   getActivitiesBySectionId,
   getActivityDetails,
   getStudentActivityAttachments,
-  type EnrolledSubject,
-  type ActivityOption,
 } from "../../../../../services/student.service";
 import { paths } from "../../../../../routes/paths.config";
 
@@ -46,7 +48,7 @@ const CreateWorkForm = () => {
   const [subjectsLoading, setSubjectsLoading] = useState(false);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [subjects, setSubjects] = useState<EnrolledSubject[]>([]);
-  const [activities, setActivities] = useState<ActivityOption[]>([]);
+  const [activities, setActivities] = useState<SectionActivityOption[]>([]);
 
   // Work preview (feedback)
   const [detailsLoading, setDetailsLoading] = useState(false);

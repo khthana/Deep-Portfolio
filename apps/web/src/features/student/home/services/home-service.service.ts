@@ -1,11 +1,11 @@
+import type {
+  AllClassworkDetailResp,
+  StudentDetail,
+} from "@deep-portfolio/api-types";
 import { endpoints } from "../../../../configs/endpoints.config";
 import { axiosInstance } from "../../../../lib/axios";
 import type { ResponseWrapper } from "../../../../types/global-type";
-import type {
-  AllClassworkDetailResp,
-  GetStudentAllCLassworkListParams,
-  StudentDetail,
-} from "../types/home-type";
+import type { GetStudentAllCLassworkListParams } from "../types/home-type";
 
 export const getStudentAllClassworkList = async (
   params: GetStudentAllCLassworkListParams,

@@ -1,3 +1,7 @@
+import type {
+  AllClassworkDetailResp,
+  StudentDetail,
+} from "@deep-portfolio/api-types";
 import { describe, expect, it } from "vitest";
 import { homeSlice, homeSliceAction } from "./home-slice";
 import {
@@ -5,7 +9,6 @@ import {
   fetchPortfolioPersonal,
   fetchStudentDetail,
 } from "./home-action";
-import type { AllClassworkDetailResp, StudentDetail } from "../types/home-type";
 import type { PortfolioPersonalDetail } from "@deep-portfolio/api-types";
 import {
   failed,
@@ -33,6 +36,9 @@ const classwork: AllClassworkDetailResp = {
   submitted: [],
 };
 
+// Every field is a plain string, and `phone` is "" rather than null: the
+// service coalesces all ten before answering, so a caller never sees a null
+// here whatever the columns hold (#68).
 const student: StudentDetail = {
   user_id: "9f1c0d3e",
   student_id: "65000001",
@@ -41,7 +47,7 @@ const student: StudentDetail = {
   last_name_th: "ระบบดี",
   title_th: "นาย",
   email: "student@example.test",
-  phone: null,
+  phone: "",
   department_name: "วิศวกรรมคอมพิวเตอร์",
   program_name: "วิศวกรรมศาสตรบัณฑิต",
 };

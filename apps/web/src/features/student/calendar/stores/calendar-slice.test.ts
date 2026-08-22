@@ -1,11 +1,8 @@
+import type { CalendarEventResp } from "@deep-portfolio/api-types";
 import { describe, expect, it } from "vitest";
 import { calendarSlice, calendarSliceAction } from "./calendar-slice";
 import { fetchStudentCalendar } from "./calendar-action";
-import {
-  EventType,
-  type CalendarEventResp,
-  type UpcomingEvent,
-} from "../types/calendar-type";
+import { EventType, type UpcomingEvent } from "../types/calendar-type";
 import {
   failed,
   initialStateOf,

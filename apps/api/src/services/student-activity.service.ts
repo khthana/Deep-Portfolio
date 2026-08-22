@@ -1,11 +1,14 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, student_activity_status } from "@prisma/client";
 import prisma from "../config/prisma";
 import type {
   ActivityIndividualSubmission,
   ActivitySubmission,
   ActivitySubmissionListResp,
   AttachmentDetailResp,
+  ClassworkStatus,
+  ClassworkType,
   GradeStudentActivityResp,
+  PortfolioSectionAttachment,
   StudentActivityDetailResp,
 } from "@deep-portfolio/api-types";
 import {
@@ -20,6 +23,31 @@ import { isAnnounced } from "../utils/is-announced";
 import { byUnsubmittedLast } from "../utils/submission-order";
 import ActivityService from "./activity.service";
 import AttachmentsService from "./attachments.service";
+
+/**
+ * What both "all the work in this section" queries hand `toClassworkRow`.
+ *
+ * Written out rather than derived from `GetAllStudentActivity`, because it is
+ * the query's shape and not the row's: `activity_type` is the `VarChar` before
+ * upper-casing, and the submission carries `score` as a `Decimal` where the row
+ * carries `received_point` as a number.
+ */
+type ClassworkRowInput = {
+  id: number;
+  activity_name: string;
+  activity_type: string;
+  deadline_date: Date | null;
+  announcement_date: Date | null;
+  score_number: number | null;
+  score_ratio_id: number | null;
+  detail: Prisma.JsonValue;
+  section_id: number | null;
+  student_activity: {
+    id: number;
+    status: student_activity_status;
+    score: Prisma.Decimal | null;
+  }[];
+};
 
 export default class StudentActivityService {
   private readonly activityService: ActivityService;
@@ -389,35 +417,64 @@ export default class StudentActivityService {
           activity.id,
         );
 
-        const studentAct = activity.student_activity[0];
-
-        const displayStatus = this.getDisplayStatus(
-          studentAct.status,
-          activity.deadline_date,
-        );
-
-        return {
-          ...scoreRatio,
-          ...activity,
+        return this.toClassworkRow(
+          activity,
+          scoreRatio,
           attachments,
-          student_activity: [
-            {
-              id: studentAct.id,
-              status: displayStatus,
-              // Decimal(5,2) — a string on the wire if it is not converted (#33).
-              received_point:
-                studentAct.score !== null ? Number(studentAct.score) : null,
-            },
-          ],
-          activity_type: activity.activity_type.toUpperCase(),
-        } as GetAllStudentActivity;
+          this.getDisplayStatus(
+            activity.student_activity[0].status,
+            activity.deadline_date,
+          ),
+        );
       }),
     );
 
     return result.filter((activity) => isAnnounced(activity.announcement_date));
   }
 
-  private getDisplayStatus(status: string, deadline: Date | null): string {
+  /**
+   * The two lists' row, built in one place because both build the same one.
+   *
+   * Only `status` differs between the callers: the section list reads it
+   * through `getDisplayStatus` and the all-sections list sends the column
+   * (ADR-0045 §3), so it is the parameter rather than something this decides.
+   *
+   * The `as GetAllStudentActivity` that used to close both object literals is
+   * gone. It was doing nothing but hiding columns the queries had stopped
+   * selecting — which is how `received_point` went missing from one of them
+   * (ADR-0045 §5). The one cast left is on `activity_type` alone, because the
+   * column is a `VarChar(20)` and upper-casing free text cannot narrow it.
+   */
+  private toClassworkRow(
+    activity: ClassworkRowInput,
+    scoreRatio: { score_category: string; weight: number | null } | null,
+    attachments: AttachmentDetailResp,
+    status: ClassworkStatus,
+  ): GetAllStudentActivity {
+    const studentAct = activity.student_activity[0];
+
+    return {
+      ...activity,
+      score_category: scoreRatio?.score_category,
+      weight: scoreRatio?.weight,
+      attachments,
+      student_activity: [
+        {
+          id: studentAct.id,
+          status,
+          // Decimal(5,2) — a string on the wire if it is not converted (#33).
+          received_point:
+            studentAct.score !== null ? Number(studentAct.score) : null,
+        },
+      ],
+      activity_type: activity.activity_type.toUpperCase() as ClassworkType,
+    };
+  }
+
+  private getDisplayStatus(
+    status: student_activity_status,
+    deadline: Date | null,
+  ): ClassworkStatus {
     if (
       status === "NOT_SUBMITTED" &&
       deadline &&
@@ -459,6 +516,11 @@ export default class StudentActivityService {
           select: {
             id: true,
             status: true,
+            // Selected here as well as in the single-section twin above: both
+            // fill the same ClassworkDetail, and without it the mapper read
+            // undefined and JSON.stringify dropped received_point from every
+            // activity row this endpoint sent (#68).
+            score: true,
           },
         },
       },
@@ -474,12 +536,14 @@ export default class StudentActivityService {
           activity.id,
         );
 
-        return {
-          ...scoreRatio,
-          ...activity,
+        // The column untouched. This list works out lateness by which bucket it
+        // drops a row into, so it has no use for the word LATE — ADR-0045 §3.
+        return this.toClassworkRow(
+          activity,
+          scoreRatio,
           attachments,
-          activity_type: activity.activity_type.toUpperCase(),
-        } as GetAllStudentActivity;
+          activity.student_activity[0].status,
+        );
       }),
     );
 
@@ -788,7 +852,17 @@ export default class StudentActivityService {
     return { is_bookmark: data.is_bookmark };
   }
 
-  async getStudentActivityAttachments(student_activity_id: number) {
+  /**
+   * The files and links handed in with one submission, flattened into one list.
+   *
+   * The same shape the e-Portfolio's six file-carrying sections answer, field
+   * for field, and named there because they got to it first — one declaration
+   * serves both, as ADR-0035 has it. The name still fits: the only caller is
+   * use-portfolio.ts, building the works section of a portfolio (ADR-0045).
+   */
+  async getStudentActivityAttachments(
+    student_activity_id: number,
+  ): Promise<PortfolioSectionAttachment[]> {
     const records = await prisma.student_activity_attachments.findMany({
       where: {
         student_activity_id,

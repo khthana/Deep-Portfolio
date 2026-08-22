@@ -1,8 +1,8 @@
+import type { CalendarEventResp } from "@deep-portfolio/api-types";
 import { useEffect, useMemo, useState, type JSX } from "react";
 import {
   EventType,
   type CalendarEventItems,
-  type CalendarEventResp,
   type UpcomingEvent,
 } from "../types/calendar-type";
 import { useDispatch, useSelector } from "react-redux";

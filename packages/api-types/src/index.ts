@@ -42,7 +42,10 @@
  * (docs/adr/0043-the-aggregate-imports-nine.md), and then who the caller is —
  * `/user` and the one `/auth` route that answers a shape, which the pass
  * before had already taken half of
- * (docs/adr/0044-a-response-is-what-was-selected.md).
+ * (docs/adr/0044-a-response-is-what-was-selected.md), and then what a student
+ * reads about their own studies — ten endpoints read by five web features,
+ * which is one pass because they share one service
+ * (docs/adr/0045-one-service-many-screens.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -166,9 +169,22 @@ export type { RubricDetail, RubricLevel } from "./rubric";
 export type { ScoreWeightBrief, ScoreWeightDetail } from "./score-weight";
 
 export type {
+  AllClassworkDetailResp,
+  CalendarClassworkEvent,
+  CalendarCourseEvent,
+  CalendarEventResp,
+  ClassworkCategory,
+  ClassworkDetail,
+  ClassworkDetailResp,
+  ClassworkStatus,
+  ClassworkType,
+  EnrolledSubject,
+  SectionActivityOption,
   StudentDetail,
   StudentFullNameTh,
   StudentNameBrief,
+  StudentRosterEntry,
+  SubmissionWithCourse,
 } from "./student";
 
 export type { SessionUser, UserDetail } from "./user";

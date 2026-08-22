@@ -1,6 +1,10 @@
 import { Prisma } from "@prisma/client";
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
-import { ClassworkType } from "./student.model";
+import type {
+  AttachmentDetailResp,
+  ClassworkStatus,
+  ClassworkType,
+} from "@deep-portfolio/api-types";
+
 import type {
   BookmarkStudentActivityBody,
   GradeStudentActivityBody,
@@ -32,15 +36,16 @@ export type GetAllStudentActivity = {
 };
 
 type StudentActivityBrief = {
-  status: StudentActivityStatus;
+  status: ClassworkStatus;
   id: number;
   received_point: number | null;
 };
 
-/** Not the column: `LATE` is a reading of the dates, which is why the one that
- *  is on the wire lives in @deep-portfolio/api-types and this one does not. */
-export type StudentActivityStatus =
-  "NOT_SUBMITTED" | "SUBMITTED" | "GRADED" | "LATE";
+// StudentActivityStatus used to be declared here, as the column's four values
+// with LATE in place of GRADING. Both halves of that were wrong: getDisplayStatus
+// substitutes LATE for NOT_SUBMITTED and passes every other value through
+// untouched, GRADING included. The union that says so is ClassworkStatus in
+// @deep-portfolio/api-types (#68) — see ADR-0045.
 
 //-----------------------------------
 

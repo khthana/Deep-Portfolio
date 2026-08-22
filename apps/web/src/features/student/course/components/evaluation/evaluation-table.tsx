@@ -1,3 +1,4 @@
+import type { ClassworkCategory } from "@deep-portfolio/api-types";
 import { Form, Table, type TableProps } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../../../../stores/stores";
@@ -5,10 +6,7 @@ import { useEffect, useState } from "react";
 import EditableCell from "../../../../../components/input/table/editable-cell";
 import EvaluationColumn from "./evaluation-column";
 import WhiteContainer from "../../../../../components/container/white-container";
-import type {
-  ClassworkCategory,
-  GetStudentEvaluationListParams,
-} from "../../types/course-type";
+import type { GetStudentEvaluationListParams } from "../../types/course-type";
 import type { StudentActivityStatusDB } from "@deep-portfolio/api-types";
 import { fetchStudentEvaluationList } from "../../stores/course-action";
 

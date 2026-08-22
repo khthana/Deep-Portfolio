@@ -1,9 +1,7 @@
+import type { ClassworkDetail } from "@deep-portfolio/api-types";
 import { assignmentDueColor, type AssignmentDueType } from "../types/home-type";
 import Button from "../../../../components/button/button";
-import {
-  ClassworkStatus,
-  type ClassworkDetail,
-} from "../../course/types/course-type";
+import { ClassworkStatus } from "../../course/types/course-type";
 import { convertDateToThaiFormat } from "../../../../utils/format-thai-date";
 import { generateHTML } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";

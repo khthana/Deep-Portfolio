@@ -1,11 +1,8 @@
+import type { CalendarEventResp } from "@deep-portfolio/api-types";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice } from "@reduxjs/toolkit";
 import { GENERIC_ERROR_MESSAGE } from "../../../../utils/api-error";
-import {
-  EventType,
-  type CalendarEventResp,
-  type UpcomingEvent,
-} from "../types/calendar-type";
+import { EventType, type UpcomingEvent } from "../types/calendar-type";
 import { fetchStudentCalendar } from "./calendar-action";
 
 type CalendarSlice = {

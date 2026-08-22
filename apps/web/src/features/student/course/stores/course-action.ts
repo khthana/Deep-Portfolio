@@ -1,3 +1,4 @@
+import type { ClassworkDetailResp } from "@deep-portfolio/api-types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import type { ResponseWrapper } from "../../../../types/global-type";
 import {
@@ -17,7 +18,6 @@ import {
   updateStudentActivityGroup,
 } from "../services/course-service.service";
 import type {
-  ClassworkDetailResp,
   CreateStudentActivityGroupBody,
   GetStudentActivityGroupInSecParams,
   GetStudentActivityGroupParams,

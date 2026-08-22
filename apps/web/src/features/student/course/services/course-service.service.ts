@@ -1,3 +1,4 @@
+import type { ClassworkDetailResp } from "@deep-portfolio/api-types";
 import { endpoints } from "../../../../configs/endpoints.config";
 import { axiosInstance } from "../../../../lib/axios";
 import type {
@@ -12,7 +13,6 @@ import type {
 } from "@deep-portfolio/api-types";
 import type { ResponseWrapper } from "../../../../types/global-type";
 import type {
-  ClassworkDetailResp,
   CreateStudentActivityGroupBody,
   GetStudentActivityGroupInSecParams,
   GetStudentActivityGroupParams,

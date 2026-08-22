@@ -2808,6 +2808,62 @@ Prisma ไม่ต้องรู้จักค่า)"* ควบคู่ไ
   `/refresh` ตอบ `data: null` หรือไม่มี body สิ่งที่มันส่งกลับจริง ๆ คือ cookie
   สองใบ ซึ่งไม่มี response type ไหนอธิบายได้
 
+## #68 (รอบ student) — สี่เส้นที่ตอบไม่ตรงกับที่ตัวเองสัญญา
+
+รอบที่ย้าย `/student` ทั้ง router เข้า `@deep-portfolio/api-types` การเขียนรูปลง
+ไปทำให้ต้องอ่าน query ข้างหลังทุกเส้น แล้วเจอสี่จุดที่ query กับรูปไม่ตรงกัน —
+สองทิศ คือตอบเกินกว่าที่ควร กับสัญญาไว้แล้วไม่ตอบ
+
+เหตุผลอยู่ใน [ADR-0045](docs/adr/0045-one-service-many-screens.md) ข้อ 5 กับข้อ 8
+และกติกาต้นทางอยู่ที่ [ADR-0044](docs/adr/0044-a-response-is-what-was-selected.md)
+ข้อ 1
+
+### 1. `GET /student/list` ตอบสี่คีย์ ไม่ใช่สิบเอ็ด
+
+| | |
+| --- | --- |
+| **ของเดิม** | `getStudentInSec` อ่าน `student_course` แล้ววน `findUnique` ตาราง `student` ทีละคน โดยไม่มี `select` สักตัว response จึงมีทุกคอลัมน์ที่ตาราง `student` มี — `department_id`, `program_id`, `status`, `admission_year`, `created_at`, `updated_at` และคอลัมน์ที่ชื่อว่า `test` |
+| **ของใหม่** | `select` สี่คอลัมน์: `student_id`, `first_name_th`, `last_name_th`, `full_name_th` และอ่านผ่าน relation ครั้งเดียวแทนการ query ทีละคน |
+| **เหตุผล** | ไม่มีใครเคยอ่านเจ็ดคอลัมน์ที่ตัดออก — `student-table.tsx` วาด `full_name_th` และใช้ `student_id` เป็นคีย์ของแถว เท่านั้น · การไม่ใส่ `select` ไม่ใช่การตัดสินใจว่าจะตอบทุกคอลัมน์ มันคือการไม่ได้ตัดสินใจ (ADR-0044 ข้อ 1) และคอลัมน์ชื่อ `test` ที่ออกไปถึงเบราว์เซอร์เป็นหลักฐานว่าไม่มีใครเคยเลือกชุดนี้ |
+| **ผู้เรียกฝั่ง web ที่ต้องตาม** | **ไม่มี** `StudentDetailResp` ที่ฝั่ง web เคยประกาศไว้บอกเก้าคีย์ ทุกตัว optional และไม่มี `test` อยู่ในนั้นด้วยซ้ำ ไฟล์นั้นถูกลบและผู้เรียกสองรายอ่าน `StudentRosterEntry` จาก package แทน |
+
+### 2. `GET /student/classwork/list` — กิจกรรมการเรียนรู้ได้ section ของตัวเอง
+
+| | |
+| --- | --- |
+| **ของเดิม** | ทุกแถวที่เป็น `learning_activity` ตอบ `section_id: 0` และไม่มีคีย์ `detail` เลย เพราะ query ของครึ่งนั้นไม่ได้ `select` สองคอลัมน์นี้ mapper จึงอ่าน `undefined` แล้วตกไปที่ `?? 0` ส่วน `detail` ที่เป็น `undefined` ถูก `JSON.stringify` ทิ้ง — `as GetAllStudentLearningActivity` ที่ท้าย `map` คือสิ่งที่ทำให้มันผ่าน typecheck |
+| **ของใหม่** | `select` เพิ่ม `section_id` กับ `detail` ทั้งสองคีย์มีค่าจริงเหมือนครึ่ง activity ที่ mapper ตัวเดียวกันเติมให้ |
+| **เหตุผล** | `0` ไม่ใช่ค่าที่หายไป มันคือ section id ปลอมที่หน้าตาเหมือนของจริง วันที่มีคนเอาไปสร้าง link จะได้ลิงก์ที่พาไปห้องเรียนที่ไม่มีอยู่ |
+| **ผู้เรียกฝั่ง web ที่ต้องตาม** | **ไม่มี** ไล่ทุก route ที่แถวนี้ไปถึงแล้ว: มันลงที่ `courseSlice.allClasswork` แล้วไป `ClassworkCard` ทางเดียว ซึ่งอ่านแปดฟิลด์และไม่มีสองตัวนี้ (ลิงก์ของมันใช้ `secId` จาก route) ส่วน arm `CLASSWORK` ของ `EventDetailItem` ไม่มีที่ไหนสร้างขึ้นมา ปฏิทินจึงไม่ได้รับแถวชนิดนี้ |
+
+### 3. `GET /student/all/classwork/list` — งานที่ตรวจแล้วมีคะแนนที่ได้
+
+| | |
+| --- | --- |
+| **ของเดิม** | ทุกแถวที่เป็น `activity` ไม่มีคีย์ `received_point` เลย เพราะ query ของเส้นนี้ไม่ได้ `select` `student_activity.score` ทั้งที่ list อีกตัวที่ mapper เดียวกันเติมให้มีครบ |
+| **ของใหม่** | `select` เพิ่ม `score` แล้วแปลงเป็น `number` ตรงที่เดียวกับที่ครึ่ง `/classwork/list` ทำ — `Decimal(5,2)` เป็นสตริงบนสายถ้าไม่แปลง (#33) |
+| **เหตุผล** | รูปเดียวกัน mapper เดียวกัน แต่สองเส้นตอบไม่เท่ากัน — ซึ่งจะเขียนเป็น type เดียวไม่ได้ถ้าไม่โกหกข้างใดข้างหนึ่ง |
+| **ผู้เรียกฝั่ง web ที่ต้องตาม** | **ไม่มี** `AssignmentCard` ซึ่งเป็นที่เดียวที่แถวจากเส้นนี้ไปถึง อ่านเก้าฟิลด์และไม่มี `received_point` อยู่ในนั้น ที่เดียวในระบบที่อ่านฟิลด์นี้คือ `ClassworkCard` ซึ่งรับแถวจากอีกเส้น |
+
+### 4. `GET /student/activities/details/:id` ตอบสิบฟิลด์กับสอง relation
+
+| | |
+| --- | --- |
+| **ของเดิม** | query ไม่มี `select` และมี `include` ซ้อนสี่ชั้นต่อท้าย — `activities` → `subject_score_ratio` → `course_sections` → `semester_courses` → `subjects` ทุกคอลัมน์ของทุกตาราง response จึงมี `graded_by`, `created_at`, `updated_at` ของแถวเอง ทุกคอลัมน์ของ `activities` และก้อนซ้อนสี่ชั้นที่พาไปถึง subject ตัวเดียวกับที่คีย์ `course` บอกอยู่แล้ว |
+| **ของใหม่** | `select` สิบฟิลด์ของแถว (`id`, `student_id`, `activity_id`, `status`, `score`, `feedback`, `submitted_at`, `graded_at`, `is_bookmark`, `remark`) กับ `activities` สามคอลัมน์ (`id`, `activity_name`, `section_id`) คีย์ `course` ยังเหมือนเดิมทุกตัวอักษร |
+| **เหตุผล** | เหมือนข้อ 1 — query ที่ไม่จำกัดตัวเองไม่ได้เลือกอะไร และ `include` สี่ชั้นนั้นเป็นถนนเส้นที่สองไปหาของชิ้นเดียวกัน · `graded_by` คือ id ของอาจารย์ที่ตรวจ ซึ่งเดินทางไปถึงเบราว์เซอร์ของนักศึกษาโดยไม่มีใครขอ |
+| **ผู้เรียกฝั่ง web ที่ต้องตาม** | **ไม่มี** ผู้เรียกเดียวคือ `use-portfolio.ts` ซึ่งอ่าน `activities.activity_name`, `activities.section_id`, `course.course_name_en`, `course.course_name_th` และ `feedback` — ห้าฟิลด์ ทั้งห้ายังอยู่ · `create-work-form.tsx` อ่าน `feedback` ตัวเดียว |
+
+### สิ่งที่ **ไม่ได้** ทำใน ticket นี้
+
+- **ไม่ได้ทำให้สองเส้น classwork ส่ง `status` ชุดเดียวกัน** `/classwork/list` เรียก
+  `getDisplayStatus` ซึ่งตอบ `LATE` แทน `NOT_SUBMITTED` เมื่อเลยกำหนด ส่วน
+  `/all/classwork/list` ไม่เรียกและส่งคอลัมน์ดิบ การทำให้เท่ากันจะพัง
+  `classifyClasswork` ทันที เพราะมันเช็ค `status !== "NOT_SUBMITTED"` เพื่อแยกงาน
+  ที่ส่งแล้ว แถว `LATE` จะไปกอง bucket `submitted` ทั้งหมดและ `late` จะว่างตลอด
+  ความต่างนี้จึงเป็นการออกแบบ ไม่ใช่ drift — หน้าหนึ่งอ่านสถานะ อีกหน้าอ่านว่าแถว
+  มาถึงในถังไหน ดู ADR-0045 ข้อ 3
+
 ## หมายเหตุ: สิ่งที่ **ไม่ได้** เปลี่ยน
 
 รายการนี้ถูกไล่ตรวจกับโค้ดจริงทีละข้อเมื่อ **11 สิงหาคม 2569** หลัง #41 ทุกข้อที่
@@ -3049,4 +3105,8 @@ issue ให้ข้อที่ยังค้างและเคยเข�
   แสดงเป็นการตัดสินใจเรื่องถ้อยคำ ไม่ใช่เรื่องโค้ด รอบนั้นจึงปักหมุดไว้ด้วยคอมเมนต์ที่
   `evaluation-column.tsx` แทนที่จะแก้ (ไม่มี test ปักหมุดให้ เพราะเป็นการเรนเดอร์ ซึ่ง
   อยู่นอกรอยต่อที่ฝั่ง web มี — ดู #62) แยกไปเป็น
-  [#69](https://github.com/khthana/Deep-Portfolio/issues/69)
+  [#69](https://github.com/khthana/Deep-Portfolio/issues/69) · **รอบ student ของ
+  #68 เจอช่องเดียวกันบนหน้าจอที่สอง**: `ClassworkCard` เอา `status` ไป lookup
+  สามตาราง — คำ ไอคอน และสี — และไม่มีตารางไหนมีคีย์ `GRADING` รอบนั้นเปลี่ยน map
+  ทั้งห้าตัวใน `course-type.ts` เป็น `Partial<Record<...>>` เพื่อให้ type พูดว่า
+  lookup พลาดได้ แทนที่จะเดาคำไทยขึ้นมาเอง ค่าที่จะแสดงยังเป็นคำถามของ #69

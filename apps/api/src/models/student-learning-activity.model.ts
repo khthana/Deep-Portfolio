@@ -1,7 +1,9 @@
 import { Prisma } from "@prisma/client";
-import type { AttachmentDetailResp } from "@deep-portfolio/api-types";
-import { StudentActivityStatus } from "./student-activity.model";
-import { ClassworkType } from "./student.model";
+import type {
+  AttachmentDetailResp,
+  ClassworkStatus,
+  ClassworkType,
+} from "@deep-portfolio/api-types";
 
 export type GetAllStudentLearningActivity = {
   attachments: AttachmentDetailResp;
@@ -11,16 +13,19 @@ export type GetAllStudentLearningActivity = {
   learning_activity_name: string;
   deadline_date: Date | null;
   announcement_date: Date | null;
-  course_syllabus_id: number;
+  /** `Int?` — a learning activity need not hang off a week of the plan. */
+  course_syllabus_id: number | null;
 
   detail: Prisma.JsonValue;
-  section_id: number | null;
+  /** `Int`, not null, unlike `activities.section_id`. Both `as` casts said
+   *  otherwise, and the mapper's `?? 0` is dead on this half (#68). */
+  section_id: number;
 
   student_learning_activity: StudentLearningActivityBrief[];
 };
 
 type StudentLearningActivityBrief = {
-  status: StudentActivityStatus;
+  status: ClassworkStatus;
   id: number;
 };
 

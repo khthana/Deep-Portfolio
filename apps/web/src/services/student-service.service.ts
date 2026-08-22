@@ -1,10 +1,10 @@
 import { endpoints } from "../configs/endpoints.config";
 import { axiosInstance } from "../lib/axios";
 import type { ResponseWrapper } from "../types/global-type";
-import type { StudentDetailResp } from "../types/student-type.type";
+import type { StudentRosterEntry } from "@deep-portfolio/api-types";
 
 export const getAllStudentInSection = async (section_id: number) => {
-  const resp = await axiosInstance.get<ResponseWrapper<StudentDetailResp[]>>(
+  const resp = await axiosInstance.get<ResponseWrapper<StudentRosterEntry[]>>(
     endpoints.student.list,
     { params: { section_id } },
   );

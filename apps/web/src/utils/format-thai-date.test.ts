@@ -134,6 +134,21 @@ describe("checkIsToday", () => {
   it("is false when there is no date", () => {
     expect(checkIsToday(null)).toBe(false);
   });
+
+  it("reads an ISO string, which is what the classwork lists hand it", () => {
+    // ClassworkDetail.date is a string on the wire, and since #68 it is a
+    // string in the type as well — this is the arm the assignment sections
+    // actually call. Built from a Date so the case does not assume a timezone.
+    const earlierToday = new Date();
+    earlierToday.setHours(0, 0, 1, 0);
+
+    expect(checkIsToday(earlierToday.toISOString())).toBe(true);
+
+    const lastYear = new Date();
+    lastYear.setFullYear(lastYear.getFullYear() - 1);
+
+    expect(checkIsToday(lastYear.toISOString())).toBe(false);
+  });
 });
 
 describe("checkIsTomorrow", () => {
@@ -154,6 +169,14 @@ describe("checkIsTomorrow", () => {
 
   it("is false when there is no date", () => {
     expect(checkIsTomorrow(null)).toBe(false);
+  });
+
+  it("reads an ISO string, the same as its twin above", () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    expect(checkIsTomorrow(tomorrow.toISOString())).toBe(true);
+    expect(checkIsTomorrow(new Date().toISOString())).toBe(false);
   });
 });
 

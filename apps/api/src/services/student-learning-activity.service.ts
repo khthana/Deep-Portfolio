@@ -1,7 +1,9 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, student_activity_status } from "@prisma/client";
 import prisma from "../config/prisma";
 import type {
   AttachmentDetailResp,
+  ClassworkStatus,
+  ClassworkType,
   LearningActivityIndividualSubmission,
   LearningActivitySubmission,
   LearningActivitySubmissionListResp,
@@ -18,6 +20,23 @@ import { isAnnounced } from "../utils/is-announced";
 import { byUnsubmittedLast } from "../utils/submission-order";
 import AttachmentsService from "./attachments.service";
 import LearningActivityService from "./learning-activity.service";
+
+/**
+ * What both "all the learning work in these sections" queries hand
+ * `toClassworkRow`: the query's shape, with `learning_activity_type` still the
+ * `VarChar` it is stored as.
+ */
+type LearningClassworkRowInput = {
+  id: number;
+  learning_activity_name: string;
+  learning_activity_type: string;
+  deadline_date: Date | null;
+  announcement_date: Date | null;
+  course_syllabus_id: number | null;
+  detail: Prisma.JsonValue;
+  section_id: number;
+  student_learning_activity: { id: number; status: student_activity_status }[];
+};
 
 export default class StudentLearningActivityService {
   private readonly learningActivityService: LearningActivityService;
@@ -231,6 +250,13 @@ export default class StudentLearningActivityService {
         deadline_date: true,
         announcement_date: true,
         course_syllabus_id: true,
+        // Both selected here as well as in the all-sections twin below: they
+        // fill the same ClassworkDetail, and without them every learning
+        // activity on GET /student/classwork/list carried section_id 0 — the
+        // mapper's fallback for a null column — and no detail at all. The
+        // `as` cast at the end of the map is what let that stand (#68).
+        section_id: true,
+        detail: true,
 
         student_learning_activity: {
           where: {
@@ -258,25 +284,15 @@ export default class StudentLearningActivityService {
         const attachments =
           await this.learningActivityService.getAllAttachments(activity.id);
 
-        const studentAct = activity.student_learning_activity[0];
-
-        const displayStatus = this.getDisplayStatus(
-          studentAct.status,
-          activity.deadline_date,
-        );
-
-        return {
-          ...activity,
+        return this.toClassworkRow(
+          activity,
           attachments,
-          week_no: courseSyllabus?.week_no,
-          student_learning_activity: [
-            {
-              id: studentAct.id,
-              status: displayStatus,
-            },
-          ],
-          learning_activity_type: activity.learning_activity_type.toUpperCase(),
-        } as GetAllStudentLearningActivity;
+          courseSyllabus?.week_no,
+          this.getDisplayStatus(
+            activity.student_learning_activity[0].status,
+            activity.deadline_date,
+          ),
+        );
       }),
     );
 
@@ -342,7 +358,36 @@ export default class StudentLearningActivityService {
     };
   }
 
-  private getDisplayStatus(status: string, deadline: Date | null): string {
+  /**
+   * The two lists' row, built in one place — the mirror of the graded half's
+   * `toClassworkRow`, and for the same reasons (ADR-0045 §3 and §5). The `as
+   * GetAllStudentLearningActivity` that used to close both object literals was
+   * hiding two columns the queries never selected and two more the model had
+   * declared wrongly; the one cast left is on the type alone, because the
+   * column is a `VarChar(20)`.
+   */
+  private toClassworkRow(
+    activity: LearningClassworkRowInput,
+    attachments: AttachmentDetailResp,
+    week_no: number | undefined,
+    status: ClassworkStatus,
+  ): GetAllStudentLearningActivity {
+    return {
+      ...activity,
+      attachments,
+      week_no,
+      student_learning_activity: [
+        { id: activity.student_learning_activity[0].id, status },
+      ],
+      learning_activity_type:
+        activity.learning_activity_type.toUpperCase() as ClassworkType,
+    };
+  }
+
+  private getDisplayStatus(
+    status: student_activity_status,
+    deadline: Date | null,
+  ): ClassworkStatus {
     if (
       status === "NOT_SUBMITTED" &&
       deadline &&
@@ -422,12 +467,13 @@ export default class StudentLearningActivityService {
         const attachments =
           await this.learningActivityService.getAllAttachments(activity.id);
 
-        return {
-          ...activity,
+        // The column untouched — ADR-0045 §3, the same as the graded twin.
+        return this.toClassworkRow(
+          activity,
           attachments,
-          week_no: courseSyllabus?.week_no,
-          learning_activity_type: activity.learning_activity_type.toUpperCase(),
-        } as GetAllStudentLearningActivity;
+          courseSyllabus?.week_no,
+          activity.student_learning_activity[0].status,
+        );
       }),
     );
 

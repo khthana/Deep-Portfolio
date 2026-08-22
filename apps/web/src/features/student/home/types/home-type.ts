@@ -1,5 +1,3 @@
-import type { ClassworkDetail } from "../../course/types/course-type";
-
 export const AssignmentGroupType = {
   LATE: "LATE",
   THIS_WEEK: "THIS_WEEK",
@@ -44,26 +42,9 @@ export type GetStudentAllCLassworkListParams = {
   academic_year: string;
 };
 
-export type AllClassworkDetailResp = {
-  late: ClassworkDetail[];
-  this_week: ClassworkDetail[];
-  upcoming: ClassworkDetail[];
-  submitted: ClassworkDetail[];
-};
-
-//---------------------------------------------
-
-export type StudentDetail = {
-  user_id: string;
-  student_id: string;
-  full_name_th: string | null;
-  //   full_name_en: string;
-  first_name_th: string;
-  last_name_th: string;
-
-  title_th: string | null;
-  email: string | null;
-  phone: string | null;
-  department_name: string;
-  program_name: string;
-};
+// AllClassworkDetailResp and StudentDetail used to be declared here. Both moved
+// to @deep-portfolio/api-types (#68) — import them from there. StudentDetail
+// went a pass earlier, with the aggregate portfolio read that embeds it
+// (ADR-0043 §3), and this file kept a second copy that said four of its ten
+// fields were nullable; the service coalesces every one of them to "", so a
+// caller sees an empty string and never a null. See ADR-0045.

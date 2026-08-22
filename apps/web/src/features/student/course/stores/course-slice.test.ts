@@ -1,3 +1,4 @@
+import type { ClassworkDetailResp } from "@deep-portfolio/api-types";
 import { describe, expect, it } from "vitest";
 import { studentCourseSlice, studentCourseSliceAction } from "./course-slice";
 import {
@@ -29,7 +30,6 @@ import {
 import {
   mapActivityDetail,
   mapLearningActivityDetail,
-  type ClassworkDetailResp,
 } from "../types/course-type";
 import type {
   CourseDetail,

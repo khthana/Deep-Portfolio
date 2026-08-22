@@ -1,10 +1,8 @@
-import type { Weekday } from "../../../../constants/date";
 import type {
+  CalendarEventResp,
   ClassworkDetail,
-  ClassworkStatus,
-  ClassworkType,
-  CourseDetailSummary,
-} from "../../course/types/course-type";
+} from "@deep-portfolio/api-types";
+import type { CourseDetailSummary } from "../../course/types/course-type";
 
 export const EventType = {
   COURSE: "COURSE",
@@ -64,31 +62,14 @@ export type UpcomingEvent = {
 
 //------------------------------------------------
 
-export type CalendarEventResp = {
-  activities: CalendarClassworkEvent[];
-  learning_activities: CalendarClassworkEvent[];
-  courses: CalendarCourseEvent[];
-};
-
-export type CalendarClassworkEvent = {
-  id: number;
-  name: string;
-  deadline_date: string | null;
-  type: ClassworkType;
-  status: ClassworkStatus;
-  course: string;
-};
-
-export type CalendarCourseEvent = {
-  id: number;
-  name: string;
-  // start_date: Date;
-  // end_date: Date;
-  day_of_week: Weekday;
-  start_time: string;
-  end_time: string;
-  classroom: string;
-};
+// CalendarEventResp, CalendarClassworkEvent and CalendarCourseEvent used to be
+// declared here. They moved to @deep-portfolio/api-types (#68) — import them
+// from there. Six fields this copy got wrong: a classwork event's `type` is the
+// raw column, lower case and not narrowed to two values, and its `status` is
+// the column, so it has GRADING and never LATE; and all four of a course
+// event's schedule fields are nullable, because a section with no timetable row
+// has none of them. `course` it had right — that key is never missing, for the
+// reason ADR-0045 §8 spends a section on.
 
 //------------------------------------------------
 

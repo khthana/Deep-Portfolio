@@ -166,7 +166,18 @@ two endpoints answering the same question are still two shapes when their
 fields are assembled differently, that a controller writing its own envelope
 is not bound to `ApiResponse` and should call `successResponse`, and that a
 template literal spanning nullable columns writes the word "null" into a
-response with nothing to warn you.
+response with nothing to warn you, and
+`0045-one-service-many-screens.md`, which says the unit of a #68 pass is the
+service rather than the screen — so five web features can be one pass, the
+mirror of 0040 splitting one router into ten — that two existing unions compose
+into a third rather than being spelled out again, that two endpoints filling one
+row type with different vocabularies is design and not drift when logic
+downstream reads the difference, that a `Record` which no longer covers its key
+type becomes `Partial` rather than gaining a word somebody guessed, that a
+`select` missing a column the shape promises is the pass's debt exactly as much
+as a query with no `select`, and that a `?` on a response key must be proved by
+naming the input that drops it — a `?.` in the code is only evidence the
+compiler could not prove otherwise.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

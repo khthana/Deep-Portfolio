@@ -132,14 +132,16 @@ export const usePortfolio = (
         const thesisData = cleanNullStr(thesisResponse.data) || [];
 
         // Fetch details for each skill mapping to build the "works" list.
-        // The first two of each triple are still Record<string, unknown>:
+        // All three of each triple are named now: the student pass gave
         // /student/activities/details/:id and /student-activity/attachments
-        // both answer ResponseWrapper<any> in src/services/student.service.ts,
-        // and that file is the student feature's rather than this one's — the
-        // pass that moves it names them (ADR-0042 §1). The third is this
-        // feature's and is a SkillMapping.
+        // types of their own, which is what ADR-0042 §1 deferred to it. The
+        // annotation is gone with them — Promise.all infers the tuple.
         const workDetailsPromises: Promise<
-          [Record<string, unknown>, Record<string, unknown>, SkillMapping]
+          [
+            Awaited<ReturnType<typeof getActivityDetails>>,
+            Awaited<ReturnType<typeof getStudentActivityAttachments>>,
+            SkillMapping,
+          ]
         >[] = [];
         const skillMap: Record<number, { id: number }> = {};
 
@@ -168,11 +170,7 @@ export const usePortfolio = (
         ] of workDetailsResults) {
           const mapping = mappingItem;
           if (detailsRes.success) {
-            const activity = detailsRes.data as {
-              activities?: { activity_name?: string; section_id?: number };
-              course?: { course_name_en?: string; course_name_th?: string };
-              feedback?: string;
-            };
+            const activity = detailsRes.data;
             const skill = skillMap[mapping.id];
             const workId = String(mapping.student_activity_id);
 
@@ -187,12 +185,15 @@ export const usePortfolio = (
             } else {
               realWorksMap.set(workId, {
                 id: workId,
-                title: activity.activities?.activity_name || "ไม่มีชื่อชิ้นงาน",
+                title: activity.activities.activity_name || "ไม่มีชื่อชิ้นงาน",
                 subtitle:
                   activity.course?.course_name_en ||
                   activity.course?.course_name_th ||
                   "",
-                subjectId: activity.activities?.section_id,
+                // The section, under a name that says subject. Kept as it
+                // was: the field is what the template's own view model calls
+                // it, and renaming it is not this pass's business.
+                subjectId: activity.activities.section_id,
                 repositoryUrl: mapping.repository,
                 isShowRepo: mapping.isShowRepo,
                 roleAndResp: mapping.role_and_resp,
@@ -203,13 +204,7 @@ export const usePortfolio = (
                 isShowReflection: mapping.isShowReflec,
                 feedback: activity.feedback,
                 relatedSkillIds: [String(skill.id)],
-                attachments: (
-                  (attachmentsRes.data as Array<{
-                    attachment_id: number;
-                    original_filename: string;
-                    url?: string;
-                  }>) || []
-                ).map((a) => ({
+                attachments: (attachmentsRes.data || []).map((a) => ({
                   id: a.attachment_id.toString(),
                   fileName: a.original_filename,
                   // The constant, as it is on the API's own copy of this list:

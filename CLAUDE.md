@@ -35,8 +35,8 @@ mostly correctness work on top of it.
 - **Lint and formatting**: both workspaces have an ESLint flat config, and
   Prettier runs from the root with its defaults over everything but `*.md`
   (`.prettierignore` says why). Run `npm run format` before committing —
-  `format:check` is a CI step. `npm run lint` exits 0 and still carries 165
-  warnings: 91 `no-explicit-any` (#63) and 74 `react-hooks/exhaustive-deps`
+  `format:check` is a CI step. `npm run lint` exits 0 and still carries 162
+  warnings: 88 `no-explicit-any` (#63) and 74 `react-hooks/exhaustive-deps`
   (#66). #68's passes take the first number down when they meet an `any` over a
   response of their own feature, which is ADR-0042's rule rather than #63's
   work — the aggregate portfolio pass alone took 50 off it, because the utility
@@ -53,8 +53,8 @@ mostly correctness work on top of it.
   <absolute path>` reads a directory of CSV files — absolute because
   `--workspace` moves the working directory to `apps/api`; see
   [`docs/importer.md`](docs/importer.md) and `apps/api/src/importer/`.
-- **Tests**: `npm test` at the root runs both workspaces. 1083 API cases over
-  40 files, 448 web cases over 31 files. Both were written against the
+- **Tests**: `npm test` at the root runs both workspaces. 1088 API cases over
+  40 files, 450 web cases over 31 files. Both were written against the
   behaviour that was already there — see the testing rules below.
 
 The whole breakdown of #1 is done, #20–#42 included. On top of that came
@@ -199,8 +199,17 @@ Who the caller is followed, closing the half ADR-0043 had already taken, and
 ADR-0044 came out of it: a `findUnique` with no `select` is not a decision to
 answer every column, and this one was answering the caller their own password
 hash. Read it before naming a response whose query you have not opened.
-All ten of the e-Portfolio's routers have moved, and so has `/user`; 32 files
-and 1,639 lines are
+What a student reads about their own studies followed, all ten endpoints of it,
+and ADR-0045 came out of that: the unit of a pass is the service, not the
+screen — five web features read this one — and its counterpart rule, that `?`
+on a response key has to be proved rather than inferred from a `?.` in the
+code. Read §5 before writing a shape down: a `select` that is *missing* a
+column the shape promises is the pass's debt exactly as much as a query with no
+`select` at all, and this one found three such columns across two queries, each
+hidden behind an `as` and each invisible only because the screen that reads
+that field is fed by the *other* endpoint.
+All ten of the e-Portfolio's routers have moved, and so have `/user` and
+`/student`; 31 files and 1,597 lines are
 still web-side, of which the portfolio's own 604 are request types, mock types,
 the runtime label constants the package cannot hold — it compiles to nothing
 (ADR-0028 §4) — and a 246-line template view model. None of it is #68's

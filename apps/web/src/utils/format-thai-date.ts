@@ -55,14 +55,19 @@ export const isSameDay = (d1: Date, d2: Date) => {
   );
 };
 
-export const checkIsToday = (date: Date | null) => {
+/** Widened to take a string for the same reason
+ *  `checkIsOverSubmittionDeadline` below already does: the classwork lists
+ *  hand it `ClassworkDetail.date`, which is an ISO string on the wire (#68),
+ *  and the body builds its own Date from whatever it is given. */
+export const checkIsToday = (date: Date | string | null) => {
   if (!date) return false;
   const today = new Date();
 
   return isSameDay(new Date(date), today);
 };
 
-export const checkIsTomorrow = (date: Date | null) => {
+/** Same widening, same caller — see `checkIsToday`. */
+export const checkIsTomorrow = (date: Date | string | null) => {
   if (!date) return false;
 
   const today = new Date();

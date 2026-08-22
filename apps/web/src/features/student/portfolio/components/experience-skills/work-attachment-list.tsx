@@ -34,34 +34,31 @@ const WorkAttachmentList = ({ activityId }: Props) => {
       try {
         const res = await getStudentActivityAttachments(activityId);
         if (res.success) {
-          const mapped = (res.data || []).map(
-            (a: { original_filename: string; url: string }) => {
-              const ext = a.original_filename.split(".").pop()?.toLowerCase();
-              const isImg = [
-                "jpg",
-                "jpeg",
-                "png",
-                "gif",
-                "webp",
-                "svg",
-              ].includes(ext || "");
-              return {
-                fileType: isImg
-                  ? "image"
-                  : ext === "mp4" || ext === "mov"
-                    ? "video"
-                    : ext === "pdf"
-                      ? "pdf"
-                      : "file",
-                fileName: a.original_filename,
-                url: a.url
-                  ? a.url.startsWith("http")
-                    ? a.url
-                    : getFile(a.url)
-                  : "",
-              };
-            },
-          );
+          // The row type comes off the endpoint now (#68), so the parameter
+          // no longer names its own two fields — and the return has to be
+          // annotated, because a ternary over five string literals widens to
+          // string on its own.
+          const mapped: Attachment[] = (res.data || []).map((a): Attachment => {
+            const ext = a.original_filename.split(".").pop()?.toLowerCase();
+            const isImg = ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(
+              ext || "",
+            );
+            return {
+              fileType: isImg
+                ? "image"
+                : ext === "mp4" || ext === "mov"
+                  ? "video"
+                  : ext === "pdf"
+                    ? "pdf"
+                    : "file",
+              fileName: a.original_filename,
+              url: a.url
+                ? a.url.startsWith("http")
+                  ? a.url
+                  : getFile(a.url)
+                : "",
+            };
+          });
           setAttachments(mapped);
         }
       } catch (error) {

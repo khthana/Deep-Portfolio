@@ -1,10 +1,10 @@
+import type { CalendarClassworkEvent } from "@deep-portfolio/api-types";
 import { useState } from "react";
 import {
   ClassworkStatus,
   classworkStatusColor,
 } from "../../course/types/course-type";
 import ActivityDetailPopup from "./activity-detail-popup";
-import type { CalendarClassworkEvent } from "../types/calendar-type";
 
 type Props = {
   classworkDetail: CalendarClassworkEvent;

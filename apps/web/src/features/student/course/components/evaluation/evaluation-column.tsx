@@ -1,3 +1,4 @@
+import type { ClassworkCategory } from "@deep-portfolio/api-types";
 import { generatePath, useParams } from "react-router-dom";
 import { paths } from "../../../../../routes/paths.config";
 import { formatScore } from "../../../../../utils/format-score";
@@ -6,7 +7,6 @@ import {
   classworkCategoryLabel,
   ClassworkStatus,
   classworkStatusLabel,
-  type ClassworkCategory,
 } from "../../types/course-type";
 
 const EvaluationColumn = () => {

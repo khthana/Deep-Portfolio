@@ -1,12 +1,6 @@
 import prisma from "../config/prisma";
 import StudentMapper from "../mappers/student.mapper";
 import {
-  AllClassworkDetailResp,
-  CalendarClassworkEvent,
-  CalendarCourseEvent,
-  CalendarEventResp,
-  ClassworkDetail,
-  ClassworkDetailResp,
   SubmitActivityBody,
   SubmitLearningActivityBody,
 } from "../models/student.model";
@@ -19,9 +13,19 @@ import StudentActivityService from "./student-activity.service";
 import StudentLearningActivityService from "./student-learning-activity.service";
 import MinIOService from "./upload.service";
 import type {
+  AllClassworkDetailResp,
+  CalendarClassworkEvent,
+  CalendarCourseEvent,
+  CalendarEventResp,
+  ClassworkDetail,
+  ClassworkDetailResp,
   CourseDetail,
+  EnrolledSubject,
+  SectionActivityOption,
+  SubmissionWithCourse,
   StudentActivityDetailResp,
   StudentLearningActivityDetailResp,
+  StudentRosterEntry,
 } from "@deep-portfolio/api-types";
 import { sortByDate } from "../utils/sort-by-date";
 import { isAnnounced } from "../utils/is-announced";
@@ -95,6 +99,20 @@ export default class StudentService {
 
     const sectionIds = studentCourses.map((course) => course.section_id);
 
+    // Built once rather than a find() per row, and it is total over sectionIds
+    // by construction: the ids are read off this very list, and both queries
+    // below are filtered to them. So the "" fallback is unreachable — it is
+    // there because the type has to say something, and "" is what a classwork
+    // row already uses for a subject with no name (#68). Keyed on `number |
+    // null` so that a nullable section_id is looked up as it is, rather than
+    // being turned into the fake id 0 on the way in.
+    const courseNames = new Map<number | null, string>(
+      studentCourses.map((course) => [
+        course.section_id,
+        course.course_name_en,
+      ]),
+    );
+
     const activities = await prisma.student_activity.findMany({
       where: {
         student_id,
@@ -150,12 +168,10 @@ export default class StudentService {
       .map((c) => ({
         id: c.id,
         name: c.activities.activity_name,
-        deadline_date: c.activities.deadline_date,
+        deadline_date: c.activities.deadline_date?.toISOString() ?? null,
         type: c.activities.activity_type,
         status: c.status,
-        course: studentCourses.find(
-          (sc) => sc.section_id === c.activities.section_id,
-        )?.course_name_en,
+        course: courseNames.get(c.activities.section_id) ?? "",
       }));
 
     const calendarLearningActivities: CalendarClassworkEvent[] =
@@ -164,27 +180,24 @@ export default class StudentService {
         .map((c) => ({
           id: c.id,
           name: c.learning_activities.learning_activity_name,
-          deadline_date: c.learning_activities.deadline_date,
+          deadline_date:
+            c.learning_activities.deadline_date?.toISOString() ?? null,
           type: c.learning_activities.learning_activity_type,
           status: c.status,
-          course: studentCourses.find(
-            (sc) => sc.section_id === c.learning_activities.section_id,
-          )?.course_name_en,
+          course: courseNames.get(c.learning_activities.section_id) ?? "",
         }));
 
-    const courses = studentCourses.map(
-      (sc) =>
-        ({
-          id: sc.section_id,
-          name: sc.course_name_en,
-          // start_date: sc.course_sections.start_date,
-          // end_date: sc.course_sections.end_date,
-          day_of_week: sc.day_of_week,
-          start_time: sc.start_time,
-          end_time: sc.end_time,
-          classroom: sc.classroom,
-        }) as CalendarCourseEvent,
-    );
+    // The `as CalendarCourseEvent` this used to carry was hiding nothing —
+    // every field lines up with CourseDetail, which is what studentCourses
+    // holds. Dropped so that the next drift is a type error (ADR-0045).
+    const courses: CalendarCourseEvent[] = studentCourses.map((sc) => ({
+      id: sc.section_id,
+      name: sc.course_name_en,
+      day_of_week: sc.day_of_week,
+      start_time: sc.start_time,
+      end_time: sc.end_time,
+      classroom: sc.classroom,
+    }));
 
     return {
       activities: calendarActivities,
@@ -193,25 +206,38 @@ export default class StudentService {
     };
   }
 
-  async getStudentInSec(section_id: number) {
-    const students = await prisma.student_course.findMany({
-      where: { section_id: section_id },
+  /**
+   * The roster, in one query rather than one per student.
+   *
+   * It used to read `student_course` and then `findUnique` the `student` row
+   * for each id it found, with no `select` on either, so the response carried
+   * all eleven columns of `student` — one of which is named `test`. That was
+   * not decided, it is what an unselected `findUnique` happens to do
+   * (ADR-0044 §1).
+   *
+   * `student_course.student_id` is a foreign key onto `student`, so reading it
+   * as a relation is the same set of rows, ordered the same way, in one round
+   * trip instead of one per student. The key also means the row can never be
+   * missing, which is why the old `{ ...result }` over a possibly-null
+   * `findUnique` never actually answered `{}` — it only said it might.
+   */
+  async getStudentInSec(section_id: number): Promise<StudentRosterEntry[]> {
+    const enrolments = await prisma.student_course.findMany({
+      where: { section_id },
       orderBy: { student_id: "asc" },
+      select: {
+        student: {
+          select: {
+            student_id: true,
+            first_name_th: true,
+            last_name_th: true,
+            full_name_th: true,
+          },
+        },
+      },
     });
 
-    const result = await Promise.all(
-      students.map(async (student) => {
-        const result = await prisma.student.findUnique({
-          where: { student_id: student.student_id },
-        });
-
-        return {
-          ...result,
-        };
-      }),
-    );
-
-    return result;
+    return enrolments.map((enrolment) => enrolment.student);
   }
 
   async submitActivity(
@@ -653,11 +679,13 @@ export default class StudentService {
     return result;
   }
 
+  /** `getCourseDetail` once per section the student is enrolled in this term,
+   *  in date order, with the sections it could not resolve dropped. */
   async getStudentCourseList(
     student_id: string,
     semester: number,
     academic_year: string,
-  ) {
+  ): Promise<CourseDetail[]> {
     const sections = await prisma.student_course.findMany({
       where: {
         student_id,
@@ -788,12 +816,14 @@ export default class StudentService {
     };
   }
 
-  private isToday = (date: Date | null): boolean => {
+  // The dates are ISO strings now, which is what the caller reads (#68), so
+  // the comparison is on the day the string already starts with rather than on
+  // a Date built to be thrown away.
+  private isToday = (date: string | null): boolean => {
     if (!date) return false;
 
     const today = new Date().toISOString().split("T")[0];
-    const dateStr = date.toISOString().split("T")[0];
-    return dateStr === today;
+    return date.split("T")[0] === today;
   };
 
   private resolveGroupTitle = (
@@ -939,7 +969,7 @@ export default class StudentService {
   ): keyof AllClassworkDetailResp => {
     if (!work.date) return "upcoming";
 
-    const time = work.date.getTime();
+    const time = new Date(work.date).getTime();
 
     if (work.status !== "NOT_SUBMITTED") return "submitted";
     if (time < week.now.getTime()) return "late";
@@ -949,7 +979,7 @@ export default class StudentService {
     return "upcoming";
   };
 
-  async getEnrolledSubjects(student_id: string) {
+  async getEnrolledSubjects(student_id: string): Promise<EnrolledSubject[]> {
     const enrollments = await prisma.student_course.findMany({
       where: { student_id },
       select: {
@@ -981,7 +1011,10 @@ export default class StudentService {
     }));
   }
 
-  async getActivitiesBySectionId(section_id: number, student_id: string) {
+  async getActivitiesBySectionId(
+    section_id: number,
+    student_id: string,
+  ): Promise<SectionActivityOption[]> {
     const activities = await prisma.activities.findMany({
       where: { section_id },
       select: {
@@ -1031,25 +1064,39 @@ export default class StudentService {
     return { monday, sunday, now };
   };
 
-  async getActivityDetailsByStudentActivityId(studentActivityId: number) {
+  /**
+   * One submission, for the e-Portfolio's work picker.
+   *
+   * The `include` this used to carry went four tables deep —
+   * `activities` → `subject_score_ratio` → `course_sections` →
+   * `semester_courses` → `subjects`, every column of each — to reach the
+   * subject that the `course` key below already names by a shorter road. The
+   * row itself had no `select`, so `graded_by`, `created_at` and `updated_at`
+   * went out with it. Neither was decided (ADR-0044 §1); what a caller reads is
+   * the ten fields and two relations named here.
+   */
+  async getActivityDetailsByStudentActivityId(
+    studentActivityId: number,
+  ): Promise<SubmissionWithCourse | null> {
     const studentActivity = await prisma.student_activity.findUnique({
       where: { id: studentActivityId },
-      include: {
+      select: {
+        id: true,
+        student_id: true,
+        activity_id: true,
+        status: true,
+        score: true,
+        feedback: true,
+        submitted_at: true,
+        graded_at: true,
+        is_bookmark: true,
+        remark: true,
+
         activities: {
-          include: {
-            subject_score_ratio: {
-              include: {
-                course_sections: {
-                  include: {
-                    semester_courses: {
-                      include: {
-                        subjects: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
+          select: {
+            id: true,
+            activity_name: true,
+            section_id: true,
           },
         },
       },
@@ -1057,12 +1104,15 @@ export default class StudentService {
 
     if (!studentActivity) return null;
 
-    // The whole row is the response, and score is Decimal(5,2) — a string on
-    // the wire unless it is converted here (#33).
+    // score is Decimal(5,2) — a string on the wire unless it is converted
+    // here (#33) — and the two dates are written out rather than left to
+    // res.json, which calls the same toJSON() on the way past (#68).
     const submission = {
       ...studentActivity,
       score:
         studentActivity.score !== null ? Number(studentActivity.score) : null,
+      submitted_at: studentActivity.submitted_at?.toISOString() ?? null,
+      graded_at: studentActivity.graded_at?.toISOString() ?? null,
     };
 
     if (studentActivity.activities.section_id) {
