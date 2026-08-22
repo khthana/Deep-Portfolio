@@ -1,24 +1,22 @@
 import { Breadcrumb } from "antd";
 import PersonalDetailsSection from "../../components/personal-details/personal-details-section";
 import PageLayout from "../../../../../components/container/page-layout";
-
 import { useEffect, useState } from "react";
 import PersonalDetailsEditModal from "../../components/personal-details/personal-details-edit-modal";
 import { getUser } from "../../../../../services/user.service";
 import { getPortfolioPersonal } from "../../../../../services/portfolio-personal.service";
 import type { UserResp } from "../../../../../types/user-type.type";
-import type { PortfolioPersonalResp } from "../../../../../types/portfolio-personal-type.type";
-
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../../../../../stores/stores";
 import { homeSliceAction } from "../../../../../features/student/home/stores/home-slice";
+import type { PortfolioPersonalDetail } from "@deep-portfolio/api-types";
 
 const StudentPersonalDetailsPage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { studentId } = useSelector((state: RootState) => state.home);
   const [user, setUser] = useState<UserResp | null>(null);
   const [portfolioPersonal, setPortfolioPersonal] =
-    useState<PortfolioPersonalResp | null>(null);
+    useState<PortfolioPersonalDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchData = async () => {

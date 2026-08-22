@@ -6,7 +6,7 @@ import {
   fetchStudentDetail,
 } from "./home-action";
 import type { AllClassworkDetailResp, StudentDetail } from "../types/home-type";
-import type { PortfolioPersonalResp } from "../../../../types/portfolio-personal-type.type";
+import type { PortfolioPersonalDetail } from "@deep-portfolio/api-types";
 import {
   failed,
   initialStateOf,
@@ -46,10 +46,20 @@ const student: StudentDetail = {
   program_name: "วิศวกรรมศาสตรบัณฑิต",
 };
 
-const personal: PortfolioPersonalResp = {
+// Every field the read answers. This used to name three of them and compile,
+// because the web's copy of the type made all but `user_id` optional; the
+// endpoint has always sent the lot (#68).
+const personal: PortfolioPersonalDetail = {
   user_id: "9f1c0d3e",
+  date_of_birth: null,
   nationality: "ไทย",
+  race: null,
+  github: null,
+  linkedin: null,
   email: "student@example.test",
+  phone_number: null,
+  attachment_id: null,
+  attachments: null,
 };
 
 describe("homeSlice", () => {

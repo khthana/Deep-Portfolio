@@ -7,7 +7,7 @@ import {
   fetchStudentDetail,
 } from "./home-action";
 import type { AllClassworkDetailResp, StudentDetail } from "../types/home-type";
-import type { PortfolioPersonalResp } from "../../../../types/portfolio-personal-type.type";
+import type { PortfolioPersonalDetail } from "@deep-portfolio/api-types";
 
 type HomeSlice = {
   selectedMenu: string;
@@ -22,7 +22,7 @@ type HomeSlice = {
 
   allClasswork: AllClassworkDetailResp | null;
   studentDetail: StudentDetail | null;
-  portfolioPersonal: PortfolioPersonalResp | null;
+  portfolioPersonal: PortfolioPersonalDetail | null;
 
   fetchAllClassworkLoading: boolean;
   fetchStudentDetailLoading: boolean;
@@ -74,7 +74,7 @@ export const homeSlice = createSlice({
     },
     setPortfolioPersonal(
       state,
-      action: PayloadAction<PortfolioPersonalResp | null>,
+      action: PayloadAction<PortfolioPersonalDetail | null>,
     ) {
       state.portfolioPersonal = action.payload;
     },

@@ -215,11 +215,22 @@ describe("POST /portfolio-personal", () => {
       .field("github", "https://example.test/somying");
 
     expect(response.status).toBe(201);
-    expect(response.body.data).toMatchObject({
+    // Every key: the row as it was written, and no `attachments` beside it.
+    // The read builds that field from the attachment the row points at; a
+    // write hands back what Prisma returned, which has no such key at all —
+    // absent, not null (#68).
+    expect(response.body.data).toEqual({
       user_id: student.student_id,
       nationality: "ไทย",
       github: "https://example.test/somying",
+      date_of_birth: null,
+      race: null,
+      linkedin: null,
+      email: null,
+      phone_number: null,
+      attachment_id: null,
     });
+    expect(response.body.data).not.toHaveProperty("attachments");
 
     const stored = await prisma.portfolio_personal.findUniqueOrThrow({
       where: { user_id: student.student_id },
@@ -365,6 +376,8 @@ describe("PUT /portfolio-personal/:user_id", () => {
       nationality: "ไทย",
       github: "https://example.test/new",
     });
+    // The row alone, the same as the create (#68).
+    expect(response.body.data).not.toHaveProperty("attachments");
   });
 
   it("replaces the profile picture and takes the old one with it", async () => {
@@ -532,6 +545,7 @@ describe("POST /portfolio-personal/:user_id/upsert", () => {
       user_id: student.student_id,
       nationality: "ไทย",
     });
+    expect(response.body.data).not.toHaveProperty("attachments");
     expect(
       await prisma.portfolio_personal.count({
         where: { user_id: student.student_id },
@@ -557,6 +571,7 @@ describe("POST /portfolio-personal/:user_id/upsert", () => {
       nationality: "ไทย",
       github: "https://example.test/new",
     });
+    expect(response.body.data).not.toHaveProperty("attachments");
     expect(
       await prisma.portfolio_personal.count({
         where: { user_id: student.student_id },

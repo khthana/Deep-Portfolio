@@ -1,17 +1,16 @@
 import WhiteContainer from "../../../../../components/container/white-container";
 import TitleWithEditIcon from "../title-with-edit-icon";
 import { getFile } from "../../../../../utils/get-file";
-
 import type { UserResp } from "../../../../../types/user-type.type";
-import type { PortfolioPersonalResp } from "../../../../../types/portfolio-personal-type.type";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
+import type { PortfolioPersonalDetail } from "@deep-portfolio/api-types";
 
 dayjs.locale("th");
 
 type PersonalDetailsSectionProps = {
   user: UserResp | null;
-  portfolioPersonal: PortfolioPersonalResp | null;
+  portfolioPersonal: PortfolioPersonalDetail | null;
   imageUrl?: string | null;
   onEdit: () => void;
 };

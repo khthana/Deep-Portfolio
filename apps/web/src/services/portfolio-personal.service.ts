@@ -2,14 +2,15 @@ import { endpoints } from "../configs/endpoints.config";
 import { axiosInstance } from "../lib/axios";
 import type { ResponseWrapper } from "../types/global-type";
 import type {
-  PortfolioPersonalResp,
-  UpsertPortfolioPersonalReq,
-} from "../types/portfolio-personal-type.type";
+  PortfolioPersonalDetail,
+  PortfolioPersonalRow,
+} from "@deep-portfolio/api-types";
+import type { UpsertPortfolioPersonalReq } from "../types/portfolio-personal-type.type";
 
 export const getPortfolioPersonal = async (user_id: string) => {
-  const resp = await axiosInstance.get<ResponseWrapper<PortfolioPersonalResp>>(
-    endpoints.portfolio_personal.detail(user_id),
-  );
+  const resp = await axiosInstance.get<
+    ResponseWrapper<PortfolioPersonalDetail>
+  >(endpoints.portfolio_personal.detail(user_id));
 
   return resp.data;
 };
@@ -39,7 +40,10 @@ export const upsertPortfolioPersonal = async (
     formData.append("file", file);
   }
 
-  const resp = await axiosInstance.post<ResponseWrapper<PortfolioPersonalResp>>(
+  // The row, not the detail: an upsert hands back what it wrote, with no
+  // `attachments` key beside it. The read is the only endpoint that goes and
+  // fetches the picture (#68).
+  const resp = await axiosInstance.post<ResponseWrapper<PortfolioPersonalRow>>(
     `${endpoints.portfolio_personal.detail(user_id)}/upsert`,
     formData,
     {

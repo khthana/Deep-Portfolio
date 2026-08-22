@@ -5,12 +5,12 @@ import {
   getStudentDetail,
 } from "../services/home-service.service";
 import { getPortfolioPersonal } from "../../../../services/portfolio-personal.service";
+import type { PortfolioPersonalDetail } from "@deep-portfolio/api-types";
 import type {
   AllClassworkDetailResp,
   GetStudentAllCLassworkListParams,
   StudentDetail,
 } from "../types/home-type";
-import type { PortfolioPersonalResp } from "../../../../types/portfolio-personal-type.type";
 
 export const fetchAllClasswork = createAsyncThunk<
   ResponseWrapper<AllClassworkDetailResp>,
@@ -23,6 +23,6 @@ export const fetchStudentDetail = createAsyncThunk<
 >("student/detail", getStudentDetail);
 
 export const fetchPortfolioPersonal = createAsyncThunk<
-  ResponseWrapper<PortfolioPersonalResp>,
+  ResponseWrapper<PortfolioPersonalDetail>,
   string
 >("student/portfolio/personal", getPortfolioPersonal);

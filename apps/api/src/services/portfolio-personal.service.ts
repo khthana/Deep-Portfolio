@@ -1,12 +1,30 @@
 import { Prisma } from "@prisma/client";
+import type { portfolio_personal } from "@prisma/client";
+import type {
+  PortfolioPersonalDetail,
+  PortfolioPersonalRow,
+} from "@deep-portfolio/api-types";
 import prisma from "../config/prisma";
 import {
   CreatePortfolioPersonalReqBody,
   UpdatePortfolioPersonalReqBody,
-  PortfolioPersonalResp,
 } from "../models/portfolio-personal.model";
 import AttachmentsService from "./attachments.service";
 import MinIOService from "./upload.service";
+
+/**
+ * One row of `portfolio_personal` as a caller reads it.
+ *
+ * `date_of_birth` is the only column that is not already what the wire says.
+ * `JSON.stringify` would turn it into the same string anyway; doing it here is
+ * what lets the return types say `string | null` and be true (#68).
+ */
+const toPortfolioPersonalRow = (
+  row: portfolio_personal,
+): PortfolioPersonalRow => ({
+  ...row,
+  date_of_birth: row.date_of_birth?.toISOString() ?? null,
+});
 
 export default class PortfolioPersonalService {
   private readonly attachmentsService: AttachmentsService;
@@ -64,7 +82,7 @@ export default class PortfolioPersonalService {
 
   async getPortfolioPersonal(
     userId: string,
-  ): Promise<PortfolioPersonalResp | null> {
+  ): Promise<PortfolioPersonalDetail | null> {
     const portfolio = await prisma.portfolio_personal.findUnique({
       where: { user_id: userId },
       include: {
@@ -107,11 +125,11 @@ export default class PortfolioPersonalService {
     //
     // `users` is destructured off rather than spread: the join is how the
     // fallback was reached, not something the caller asked for —
-    // PortfolioPersonalResp does not declare it and the frontend does not read
+    // PortfolioPersonalDetail does not declare it and the frontend does not read
     // it. It used to be spread in and then `delete`d back off through an `any`.
     const { users, ...columns } = portfolio;
     const result = {
-      ...columns,
+      ...toPortfolioPersonalRow(columns),
       email: portfolio.email ?? users.email,
       phone_number: portfolio.phone_number ?? users.phone,
     };
@@ -147,22 +165,24 @@ export default class PortfolioPersonalService {
     userId: string,
     data: CreatePortfolioPersonalReqBody,
     file?: Express.Multer.File,
-  ): Promise<PortfolioPersonalResp> {
+  ): Promise<PortfolioPersonalRow> {
     const personal = await this.withUploadedPicture(data, file);
 
-    return await prisma.portfolio_personal.create({
+    const row = await prisma.portfolio_personal.create({
       data: {
         user_id: userId,
         ...personal,
       },
     });
+
+    return toPortfolioPersonalRow(row);
   }
 
   async updatePortfolioPersonal(
     userId: string,
     data: UpdatePortfolioPersonalReqBody,
     file?: Express.Multer.File,
-  ): Promise<PortfolioPersonalResp> {
+  ): Promise<PortfolioPersonalRow> {
     const personal = await this.withUploadedPicture(data, file);
 
     const { result, objects } = await prisma.$transaction(async (tx) => {
@@ -188,14 +208,14 @@ export default class PortfolioPersonalService {
 
     await this.uploadService.removeFiles(objects);
 
-    return result;
+    return toPortfolioPersonalRow(result);
   }
 
   async upsertPortfolioPersonal(
     userId: string,
     data: CreatePortfolioPersonalReqBody,
     file?: Express.Multer.File,
-  ): Promise<PortfolioPersonalResp> {
+  ): Promise<PortfolioPersonalRow> {
     const personal = await this.withUploadedPicture(data, file);
 
     const { result, objects } = await prisma.$transaction(async (tx) => {
@@ -225,12 +245,10 @@ export default class PortfolioPersonalService {
 
     await this.uploadService.removeFiles(objects);
 
-    return result;
+    return toPortfolioPersonalRow(result);
   }
 
-  async deletePortfolioPersonal(
-    userId: string,
-  ): Promise<PortfolioPersonalResp> {
+  async deletePortfolioPersonal(userId: string): Promise<PortfolioPersonalRow> {
     const { result, objects } = await prisma.$transaction(async (tx) => {
       const result = await tx.portfolio_personal.delete({
         where: { user_id: userId },
@@ -244,6 +262,6 @@ export default class PortfolioPersonalService {
 
     await this.uploadService.removeFiles(objects);
 
-    return result;
+    return toPortfolioPersonalRow(result);
   }
 }

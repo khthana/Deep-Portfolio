@@ -137,7 +137,12 @@ the case that proves the type cannot then be written at all, and
 `0039-the-row-and-what-is-added-to-it.md`, which says endpoints answering the
 same row with something added or nothing added get one type for the row and
 intersections over it, rather than the columns written out once per endpoint —
-the other half of 0030's question, which covered rows that genuinely differ.
+the other half of 0030's question, which covered rows that genuinely differ,
+and `0040-the-portfolio-is-ten-features.md`, which says a name shared by ten
+routers is a URL prefix rather than one feature, so the e-Portfolio walks as
+several passes with the aggregate read last, and that a shape belonging to one
+row is given its own small type rather than forced into the list shape its
+neighbours use.
 Everything the refactor itself decided is in `docs/spec-refactor-redeploy.md`,
 whose Implementation Decisions (D1–D13) and Testing Decisions (T1–T7) sections
 function as ADRs for that period. Treat a contradiction with either the same

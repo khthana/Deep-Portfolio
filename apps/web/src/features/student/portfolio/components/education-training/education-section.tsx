@@ -2,7 +2,6 @@ import { useState } from "react";
 import { paths } from "../../../../../routes/paths.config";
 import SectionLayout from "../section-layout";
 import EducationCard from "./education-card";
-import type { PortfolioEducationResp } from "../../../../../types/portfolio-education-type.type";
 import EducationEditModal from "./education-edit-modal";
 import {
   educationDegreeLabel,
@@ -10,17 +9,17 @@ import {
 } from "../../types/education-section-type.type";
 import { deletePortfolioEducation } from "../../../../../services/portfolio-education.service";
 import { message } from "antd";
+import type { PortfolioEducationDetail } from "@deep-portfolio/api-types";
 
 type EducationSectionProps = {
-  data?: PortfolioEducationResp[];
+  data?: PortfolioEducationDetail[];
   onRefresh?: () => void;
 };
 
 const EducationSection = ({ data, onRefresh }: EducationSectionProps) => {
   const [messageApi, contextHolder] = message.useMessage();
-  const [editingItem, setEditingItem] = useState<PortfolioEducationResp | null>(
-    null,
-  );
+  const [editingItem, setEditingItem] =
+    useState<PortfolioEducationDetail | null>(null);
 
   const handleEdit = (id: number) => {
     const item = data?.find((i) => i.id === id);

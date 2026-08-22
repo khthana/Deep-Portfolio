@@ -1,19 +1,16 @@
 import { Modal, Form, Input, DatePicker, message, Upload, Image } from "antd";
 import { useEffect, useState } from "react";
 import { upsertPortfolioPersonal } from "../../../../../services/portfolio-personal.service";
-import type {
-  PortfolioPersonalResp,
-  UpsertPortfolioPersonalReq,
-} from "../../../../../types/portfolio-personal-type.type";
+import type { UpsertPortfolioPersonalReq } from "../../../../../types/portfolio-personal-type.type";
 import type { UserResp } from "../../../../../types/user-type.type";
 import dayjs from "dayjs";
 import type { UploadFile } from "antd/es/upload/interface";
 import Button from "../../../../../components/button/button";
 import { getFile } from "../../../../../utils/get-file";
 import CountryInput from "../../../../../components/input/country-input";
-
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../../../stores/stores";
+import type { PortfolioPersonalDetail } from "@deep-portfolio/api-types";
 
 type PersonalDetailsEditModalProps = {
   isOpen: boolean;
@@ -21,7 +18,7 @@ type PersonalDetailsEditModalProps = {
   onSuccess: () => void;
   initialData: {
     user: UserResp | null;
-    portfolioPersonal: PortfolioPersonalResp | null;
+    portfolioPersonal: PortfolioPersonalDetail | null;
   };
 };
 

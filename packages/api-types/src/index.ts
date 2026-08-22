@@ -29,7 +29,10 @@
  * (docs/adr/0038-a-factory-must-be-able-to-say-null.md), and then the weekly
  * plan itself, three of whose four shapes are the same row with something added
  * or nothing added and so are written as intersections over it
- * (docs/adr/0039-the-row-and-what-is-added-to-it.md).
+ * (docs/adr/0039-the-row-and-what-is-added-to-it.md), and then the first two
+ * sections of the e-Portfolio — the student's personal details and their
+ * schooling — which is where that feature turned out to be ten of them
+ * (docs/adr/0040-the-portfolio-is-ten-features.md).
  *
  * docs/adr/0028-shared-api-types.md says why the package is shaped this way
  * and docs/adr/0029-api-types-per-feature.md what each pass after the first
@@ -110,6 +113,14 @@ export type {
   LearningActivityListItem,
   LearningActivityType,
 } from "./learning-activity";
+
+export type { PortfolioEducationDetail } from "./portfolio-education";
+
+export type {
+  PortfolioPersonalDetail,
+  PortfolioPersonalPicture,
+  PortfolioPersonalRow,
+} from "./portfolio-personal";
 
 export type { RubricDetail, RubricLevel } from "./rubric";
 

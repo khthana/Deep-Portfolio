@@ -4,16 +4,16 @@ import Button from "../../../../../components/button/button";
 import { updatePortfolioEducation } from "../../../../../services/portfolio-education.service";
 import CountryInput from "../../../../../components/input/country-input";
 import { educationDegreeOptions } from "../../types/education-section-type.type";
-import type { PortfolioEducationResp } from "../../../../../types/portfolio-education-type.type";
 import type { UpdatePortfolioEducationReq } from "../../../../../types/portfolio-education-type.type";
 import { convertToBE, convertToCE } from "../../../../../utils/year-utils";
 import type { MessageInstance } from "antd/es/message/interface";
+import type { PortfolioEducationDetail } from "@deep-portfolio/api-types";
 
 type EducationEditModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  data: PortfolioEducationResp | null;
+  data: PortfolioEducationDetail | null;
   messageApi: MessageInstance;
 };
 

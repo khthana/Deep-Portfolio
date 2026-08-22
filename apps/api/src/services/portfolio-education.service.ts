@@ -1,13 +1,13 @@
 import { Decimal } from "@prisma/client/runtime/library";
 import prisma from "../config/prisma";
+import type { PortfolioEducationDetail } from "@deep-portfolio/api-types";
 import {
   CreatePortfolioEducationReqBody,
   UpdatePortfolioEducationReqBody,
-  PortfolioEducationResp,
 } from "../models/portfolio-education.model";
 
 /** The row as Prisma hands it over — gpa still a Decimal. */
-type PortfolioEducationRow = Omit<PortfolioEducationResp, "gpa"> & {
+type PortfolioEducationRow = Omit<PortfolioEducationDetail, "gpa"> & {
   gpa: Decimal | null;
 };
 
@@ -16,7 +16,7 @@ type PortfolioEducationRow = Omit<PortfolioEducationResp, "gpa"> & {
  * says number — so convert it here rather than let the two disagree with the
  * wire. Same treatment /evaluation/list gives its score.
  */
-function withNumericGpa(row: PortfolioEducationRow): PortfolioEducationResp {
+function withNumericGpa(row: PortfolioEducationRow): PortfolioEducationDetail {
   return { ...row, gpa: row.gpa !== null ? Number(row.gpa) : null };
 }
 
@@ -25,7 +25,7 @@ export default class PortfolioEducationService {
 
   async getAllPortfolioEducation(
     userId: string,
-  ): Promise<PortfolioEducationResp[]> {
+  ): Promise<PortfolioEducationDetail[]> {
     const rows = await prisma.portfolio_education.findMany({
       where: { user_id: userId },
       orderBy: { start_year: "desc" },
@@ -36,7 +36,7 @@ export default class PortfolioEducationService {
 
   async getPortfolioEducationById(
     id: number,
-  ): Promise<PortfolioEducationResp | null> {
+  ): Promise<PortfolioEducationDetail | null> {
     const row = await prisma.portfolio_education.findUnique({
       where: { id },
     });
@@ -47,7 +47,7 @@ export default class PortfolioEducationService {
   async createPortfolioEducation(
     userId: string,
     data: CreatePortfolioEducationReqBody,
-  ): Promise<PortfolioEducationResp> {
+  ): Promise<PortfolioEducationDetail> {
     const row = await prisma.portfolio_education.create({
       data: {
         user_id: userId,
@@ -61,7 +61,7 @@ export default class PortfolioEducationService {
   async updatePortfolioEducation(
     id: number,
     data: UpdatePortfolioEducationReqBody,
-  ): Promise<PortfolioEducationResp> {
+  ): Promise<PortfolioEducationDetail> {
     const row = await prisma.portfolio_education.update({
       where: { id },
       data,
@@ -70,7 +70,9 @@ export default class PortfolioEducationService {
     return withNumericGpa(row);
   }
 
-  async deletePortfolioEducation(id: number): Promise<PortfolioEducationResp> {
+  async deletePortfolioEducation(
+    id: number,
+  ): Promise<PortfolioEducationDetail> {
     const row = await prisma.portfolio_education.delete({
       where: { id },
     });

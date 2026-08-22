@@ -13,19 +13,10 @@ export type CreatePortfolioPersonalReqBody = PortfolioPersonalFields;
 
 export type UpdatePortfolioPersonalReqBody = PortfolioPersonalFields;
 
-export type PortfolioPersonalResp = {
-  user_id: string;
-  date_of_birth: Date | null;
-  nationality: string | null;
-  race: string | null;
-  github: string | null;
-  linkedin: string | null;
-  email: string | null;
-  phone_number: string | null;
-  attachment_id: number | null;
-  attachments?: {
-    attachment_id: number;
-    url: string | null;
-    file_path: string | null;
-  } | null;
-};
+// PortfolioPersonalResp used to be declared here. It moved to
+// @deep-portfolio/api-types (#68) and split in two on the way:
+// `PortfolioPersonalRow` for the four writes and `PortfolioPersonalDetail` for
+// the read. What it said that the endpoints do not: `date_of_birth` is a
+// string on the wire, not a `Date`; and `attachments` was optional on one type
+// covering both, which read as "sometimes null" when what it means is that a
+// write has no such key at all. See ADR-0033 for that distinction.

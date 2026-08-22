@@ -1,15 +1,15 @@
 import { axiosInstance } from "../lib/axios";
 import { endpoints } from "../configs/endpoints.config";
 import type { ResponseWrapper } from "../types/global-type";
+import type { PortfolioEducationDetail } from "@deep-portfolio/api-types";
 import type {
   CreatePortfolioEducationReq,
-  PortfolioEducationResp,
   UpdatePortfolioEducationReq,
 } from "../types/portfolio-education-type.type";
 
 export const getAllPortfolioEducation = async (user_id: string) => {
   const resp = await axiosInstance.get<
-    ResponseWrapper<PortfolioEducationResp[]>
+    ResponseWrapper<PortfolioEducationDetail[]>
   >(endpoints.portfolio_education.list, {
     params: { user_id },
   });
@@ -21,7 +21,7 @@ export const createPortfolioEducation = async (
   data: CreatePortfolioEducationReq,
 ) => {
   const resp = await axiosInstance.post<
-    ResponseWrapper<PortfolioEducationResp>
+    ResponseWrapper<PortfolioEducationDetail>
   >(endpoints.portfolio_education.root, data);
   return resp.data;
 };
@@ -30,16 +30,15 @@ export const updatePortfolioEducation = async (
   id: number,
   data: UpdatePortfolioEducationReq,
 ) => {
-  const resp = await axiosInstance.put<ResponseWrapper<PortfolioEducationResp>>(
-    endpoints.portfolio_education.detail(id),
-    data,
-  );
+  const resp = await axiosInstance.put<
+    ResponseWrapper<PortfolioEducationDetail>
+  >(endpoints.portfolio_education.detail(id), data);
   return resp.data;
 };
 
 export const deletePortfolioEducation = async (id: number) => {
   const resp = await axiosInstance.delete<
-    ResponseWrapper<PortfolioEducationResp>
+    ResponseWrapper<PortfolioEducationDetail>
   >(endpoints.portfolio_education.detail(id));
   return resp.data;
 };

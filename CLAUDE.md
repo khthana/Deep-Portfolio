@@ -169,8 +169,12 @@ type of its own and the other two are intersections over it, rather than nine
 columns written out three times. That pass is the second to change what a
 caller sees, and the only one so far to change it on the web rather than at the
 API: a week added without a description could not be edited at all, because the
-edit form handed the null straight back and `optionalText` refuses null.
-33 files and 1,765 lines are still web-side.
+edit form handed the null straight back and `optionalText` refuses null. The
+e-Portfolio started next, and ADR-0040 came out of opening it: what looks like
+one feature is ten routers and 58 endpoints, so it walks as several passes with
+the aggregate `/portfolio` last, because its service calls all nine sections.
+The first of those passes moved the student's personal details and their
+schooling. 33 files and 1,746 lines are still web-side.
 
 **The database has real data in it.** One faculty, 14 departments, 3
 programmes, 65 subjects and 18 teachers went in through the importer on
